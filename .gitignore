@@ -1,2 +1,4 @@
 docker_volumes/
 core/dataset/
+*/.tmp_pythoN/
+.directory
