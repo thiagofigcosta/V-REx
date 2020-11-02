@@ -83,7 +83,7 @@ def pre_compile(content,print_out=False):
     for line in lines:
         turn_off_dictionary=False
         line=line.strip()
-        if re.match(r'^.*[ |\t]*=[ |\t]*({)\s*(.*})?$', line):
+        if re.match(r'(.*[ |\t]*=[ |\t]*({)\s*(.*})?|(?<![\'|\"]).*\(\s*({)\s*(.*}\))\s*)$', line):
             dictionary=True
         if re.match(r'^.*}((?=(?:[^\"\']*\"\'[^\"\']*\"\')*[^\"\']*\Z)|\s*(else|elif))', line): 
             if not dictionary:
