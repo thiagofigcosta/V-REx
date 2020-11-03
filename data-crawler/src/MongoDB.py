@@ -67,7 +67,15 @@ class MongoDB(object){
         return self.raw_db
     }
 
-    def startQueue(self,id=0){ # https://pypi.org/project/mongoqueue/ http://learnmongodbthehardway.com/schema/queues/
+    def startQueue(self,id=0){ 
+        # TODO fix queue, add manually sources, pip code not working
+        #https://github.com/kapilt/mongoqueue/blob/master/mongoqueue/test.py
+        #https://github.com/kapilt/mongoqueue/blob/master/mongoqueue/mongoqueue.py
+        #https://github.com/kapilt/mongoqueue/blob/master/mongoqueue/lock.py
+        #https://github.com/kapilt/mongoqueue/blob/master/mongoqueue/__init__.py
+        
+        
+        # https://pypi.org/project/mongoqueue/ http://learnmongodbthehardway.com/schema/queues/
         consumer_id='consumer_{}'.format(id)
         #collection=self.client.task_queue # TODO test
         collection=self.client[QUEUE_DB_NAME][QUEUE_COL_NAME]
