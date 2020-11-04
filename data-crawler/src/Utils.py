@@ -7,7 +7,7 @@ import os
 import codecs
 import zipfile
 from datetime import datetime
-import tarfile
+import gzip
 import json
 
 class Utils(object){
@@ -125,13 +125,26 @@ class Utils(object){
     }
 
     @staticmethod
-    def ungzip(path){
+    def gunzip(path,extension){
+        Utils.LOGGER.info('Gunziping file {}...'.format(path))
         destination_folder=Utils.TMP_FOLDER+Utils.filenameFromPath(path)+'/'
-        Utils.createFolderIfNotExists(destination_folder)
-        with tarfile.open(path, 'r:gz') as gzip_ref{
-            gzip_ref.extractall(destination_folder)
-        }
+        Utils.createFolderIfNotExists(destination_folder)        
+        destination_filename=Utils.filenameFromPath(path)+extension
+        block_size=65536
+        with gzip.open(path, 'rb') as s_file{
+            destination_path=destination_folder+destination_filename
+            with open(destination_path, 'wb') as d_file{
+                while True{
+                    block = s_file.read(block_size)
+                    if not block{
+                        break
+                    }else{
+                        d_file.write(block)
+                    }
+                }
+            }
         Utils.deleteFile(path)
+        Utils.LOGGER.info('Gunziped file {}...OK'.format(path))
         return destination_folder
     }
 

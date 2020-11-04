@@ -62,9 +62,8 @@ class DataCrawler(object){
     }
 
     def loadDatabases(self){
-        DataCrawler.SOURCES.append({'id':'CVE_MITRE','index':'cve','direct_download_url':'https://cve.mitre.org/data/downloads/allitems.csv'})
+        DataCrawler.SOURCES.append({'id':'CVE_MITRE','index':'cve','direct_download_url':'https://cve.mitre.org/data/downloads/allitems.csv.gz'})
         DataCrawler.SOURCES.append({'id':'CWE_MITRE','index':'cwe','direct_download_url':'https://cwe.mitre.org/data/xml/cwec_latest.xml.zip'})
-        # TODO download CVE_MITRE using .gz, to shrink the download size
         # TODO code below parses v
         DataCrawler.SOURCES.append({'id':'CVE_NVD','index':'cve','direct_download_urls':['https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2020.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2019.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2018.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2017.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2016.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2015.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2014.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2013.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2012.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2011.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2010.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2009.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2008.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2007.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2006.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2005.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2004.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2003.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2002.json.zip']})
         DataCrawler.SOURCES.append({'id':'CPE_NVD','index':'cpe','direct_download_url':'https://nvd.nist.gov/feeds/json/cpematch/1.0/nvdcpematch-1.0.json.zip'})
@@ -83,9 +82,9 @@ class DataCrawler(object){
 
     def parseDBtoDocuments(self,id,path){
         source=self.getSourceFromId(id)
+        self.logger.info('Parsing data {} for {}...'.format(path,id))
         documents=[]
         if id=='CVE_MITRE'{
-            self.logger.info('Parsing data {} for {}...'.format(path,id))
             columns_size=Utils.countCSVColumns(path)
             df=pd.read_csv(path,header=None,engine='python',names=range(columns_size)).values
             documents.append({source['index']:'__metadata__'})
@@ -103,9 +102,7 @@ class DataCrawler(object){
                 }
                 documents.append(cve_entry)
             }
-            self.logger.info('Parsed data {} for {}...OK'.format(path,id))
-        }elif id=='CWE_MITRE'{ # TODO Severe workarounds, is not the ideal solution but xmlschema is not working
-            self.logger.info('Parsing {} for {}'.format(path,id))
+        }elif id=='CWE_MITRE'{ # TODO Severe workarounds, it is not the ideal solution but xmlschema is not working
             xmldict=XmlDictParser.fromFile(path,filter=True)
             self.logger.info('Searching for {} schema...'.format(id))
             possible_schemas=xmldict['schemaLocation'].split(' ')
@@ -253,6 +250,7 @@ class DataCrawler(object){
         }else{
             raise Exception('Unknown id({}).'.format(id))
         }
+        self.logger.info('Parsed data {} for {}...OK'.format(path,id))
         return documents
     }
 
@@ -260,10 +258,16 @@ class DataCrawler(object){
         source=self.getSourceFromId(id)
         if id=='CVE_MITRE'{
             self.logger.info('Downloading CVEs from {}...'.format(id))
-            path=self.downloadFromLink(source['direct_download_url'],'{}_all_items.csv'.format(source['id']))
+            path=self.downloadFromLink(source['direct_download_url'],'{}_all_items.csv.gz'.format(source['id']))
             self.logger.info('Downloaded CVEs from {}...OK'.format(id))
-            documents=self.parseDBtoDocuments(id,path)
-            return documents, path
+            destination_folder=Utils.gunzip(path,'')
+            for file_str in os.listdir(destination_folder){
+                if re.search(r'.*\.csv$', file_str){
+                    csv_path=destination_folder+file_str
+                }
+            }
+            documents=self.parseDBtoDocuments(id,csv_path)
+            return documents, destination_folder
         }elif id=='CWE_MITRE'{
             self.logger.info('Downloading CWEs from {}...'.format(id))
             path=self.downloadFromLink(source['direct_download_url'],'{}_cwec_latest.xml.zip'.format(source['id']))
