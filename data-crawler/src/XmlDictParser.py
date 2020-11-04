@@ -3,6 +3,8 @@
 
 from xml.etree import cElementTree as ElementTree
 import re 
+from lxml import etree
+from Utils import Utils
 
 class XmlDictParser(dict){ 
 
@@ -35,6 +37,25 @@ class XmlDictParser(dict){
         root = tree.getroot()
         return cls(root,filter)
     }
+
+    @classmethod
+    def fromFileWithSchema(cls,xml_path,schema_path,filter=False){
+         with open(schema_path) as f{
+            xmlschema_doc = etree.parse(f)
+        }
+        xmlschema = etree.XMLSchema(xmlschema_doc)
+        tree = etree.parse(xml_path)
+        root = tree.getroot()
+        return cls(root,filter)
+    }
+
+    # TODO cannot parse fields because cannot handle mixed="true" data from parent
+    # @staticmethod
+    # def fromFileWithSchema(xml_path,schema_path,filter=False){
+    #     import xmlschema
+    #     schema = xmlschema.XMLSchema(schema_path)
+    #     return schema.to_dict(xml_path) 
+    # }
 
     @classmethod
     def fromString(cls,string,filter=False){
@@ -127,6 +148,63 @@ class XmlDictParser(dict){
         }
         for k in to_remove{
             dictionary.pop(k)
+        }
+        return dictionary
+    }
+
+    @staticmethod
+    def compressDictOnFollowingKeys(dictionary,keys,father=None){
+        default_key_name='value'
+        for k in list(dictionary){
+            v=dictionary[k]
+            if type(v) in (dict,XmlDictParser,list){
+                if type(v) is list {
+                    for i in range(len(v)){
+                        if type(v[i]) in (dict,XmlDictParser){
+                            v[i]=XmlDictParser.compressDictOnFollowingKeys(v[i],keys,v)
+                        }
+                    }
+                }else{
+                    dictionary[k]=XmlDictParser.compressDictOnFollowingKeys(v,keys,dictionary)
+                }
+
+                if type(v) in (dict,XmlDictParser){
+                    compressed=[]
+                    other_type=False
+                    for k2 in list(v){
+                        v2=v[k2]
+                        if k2 in keys{
+                            if type(v2) is str {
+                                compressed.append(v2)
+                                v.pop(k2)
+                            }elif type(v2) is list and all(type(v3) is str for v3 in v2){
+                                compressed=compressed+v2
+                                v.pop(k2)
+                            }elif type(v2) in (dict,XmlDictParser,list) and len(v2)==0 {
+                                v.pop(k2)
+                            }else{
+                                other_type=True
+                            }
+                        }
+                    }
+                    if len(compressed)>1{
+                        if not other_type and father{
+                            if len(father)==1{
+                                father=compressed
+                            }else{
+                                if type(father) is list{ 
+                                    father.append(compressed)
+                                }else{
+                                    father[default_key_name]=compressed
+                                }
+                                
+                            }
+                        }else{
+                            v[default_key_name]=compressed
+                        }
+                    }
+                }
+            }
         }
         return dictionary
     }

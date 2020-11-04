@@ -77,6 +77,15 @@ class Utils(object){
     }
 
     @staticmethod
+    def getIndexOfDictList(docs,key,value){
+        for i in range(len(docs)){
+            if docs[i][key]==value{
+                return i
+            }
+        }
+    }
+
+    @staticmethod
     def countCSVColumns(path,delimiter=','){
         max_columns=0
         with codecs.open(path, 'r', 'utf-8',errors='ignore') as file{
@@ -124,5 +133,19 @@ class Utils(object){
         }
         Utils.deleteFile(path)
         return destination_folder
+    }
+
+    @staticmethod
+    def openFile(path){
+        with codecs.open(path, 'r', 'utf-8', errors='ignore') as file{
+            return file.read()
+        }
+    }
+
+    @staticmethod
+    def saveFile(path,content){
+        with codecs.open(path, 'w', 'utf-8') as file{
+            file.write(content)
+        }
     }
 }
