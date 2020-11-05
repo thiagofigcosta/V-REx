@@ -39,6 +39,10 @@ crawler=DataCrawler(mongo,LOGGER)
 # out=crawler.parseDBtoDocuments('CVE_NVD',['/tmp/crawler/CVE_NVD_unziped/nvdcve-1.1-2005.json', '/tmp/crawler/CVE_NVD_unziped/nvdcve-1.1-2020.json', '/tmp/crawler/CVE_NVD_unziped/nvdcve-1.1-2012.json', '/tmp/crawler/CVE_NVD_unziped/nvdcve-1.1-2007.json', '/tmp/crawler/CVE_NVD_unziped/nvdcve-1.1-2010.json', '/tmp/crawler/CVE_NVD_unziped/nvdcve-1.1-2009.json', '/tmp/crawler/CVE_NVD_unziped/nvdcve-1.1-2011.json', '/tmp/crawler/CVE_NVD_unziped/nvdcve-1.1-2003.json', '/tmp/crawler/CVE_NVD_unziped/nvdcve-1.1-2016.json', '/tmp/crawler/CVE_NVD_unziped/nvdcve-1.1-2004.json', '/tmp/crawler/CVE_NVD_unziped/nvdcve-1.1-2015.json', '/tmp/crawler/CVE_NVD_unziped/nvdcve-1.1-2006.json', '/tmp/crawler/CVE_NVD_unziped/nvdcve-1.1-2017.json', '/tmp/crawler/CVE_NVD_unziped/nvdcve-1.1-2019.json', '/tmp/crawler/CVE_NVD_unziped/nvdcve-1.1-2008.json', '/tmp/crawler/CVE_NVD_unziped/nvdcve-1.1-2002.json', '/tmp/crawler/CVE_NVD_unziped/nvdcve-1.1-2014.json', '/tmp/crawler/CVE_NVD_unziped/nvdcve-1.1-2013.json', '/tmp/crawler/CVE_NVD_unziped/nvdcve-1.1-2018.json'])
 # mongo.insertManyOnRawDB(out,'CVE_NVD','cve')
 
+# crawler.downloadRawDataFrom('CAPEC_MITRE')
+out=crawler.parseDBtoDocuments('CAPEC_MITRE',['/tmp/crawler/CAPEC_MITRE_latest.xml/capec_v3.3.xml','/tmp/crawler/CAPEC_MITRE_latest.xml/ap_schema_v3.3.xsd'])
+mongo.insertManyOnRawDB(out,'CAPEC_MITRE','capec')
+
 # crawler.downloadRawDataFrom('CVE_MITRE')
 # documents=crawler.parseCSVtoDocuments('CVE_MITRE','/tmp/crawler/CVE_MITRE_all_items (copy).csv')
 # mongo.insertManyOnRawDB(documents,'CVE_MITRE','cve')

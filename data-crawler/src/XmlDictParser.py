@@ -4,6 +4,7 @@
 from xml.etree import cElementTree as ElementTree
 import re 
 from lxml import etree
+import xmlschema
 from Utils import Utils
 
 class XmlDictParser(dict){ 
@@ -39,7 +40,7 @@ class XmlDictParser(dict){
     }
 
     @classmethod
-    def fromFileWithSchema(cls,xml_path,schema_path,filter=False){
+    def fromFileWithSchema2(cls,xml_path,schema_path,filter=False){
          with open(schema_path) as f{
             xmlschema_doc = etree.parse(f)
         }
@@ -50,12 +51,11 @@ class XmlDictParser(dict){
     }
 
     # TODO cannot parse fields because cannot handle mixed="true" data from parent
-    # @staticmethod
-    # def fromFileWithSchema(xml_path,schema_path,filter=False){
-    #     import xmlschema
-    #     schema = xmlschema.XMLSchema(schema_path)
-    #     return schema.to_dict(xml_path) 
-    # }
+    @staticmethod
+    def fromFileWithSchema(xml_path,schema_path){
+        schema = xmlschema.XMLSchema(schema_path)
+        return schema.to_dict(xml_path) 
+    }
 
     @classmethod
     def fromString(cls,string,filter=False){
@@ -82,8 +82,8 @@ class XmlDictParser(dict){
                     dictionary[k]=XmlDictParser.staticFilterKeys(v)
                 }
             }
-            if re.search(r'{.*}.+', k){
-                k_new=re.sub(r'{.*?}','',k)
+            if re.search(r'{.*}.+', str(k)){
+                k_new=re.sub(r'{.*?}','',str(k))
                 to_replace.append((k_new,k))               
             }
         }
@@ -204,6 +204,29 @@ class XmlDictParser(dict){
                         }
                     }
                 }
+            }
+        }
+        return dictionary
+    }
+
+    @staticmethod
+    def stringfyDict(dictionary){
+        for k in list(dictionary){
+            v=dictionary[k]
+            dictionary.pop(k)
+            dictionary[str(k)]=v
+            if type(v) in (dict,XmlDictParser,list){
+                if type(v) is list {
+                    for i in range(len(v)){
+                        if type(v[i]) in (dict,XmlDictParser){
+                            v[i]=XmlDictParser.stringfyDict(v[i])
+                        }
+                    }
+                }else{
+                    dictionary[k]=XmlDictParser.stringfyDict(v)
+                }
+            }else{
+                dictionary[k]=str(v)
             }
         }
         return dictionary

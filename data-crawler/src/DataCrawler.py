@@ -66,7 +66,7 @@ class DataCrawler(object){
         DataCrawler.SOURCES.append({'id':'CWE_MITRE','index':'cwe','direct_download_url':'https://cwe.mitre.org/data/xml/cwec_latest.xml.zip'})
         DataCrawler.SOURCES.append({'id':'CVE_NVD','index':'cve','direct_download_urls':['https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2020.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2019.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2018.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2017.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2016.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2015.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2014.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2013.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2012.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2011.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2010.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2009.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2008.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2007.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2006.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2005.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2004.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2003.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2002.json.zip']})
         # TODO code below parses v
-        DataCrawler.SOURCES.append({'id':'CAPEC_MITRE','index':'capec','direct_download_url':'http://capec.mitre.org/data/xml/capec_latest.xml'})
+        DataCrawler.SOURCES.append({'id':'CAPEC_MITRE','index':'capec','direct_download_url':'http://capec.mitre.org/data/archive/capec_latest.zip'})
         DataCrawler.SOURCES.append({'id':'OVAL','index':'oval','direct_download_url':'https://oval.cisecurity.org/repository/download/5.11.2/all/oval.xml'})
     }
 
@@ -126,7 +126,7 @@ class DataCrawler(object){
             self.logger.info('Downloading schema for {}...'.format(id))
             schema_path=self.downloadFromLink(schema_url,'{}_schema.xsd'.format(source['id']))
             self.logger.info('Downloaded schema for {}...OK'.format(id))
-            xmldict=XmlDictParser.fromFileWithSchema(path,schema_path,filter=True)
+            xmldict=XmlDictParser.fromFileWithSchema2(path,schema_path,filter=True)
             
             xmldict=XmlDictParser.recursiveRemoveKey(xmldict,'br')
             xmldict=XmlDictParser.recursiveRemoveKey(xmldict,'style')
@@ -202,6 +202,7 @@ class DataCrawler(object){
                     documents[i]['References']=refs
                 }
             }
+            #prettify
             for i in range(len(documents)){
                 if 'Related_Weaknesses' in documents[i]{
                     documents[i]['Related_Weaknesses']=documents[i]['Related_Weaknesses']['Related_Weakness']
@@ -296,6 +297,136 @@ class DataCrawler(object){
                     }
                 }
             }
+        }elif id=='CAPEC_MITRE'{
+            xmldict=XmlDictParser.fromFileWithSchema2(paths[0],paths[1],filter=True)
+            xmldict=XmlDictParser.stringfyDict(xmldict)
+            xmldict=XmlDictParser.recursiveRemoveKey(xmldict,'br')
+            xmldict=XmlDictParser.recursiveRemoveKey(xmldict,'style')
+            documents.append({source['index']:'__metadata__'})
+            documents[0]['CAPEC Version']=xmldict['Version']
+            documents[0]['Update Date']=Utils.changeStrDateFormat(xmldict['Date'],'%Y-%m-%d','%d/%m/%Y')
+            documents[0]['Data Count']=len(xmldict['Attack_Patterns']['Attack_Pattern'])
+            for capec in xmldict['Attack_Patterns']['Attack_Pattern']{
+                capec_entry={}
+                for k,v in capec.items(){
+                    if k=='ID'{
+                        k=source['index']
+                    }
+                    capec_entry[k]=v
+                }
+                documents.append(capec_entry)
+            }
+            for cat in xmldict['Categories']['Category']{
+                if 'Relationships' in cat {
+                    category_data={'Category':{}}
+                    for k,v in cat.items(){
+                        if k != 'Relationships'{
+                            category_data['Category'][k]=v
+                        }
+                    }
+                    if type(cat['Relationships']['Has_Member']) is dict{
+                        cat['Relationships']['Has_Member']=[cat['Relationships']['Has_Member']]
+                    }
+                    for member in cat['Relationships']['Has_Member']{
+                        loc=Utils.getIndexOfDictList(documents,source['index'],member['CAPEC_ID'])
+                        if loc{
+                            documents[loc]={**documents[loc],**category_data}
+                        }
+                    }
+                }
+            }
+            for view in xmldict['Views']['View']{
+                if 'Members' in view {
+                    view_data={'View':{}}
+                    for k,v in view.items(){
+                        if k != 'Members'{
+                            view_data['View'][k]=v
+                        }
+                    }
+                    if type(view['Members']['Has_Member']) is dict{
+                        view['Members']['Has_Member']=[view['Members']['Has_Member']]
+                    }
+                    for member in view['Members']['Has_Member']{
+                        loc=Utils.getIndexOfDictList(documents,source['index'],member['CAPEC_ID'])
+                        if loc{
+                            documents[loc]={**documents[loc],**view_data}
+                        }
+                    }
+                }
+            }
+            for i in range(len(documents)){
+                if 'References' in documents[i]{
+                    if type(documents[i]['References']['Reference']) is not list{
+                        documents[i]['References']['Reference']=[documents[i]['References']['Reference']]
+                    }
+                    refs=[]
+                    for ref in documents[i]['References']['Reference']{
+                        ref_if=ref['External_Reference_ID']
+                        for ext_ref in xmldict['External_References']['External_Reference']{
+                            if ext_ref['Reference_ID']==ref_if{
+                                ref_data=ext_ref.copy()
+                                ref_data.pop('Reference_ID', None)
+                                refs.append(ref_data)
+                                break
+                            }
+                        }
+                    }
+                    documents[i]['References']=refs
+                }
+            }
+            #prettify
+            for i in range(len(documents)){
+                if 'Related_Weaknesses' in documents[i]{
+                    documents[i]['Related_Weaknesses']=documents[i]['Related_Weaknesses']['Related_Weakness']
+                    if type(documents[i]['Related_Weaknesses']) is not list{
+                        documents[i]['Related_Weaknesses']=[documents[i]['Related_Weaknesses']]
+                    }
+                }
+                if 'Related_Attack_Patterns' in documents[i]{
+                    documents[i]['Related_Attack_Patterns']=documents[i]['Related_Attack_Patterns']['Related_Attack_Pattern']
+                    if type(documents[i]['Related_Attack_Patterns']) is not list{
+                        documents[i]['Related_Attack_Patterns']=[documents[i]['Related_Attack_Patterns']]
+                    }
+                }
+                if 'Execution_Flow' in documents[i]{
+                    documents[i]['Execution_Flow']=documents[i]['Execution_Flow']['Attack_Step']
+                    if type(documents[i]['Execution_Flow']) is not list{
+                        documents[i]['Execution_Flow']=[documents[i]['Execution_Flow']]
+                    }
+                } 
+                if 'Notes' in documents[i]{
+                    documents[i]['Notes']=documents[i]['Notes']['Note']
+                    if type(documents[i]['Notes']) is not list{
+                        documents[i]['Notes']=[documents[i]['Notes']]
+                    }
+                }  
+                if 'Consequences' in documents[i]{
+                    documents[i]['Consequences']=documents[i]['Consequences']['Consequence']
+                    if type(documents[i]['Consequences']) is not list{
+                        documents[i]['Consequences']=[documents[i]['Consequences']]
+                    }
+                } 
+                if 'Mitigations' in documents[i]{
+                    documents[i]['Mitigations']=documents[i]['Mitigations']['Mitigation']
+                    if type(documents[i]['Mitigations']) is not list{
+                        documents[i]['Mitigations']=[documents[i]['Mitigations']]
+                    }
+                }   
+                if 'Prerequisites' in documents[i]{
+                    documents[i]['Prerequisites']=documents[i]['Prerequisites']['Prerequisite']
+                    if type(documents[i]['Prerequisites']) is not list{
+                        documents[i]['Prerequisites']=[documents[i]['Prerequisites']]
+                    }
+                }  
+                if 'Skills_Required' in documents[i]{
+                    documents[i]['Skills_Required']=documents[i]['Skills_Required']['Skill']
+                    if type(documents[i]['Skills_Required']) is not list{
+                        documents[i]['Skills_Required']=[documents[i]['Skills_Required']]
+                    }
+                }       
+                documents[i]=XmlDictParser.compressDictOnFollowingKeys(documents[i],['p','li','ul','div','i','class'])
+                documents[i]=XmlDictParser.recursiveRemoveEmpty(documents[i])
+            }
         }else{
             raise Exception('Unknown id({}).'.format(id))
         }
@@ -348,7 +479,22 @@ class DataCrawler(object){
             }
             documents=self.parseDBtoDocuments(id,json_files)
             return documents, destination_folder
-        }else{
+        }elif id=='CAPEC_MITRE'{
+            self.logger.info('Downloading CAPECs from {}...'.format(id))
+            path=self.downloadFromLink(source['direct_download_url'],'{}_latest.zip'.format(source['id']))
+            self.logger.info('Downloaded CAPECs from {}...OK'.format(id))
+            destination_folder=Utils.unzip(path)
+            for file_str in os.listdir(destination_folder){
+                if re.search(r'.*\.xml$', file_str){
+                    xml_path=destination_folder+file_str
+                }
+                if re.search(r'.*\.xsd$', file_str){
+                    xsd_path=destination_folder+file_str
+                }
+            }
+            documents=self.parseDBtoDocuments(id,[xml_path,xsd_path])
+            return documents, destination_folder            
+        }else{ 
             raise Exception('Unknown id({}).'.format(id))
         }
     }
