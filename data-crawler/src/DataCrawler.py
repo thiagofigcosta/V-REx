@@ -64,8 +64,8 @@ class DataCrawler(object){
     def loadDatabases(self){
         DataCrawler.SOURCES.append({'id':'CVE_MITRE','index':'cve','direct_download_url':'https://cve.mitre.org/data/downloads/allitems.csv.gz'})
         DataCrawler.SOURCES.append({'id':'CWE_MITRE','index':'cwe','direct_download_url':'https://cwe.mitre.org/data/xml/cwec_latest.xml.zip'})
-        # TODO code below parses v
         DataCrawler.SOURCES.append({'id':'CVE_NVD','index':'cve','direct_download_urls':['https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2020.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2019.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2018.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2017.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2016.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2015.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2014.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2013.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2012.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2011.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2010.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2009.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2008.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2007.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2006.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2005.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2004.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2003.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2002.json.zip']})
+        # TODO code below parses v
         DataCrawler.SOURCES.append({'id':'CPE_NVD','index':'cpe','direct_download_url':'https://nvd.nist.gov/feeds/json/cpematch/1.0/nvdcpematch-1.0.json.zip'})
         DataCrawler.SOURCES.append({'id':'OVAL','index':'oval','direct_download_url':'https://oval.cisecurity.org/repository/download/5.11.2/all/oval.xml'})
         DataCrawler.SOURCES.append({'id':'CAPEC_MITRE','index':'capec','direct_download_url':'http://capec.mitre.org/data/xml/capec_latest.xml'})
@@ -80,8 +80,15 @@ class DataCrawler(object){
         return None
     }
 
-    def parseDBtoDocuments(self,id,path){
+    def parseDBtoDocuments(self,id,paths){
         source=self.getSourceFromId(id)
+        if type(paths) is str{
+            path=paths
+        }elif type(paths) is list{
+            path='Multiple files at {}'.format(Utils.partentFromPath(paths[0]))
+        }else{
+            raise Exception('Unknown data type for paths on parseDBtoDocuments. Type was {}'.format(type(paths)))
+        }
         self.logger.info('Parsing data {} for {}...'.format(path,id))
         documents=[]
         if id=='CVE_MITRE'{
@@ -95,6 +102,7 @@ class DataCrawler(object){
                 columns.append(df[2][i])
             }
             df=df[10:] # remove header
+            documents[0]['Data Count']=len(df)
             for cve in df{
                 cve_entry={}
                 for i in range(columns_size){
@@ -126,6 +134,7 @@ class DataCrawler(object){
             documents.append({source['index']:'__metadata__'})
             documents[0]['CWE Version']=xmldict['Version']
             documents[0]['Update Date']=Utils.changeStrDateFormat(xmldict['Date'],'%Y-%m-%d','%d/%m/%Y')
+            documents[0]['Data Count']=len(xmldict['Weaknesses']['Weakness'])
             for cwe in xmldict['Weaknesses']['Weakness']{
                 cwe_entry={}
                 for k,v in cwe.items(){
@@ -247,6 +256,47 @@ class DataCrawler(object){
                 documents[i]=XmlDictParser.recursiveRemoveEmpty(documents[i])
             }
             Utils.deletePath(schema_path)
+        }elif id=='CVE_NVD'{
+            documents.append({source['index']:'__metadata__'})
+            documents[0]['CVE Version']=[]
+            documents[0]['Update Date']=[]
+            documents[0]['Data Count']=0
+            for json_path in paths{
+                cves_data=Utils.loadJson(json_path)
+                if cves_data['CVE_data_version'] not in documents[0]['CVE Version']{
+                    documents[0]['CVE Version'].append(cves_data['CVE_data_version'])
+                }
+                if cves_data['CVE_data_timestamp'] not in documents[0]['Update Date']{
+                    documents[0]['Update Date'].append(cves_data['CVE_data_timestamp'])
+                }
+                documents[0]['Data Count']+=int(cves_data['CVE_data_numberOfCVEs'])
+                for cve_data in cves_data['CVE_Items']{
+                    cve_entry={}
+                    for k,v in cve_data.items(){
+                        if k=='cve'{
+                           cve_entry[source['index']]=v['CVE_data_meta']['ID']
+                           for k2,v2 in v.items(){
+                               if k2 not in ('data_type','data_format','data_version','CVE_data_meta'){
+                                    if k2=='references'{
+                                        v2=v2['reference_data']
+                                    }
+                                    cve_entry[k2]=v2
+                               }
+                           }
+                        }else{
+                            if k=='configurations'{
+                                v=v['nodes']
+                            }
+                            cve_entry[k]=v
+                        }
+                    }
+                    if source['index'] in cve_entry{
+                        documents.append(cve_entry)
+                    }else{
+                        raise Exception('No CVE id found on source {} path {}'.format(id,json_path))
+                    }
+                }
+            }
         }else{
             raise Exception('Unknown id({}).'.format(id))
         }
@@ -280,6 +330,25 @@ class DataCrawler(object){
             }
             documents=self.parseDBtoDocuments(id,xml_path)
             return documents, destination_folder            
+        }elif id=='CVE_NVD'{
+            self.logger.info('Downloading CWEs from {}...'.format(id))
+            urls = source['direct_download_urls']
+            paths = []
+            for url in urls{
+                paths.append(self.downloadFromLink(url,Utils.filenameFromPath(url,get_extension=True)))
+            }
+            self.logger.info('Downloaded CWEs from {}...OK'.format(id))
+            for path in paths{
+                 destination_folder=Utils.unzip(path,destination_folder='CVE_NVD_unziped/')
+            }
+            json_files=[]
+            for file_str in os.listdir(destination_folder){
+                if re.search(r'.*\.json$', file_str){
+                    json_files.append(destination_folder+file_str)
+                }
+            }
+            documents=self.parseDBtoDocuments(id,json_files)
+            return documents, destination_folder
         }else{
             raise Exception('Unknown id({}).'.format(id))
         }

@@ -103,18 +103,28 @@ class Utils(object){
     @staticmethod
     def filenameFromPath(path,get_extension=False){
         if get_extension {
-            re_result=re.search(r'.*\/(.*\..+)', path)
+            re_result=re.search(r'.+(\/.+)', path)
             return re_result.group(1) if re_result is not None else path
         }else{
-            re_result=re.search(r'.*\/(.*)\..+', path)
+            re_result=re.search(r'.+(\/.+)\..+', path)
             return re_result.group(1) if re_result is not None else path
         }
     } 
 
     @staticmethod
-    def unzip(path){
+    def partentFromPath(path){
+        re_result=re.search(r'(.+\/).+', path)
+        return re_result.group(1) if re_result is not None else path
+    } 
+
+    @staticmethod
+    def unzip(path,destination_folder=None){
         Utils.LOGGER.info('Unziping file {}...'.format(path))
-        destination_folder=Utils.TMP_FOLDER+Utils.filenameFromPath(path)+'/'
+        if not destination_folder{
+            destination_folder=Utils.TMP_FOLDER+Utils.filenameFromPath(path)+'/'
+        }else{
+            destination_folder=Utils.TMP_FOLDER+destination_folder
+        }
         Utils.createFolderIfNotExists(destination_folder)
         with zipfile.ZipFile(path, 'r') as zip_ref{
             zip_ref.extractall(destination_folder)
