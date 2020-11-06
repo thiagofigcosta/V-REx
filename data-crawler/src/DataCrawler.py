@@ -66,8 +66,16 @@ class DataCrawler(object){
         DataCrawler.SOURCES.append({'id':'CWE_MITRE','index':'cwe','direct_download_url':'https://cwe.mitre.org/data/xml/cwec_latest.xml.zip'})
         DataCrawler.SOURCES.append({'id':'CVE_NVD','index':'cve','direct_download_urls':['https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2020.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2019.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2018.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2017.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2016.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2015.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2014.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2013.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2012.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2011.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2010.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2009.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2008.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2007.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2006.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2005.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2004.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2003.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2002.json.zip']})
         DataCrawler.SOURCES.append({'id':'CAPEC_MITRE','index':'capec','direct_download_url':'http://capec.mitre.org/data/archive/capec_latest.zip'})
-        # TODO code below parses v
-        DataCrawler.SOURCES.append({'id':'OVAL','index':'oval','direct_download_url':'https://oval.cisecurity.org/repository/download/5.11.2/all/oval.xml'})
+        DataCrawler.SOURCES.append({'id':'OVAL','index':'oval','direct_download_url':'https://oval.cisecurity.org/repository/download/5.11.2/all/oval.xml.zip'})
+        # TODO other sources
+        # https://www.exploit-db.com/
+        # https://us-cert.cisa.gov/
+        # https://www.cvedetails.com/
+        # https://exchange.xforce.ibmcloud.com/activity/list?filter=Vulnerabilities
+        # https://www.kb.cert.org/vuls/search/
+        # https://www.securityfocus.com/vulnerabilities
+        # https://www.broadcom.com/support/security-center/attacksignatures
+        # ????????? Rapid 7’s Metasploit, D2 Security’s Elliot Kit and Canvas Exploitation Framework, OpenVAS
     }
 
     def getSourceFromId(self,id){
@@ -427,6 +435,46 @@ class DataCrawler(object){
                 documents[i]=XmlDictParser.compressDictOnFollowingKeys(documents[i],['p','li','ul','div','i','class'])
                 documents[i]=XmlDictParser.recursiveRemoveEmpty(documents[i])
             }
+        }elif id=='OVAL'{
+            xmldict=XmlDictParser.fromFile(path,filter=True)
+            documents.append({source['index']:'__metadata__'})
+            documents[0]['OVAL Version']=xmldict['generator']['schema_version']
+            documents[0]['Update Date']=Utils.changeStrDateFormat(xmldict['generator']['timestamp'],'%Y-%m-%dT%H:%M:%S','%d/%m/%Y')
+            documents[0]['Data Count']=len(xmldict['definitions']['definition'])
+            
+            for definition in xmldict['definitions']['definition']{
+                oval_entry={}
+                add_entry=True
+                for k,v in definition.items(){
+                    if k=='id'{
+                        k=source['index']
+                    }
+                    if k=='metadata'{
+                        for k2,v2 in v.items(){
+                            oval_entry[k2]=v2
+                            if k2=='oval_repository'{
+                                for k3,v3 in v2['dates'].items(){
+                                    if k3=='status_change'{
+                                        if type(v3) is list{
+                                            last_el=v3[len(v3)-1]
+                                        }else{
+                                            last_el=v3
+                                        }
+                                        if  'status_change' in last_el and last_el['status_change']=='DEPRECATED'{
+                                            add_entry=False
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }else{
+                        oval_entry[k]=v
+                    }
+                }
+                if add_entry{
+                    documents.append(oval_entry)
+                }
+            }
         }else{
             raise Exception('Unknown id({}).'.format(id))
         }
@@ -493,6 +541,18 @@ class DataCrawler(object){
                 }
             }
             documents=self.parseDBtoDocuments(id,[xml_path,xsd_path])
+            return documents, destination_folder            
+        }elif id=='OVAL'{
+            self.logger.info('Downloading OVALs from {}...'.format(id))
+            path=self.downloadFromLink(source['direct_download_url'],'{}_all.zip'.format(source['id']))
+            self.logger.info('Downloaded OVALs from {}...OK'.format(id))
+            destination_folder=Utils.unzip(path)
+            for file_str in os.listdir(destination_folder){
+                if re.search(r'.*\.xml$', file_str){
+                    xml_path=destination_folder+file_str
+                }
+            }
+            documents=self.parseDBtoDocuments(id,xml_path)
             return documents, destination_folder            
         }else{ 
             raise Exception('Unknown id({}).'.format(id))

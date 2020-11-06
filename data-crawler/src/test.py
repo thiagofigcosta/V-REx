@@ -24,7 +24,6 @@ LOGGER.exception(Exception('TEST exception printing'))
 
 
 mongo=MongoDB.asDummy(LOGGER)
-
 crawler=DataCrawler(mongo,LOGGER)
 
 # documents,tmp_path=crawler.downloadRawDataFrom('CWE_MITRE')
@@ -40,14 +39,18 @@ crawler=DataCrawler(mongo,LOGGER)
 # mongo.insertManyOnRawDB(out,'CVE_NVD','cve')
 
 # crawler.downloadRawDataFrom('CAPEC_MITRE')
-out=crawler.parseDBtoDocuments('CAPEC_MITRE',['/tmp/crawler/CAPEC_MITRE_latest.xml/capec_v3.3.xml','/tmp/crawler/CAPEC_MITRE_latest.xml/ap_schema_v3.3.xsd'])
-mongo.insertManyOnRawDB(out,'CAPEC_MITRE','capec')
+# out=crawler.parseDBtoDocuments('CAPEC_MITRE',['/tmp/crawler/CAPEC_MITRE_latest.xml/capec_v3.3.xml','/tmp/crawler/CAPEC_MITRE_latest.xml/ap_schema_v3.3.xsd'])
+# mongo.insertManyOnRawDB(out,'CAPEC_MITRE','capec')
+
+# crawler.downloadRawDataFrom('OVAL')
+# out=crawler.parseDBtoDocuments('OVAL','/tmp/crawler/OVAL_all/oval.xml')
+# mongo.insertManyOnRawDB(out,'OVAL','oval')
 
 # crawler.downloadRawDataFrom('CVE_MITRE')
 # documents=crawler.parseCSVtoDocuments('CVE_MITRE','/tmp/crawler/CVE_MITRE_all_items (copy).csv')
 # mongo.insertManyOnRawDB(documents,'CVE_MITRE','cve')
 
 
-# crawler.downloadRawDataFromAllSources()
+crawler.downloadRawDataFromAllSources()
 
 LOGGER.fatal('GG')
