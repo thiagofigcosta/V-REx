@@ -7,6 +7,7 @@ import pandas as pd
 import os
 import codecs
 import re
+import time
 from Utils import Utils
 from XmlDictParser import XmlDictParser
 
@@ -20,8 +21,8 @@ class DataCrawler(object){
         self.loadDatabases()
     }
     
-    def downloadFromLink(self,link,filename){
-        retries=0
+    def downloadFromLink(self,link,filename,timeout=600){
+        retries=3
         for i in range(retries+1){
             try{
                 Utils.createFolderIfNotExists(DataCrawler.TMP_FOLDER)
@@ -31,7 +32,7 @@ class DataCrawler(object){
                     path=DataCrawler.TMP_FOLDER+filename
                 }
                 self.logger.info('Downloading {} to {}...'.format(link,filename))
-                with urllib.request.urlopen(link) as response{
+                with urllib.request.urlopen(link,timeout=timeout) as response{
                     if response.code == 200{
                         self.logger.info('HTTP Response Code = 200')
                         piece_size = 4096 # 4 KiB                        
@@ -47,15 +48,15 @@ class DataCrawler(object){
                         self.logger.info('Downloaded {} to {}...OK'.format(link,filename))
                         return path
                     }else{
-                        raise Exception('Response code {} - {}'.format(response.code))
+                        raise Exception('Response code {} - {}'.format(response.code),response.code)
                     }
                 }
             } except Exception as e {
-                if i>=retries{
-                    self.logger.exception(e,fatal=True)
+                if str(e)=='HTTP Error 404: Not Found' or i>=retries{
+                    raise e
                 }else{
                     self.logger.exception(e,fatal=False)
-                    self.logger.error('Failed to download ({} of {}) trying again...'.format(i+1,retries+1))
+                    self.logger.error('Failed to download ({} of {}) trying again...'.format(i+1,retries))
                 }
             }
         }
@@ -67,8 +68,8 @@ class DataCrawler(object){
         DataCrawler.SOURCES.append({'id':'CVE_NVD','index':'cve','direct_download_urls':['https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2020.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2019.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2018.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2017.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2016.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2015.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2014.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2013.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2012.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2011.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2010.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2009.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2008.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2007.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2006.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2005.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2004.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2003.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2002.json.zip']})
         DataCrawler.SOURCES.append({'id':'CAPEC_MITRE','index':'capec','direct_download_url':'http://capec.mitre.org/data/archive/capec_latest.zip'})
         DataCrawler.SOURCES.append({'id':'OVAL','index':'oval','direct_download_url':'https://oval.cisecurity.org/repository/download/5.11.2/all/oval.xml.zip'})
+        DataCrawler.SOURCES.append({'id':'EXPLOIT_DB','index':'exploit','base_download_url':'https://www.exploit-db.com/exploits/'})
         # TODO other sources
-        # https://www.exploit-db.com/
         # https://us-cert.cisa.gov/
         # https://www.cvedetails.com/
         # https://exchange.xforce.ibmcloud.com/activity/list?filter=Vulnerabilities
@@ -475,6 +476,29 @@ class DataCrawler(object){
                     documents.append(oval_entry)
                 }
             }
+        }elif id=='EXPLOIT_DB'{
+            documents.append({source['index']:'__metadata__'})
+            documents[0]['Update Date']=Utils.getTodayDate()
+            documents[0]['Data Count']=len(paths)
+            for path in paths {
+                exploit_entry={}
+                raw_html=Utils.openFile(path)
+                patterns={source['index']:r'[.|\n]*EDB-ID:[\s|\n]*<\/.*>[\s|\n]*<.*>((\n|.)*?)<\/.*>[.|\n]*','cve':r'[.|\n]*CVE:[\s|\n]*<\/.*>[\s|\n]*<.*>((\n|.)*?)<\/.*>[.|\n]*','author':r'[.|\n]*Author:[\s|\n]*<\/.*>[\s|\n]*<.*>((\n|.)*?)<\/.*>[.|\n]*','type':r'[.|\n]*Type:[\s|\n]*<\/.*>[\s|\n]*<.*>((\n|.)*?)<\/.*>[.|\n]*','platform':r'[.|\n]*Platform:[\s|\n]*<\/.*>[\s|\n]*<.*>((\n|.)*?)<\/.*>[.|\n]*','date':r'[.|\n]*Date:[\s|\n]*<\/.*>[\s|\n]*<.*>((\n|.)*?)<\/.*>[.|\n]*','vulnerable':r'[.|\n]*Vulnerable App:[\s|\n]*<\/.*>[\s|\n]*<.*>((\n|.)*?)<\/.*>[.|\n]*','verified':r'[.|\n]*EDB Verified:[\s|\n]*<\/.*>[\s|\n]*(<.*\n.*>)[\s|\n]*','code':r'.*<code.*>((.|\n)*)<\/code>.*'}
+                for k,pattern in patterns.items(){
+                    result=re.search(pattern, raw_html, re.MULTILINE)
+                    v=result.group(1)
+                    if 'mdi-close' in v{
+                        v='False'
+                    }elif 'mdi-check' in v{
+                        v='True'
+                    }
+                    v=re.sub(r'<.*>','',v).strip()
+                    if v and v!='N/A'{
+                        exploit_entry[k]=v
+                    }
+                }                
+                documents.append(exploit_entry)
+            }
         }else{
             raise Exception('Unknown id({}).'.format(id))
         }
@@ -554,16 +578,76 @@ class DataCrawler(object){
             }
             documents=self.parseDBtoDocuments(id,xml_path)
             return documents, destination_folder            
+        }elif id=='EXPLOIT_DB'{
+            self.logger.info('Downloading EXPLOITs from {}...'.format(id))
+            destination_folder=Utils.getTmpFolder(id)
+            exploit_id=1
+            max_known_exploit=48999
+            downloaded=[]
+            for file_str in os.listdir(destination_folder){
+                result=re.search(r'.*id-([0-9]+)\.html$', file_str)
+                if result{
+                    downloaded.append(int(result.group(1)))
+                }
+            }
+            if len(downloaded)>0{
+                exploit_id=max(downloaded)+1
+            }
+            first_timeout=True
+            while True{
+                try{
+                    path=self.downloadFromLink(source['base_download_url']+str(exploit_id),destination_folder+'{}_id-{}.html'.format(source['id'],exploit_id),timeout=120)
+                    first_timeout=True
+                }except Exception as e {
+                    if exploit_id>max_known_exploit{
+                        if str(e)=='HTTP Error 404: Not Found'{
+                            self.logger.info('Last exploit found, id {}'.format(exploit_id-1))
+                            break
+                        }else{
+                            self.logger.exception(e,fatal=False)
+                        }
+                    }else{
+                        if str(e)=='HTTP Error 404: Not Found'{
+                            self.logger.warn('Exploit with id {} not found. 404. Keep going until: {}'.format(exploit_id,max_known_exploit))
+                        }else{
+                            if first_timeout{
+                                first_timeout=False
+                                self.logger.warn('Server probably blocked access temporally on id {}. Waiting 20 Minutes...'.format(exploit_id))
+                                exploit_id-=1
+                                time.sleep(1200)
+                            }else{  
+                                self.logger.warn('Downloaded EXPLOITs from {}...FAILED. Server probably blocked access temporally. Aborting...'.format(exploit_id))
+                                self.logger.exception(e,fatal=False)
+                                documents=None
+                                return documents, destination_folder
+                            }
+                        }
+                    }
+                }
+                exploit_id+=1
+            }
+            self.logger.info('Downloaded EXPLOITs from {}...OK'.format(id))
+            paths=[destination_folder+file_str for file_str in os.listdir(destination_folder)]
+            documents=self.parseDBtoDocuments(id,paths)
+            return documents, destination_folder 
         }else{ 
             raise Exception('Unknown id({}).'.format(id))
         }
     }
 
     def downloadRawDataFromAllSources(self){
+        failed=[]
         for source in DataCrawler.SOURCES{
             documents,tmp_path=self.downloadRawDataFrom(source['id'])
-            self.mongo.insertManyOnRawDB(documents,source['id'],source['index'])
-            Utils.deletePath(tmp_path)
+            if documents is not None{
+                self.mongo.insertManyOnRawDB(documents,source['id'],source['index'])
+                Utils.deletePath(tmp_path)
+            }else{
+                failed.append(source['id'])
+            }
+        }
+        if len(failed)>0{
+            return failed
         }
     }
 }

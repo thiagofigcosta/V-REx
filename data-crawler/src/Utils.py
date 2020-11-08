@@ -9,6 +9,7 @@ import zipfile
 from datetime import datetime
 import gzip
 import json
+import random as rd
 
 class Utils(object){
     TMP_FOLDER=None
@@ -74,6 +75,22 @@ class Utils(object){
             data=json.load(fp)
         }
         return data
+    }
+
+    @staticmethod
+    def getTmpFolder(base_name,random=False){
+        if random{
+            destination_folder=Utils.TMP_FOLDER+base_name+str(rd.randint(0,65535))+'/'
+        }else{
+            destination_folder=Utils.TMP_FOLDER+base_name+'/'
+        }
+        Utils.createFolderIfNotExists(destination_folder)
+        return destination_folder
+    }
+
+    @staticmethod
+    def getTodayDate(date_format='%d/%m/%Y'){
+        return datetime.now().strftime(date_format)
     }
 
     @staticmethod
@@ -153,6 +170,7 @@ class Utils(object){
                     }
                 }
             }
+        }
         Utils.deleteFile(path)
         Utils.LOGGER.info('Gunziped file {}...OK'.format(path))
         return destination_folder
