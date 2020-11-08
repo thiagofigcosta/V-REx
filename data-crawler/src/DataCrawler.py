@@ -70,7 +70,9 @@ class DataCrawler(object){
         DataCrawler.SOURCES.append({'id':'OVAL','index':'oval','direct_download_url':'https://oval.cisecurity.org/repository/download/5.11.2/all/oval.xml.zip'})
         DataCrawler.SOURCES.append({'id':'EXPLOIT_DB','index':'exploit','base_download_url':'https://www.exploit-db.com/exploits/'})
         # TODO other sources
-        # https://us-cert.cisa.gov/
+        # SAVE HASHSET OF CVE NAMES FROM OTHER SOURCES ON A FILE, HELPING TO DOWNLOAD FROMM HARD SOURCES
+        # CVE DETAILS ALREADY HAS DATA AGGREGATED FROM MULTIPLES SOURCES
+        # CHANGE BASE_PATH, USE A FOLDER ON THE REPOSITORY AND ADD IT ON REPOSITORY
         # https://www.cvedetails.com/
         # https://exchange.xforce.ibmcloud.com/activity/list?filter=Vulnerabilities
         # https://www.kb.cert.org/vuls/search/
