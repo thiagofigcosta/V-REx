@@ -535,7 +535,7 @@ class DataCrawler(object){
         return documents
     }
 
-    def downloadRawDataFrom(self,id){
+    def downloadRawDataAndParseFrom(self,id){
         source=self.getSourceFromId(id)
         if id=='CVE_MITRE'{
             self.logger.info('Downloading CVEs from {}...'.format(id))
@@ -614,9 +614,12 @@ class DataCrawler(object){
             max_known_exploit=48999
             downloaded=[]
             for file_str in os.listdir(destination_folder){
-                result=re.search(r'.*id-([0-9]+)\.html$', file_str)
+                result=re.search(r'.*id-([0-9]+)\..*$', file_str)
                 if result{
                     downloaded.append(int(result.group(1)))
+                }
+                if re.search(r'.*id-([0-9]+)\.DELETEME$', file_str){
+                    Utils.deletePath(destination_folder+file_str)
                 }
             }
             if len(downloaded)>0{
@@ -649,6 +652,7 @@ class DataCrawler(object){
                                 self.logger.warn('Downloaded EXPLOITs from {}...FAILED. Server probably blocked access temporally. Aborting...'.format(exploit_id))
                                 self.logger.exception(e,fatal=False)
                                 documents=None
+                                Utils.saveFile(destination_folder+'{}_id-{}.DELETEME'.format(source['id'],exploit_id-1),'') # checkpoint
                                 return documents, destination_folder
                             }
                         }
@@ -657,7 +661,12 @@ class DataCrawler(object){
                 exploit_id+=1
             }
             self.logger.info('Downloaded EXPLOITs from {}...OK'.format(id))
-            paths=[destination_folder+file_str for file_str in os.listdir(destination_folder)]
+            paths=[]
+            for file_str in os.listdir(destination_folder){
+                if re.search(r'.*\.html$', file_str){
+                    paths.append(destination_folder+file_str)
+                }
+            }
             documents=self.parseDBtoDocuments(id,paths)
             return documents, destination_folder 
         }else{ 
@@ -665,22 +674,24 @@ class DataCrawler(object){
         }
     }
 
-    def downloadRawDataFromAllSources(self){
+    def downloadRawDataFromSources(self,sources=None){
         failed=[]
         for source in DataCrawler.SOURCES{
-            try{
-                documents,tmp_path=self.downloadRawDataFrom(source['id'])
-                if documents is not None{
-                    self.mongo.insertManyOnRawDB(documents,source['id'],source['index'])
-                    Utils.deletePath(tmp_path)
-                }else{
+            if sources is None or source['id'] in sources{
+                try{
+                    documents,tmp_path=self.downloadRawDataAndParseFrom(source['id'])
+                    if documents is not None{
+                        self.mongo.insertManyOnRawDB(documents,source['id'],source['index'])
+                        Utils.deletePath(tmp_path)
+                    }else{
+                        failed.append(source['id'])
+                    }
+                } except Exception as e {
+                    self.logger.exception(e,fatal=False)
                     failed.append(source['id'])
+                }finally{
+                    self.saveReferences()
                 }
-            } except Exception as e {
-                self.logger.exception(e,fatal=False)
-                failed.append(source['id'])
-            }finally{
-                self.saveReferences()
             }
         }
         if len(failed)>0{
