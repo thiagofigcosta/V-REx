@@ -28,6 +28,11 @@ class Utils(object){
     }
 
     @staticmethod
+    def checkIfPathExists(path){
+        return os.path.exists(path)
+    }
+
+    @staticmethod
     def deletePath(path){
         if os.path.isdir(path){
             Utils.deleteFolder(path)

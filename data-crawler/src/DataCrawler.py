@@ -13,12 +13,35 @@ from XmlDictParser import XmlDictParser
 
 class DataCrawler(object){
     SOURCES=[]
-    TMP_FOLDER='/tmp/crawler/'
+    TMP_FOLDER='tmp/crawler/'
 
     def __init__(self, mongo, logger){
         self.logger=logger
 		self.mongo=mongo
         self.loadDatabases()
+        self.loadReferences()
+    }
+
+    def loadReferences(self){
+        # TODO use mongo
+        ref_path=DataCrawler.TMP_FOLDER+'references.json'
+        if Utils.checkIfPathExists(ref_path){
+            self.references=Utils.loadJson(ref_path)
+            for k,_ in self.references.items(){
+                self.references[k]=set(self.references[k])
+            }
+        }else{
+            self.references={'cve':set(),'cwe':set(),'exploit':set()}
+        }
+    }
+
+    def saveReferences(self){
+        references_copy=self.references.copy()
+        for k,_ in references_copy.items(){
+            references_copy[k]=list(references_copy[k])
+        }
+        # TODO use mongo
+        Utils.saveJson(DataCrawler.TMP_FOLDER+'references.json',references_copy) 
     }
     
     def downloadFromLink(self,link,filename,timeout=600){
@@ -70,11 +93,8 @@ class DataCrawler(object){
         DataCrawler.SOURCES.append({'id':'OVAL','index':'oval','direct_download_url':'https://oval.cisecurity.org/repository/download/5.11.2/all/oval.xml.zip'})
         DataCrawler.SOURCES.append({'id':'EXPLOIT_DB','index':'exploit','base_download_url':'https://www.exploit-db.com/exploits/'})
         # TODO other sources
-        # SAVE HASHSET OF CVE NAMES FROM OTHER SOURCES ON A FILE, HELPING TO DOWNLOAD FROMM HARD SOURCES
         # CVE DETAILS ALREADY HAS DATA AGGREGATED FROM MULTIPLES SOURCES
-        # CHANGE BASE_PATH, USE A FOLDER ON THE REPOSITORY AND ADD IT ON REPOSITORY
         # https://www.cvedetails.com/
-        # https://exchange.xforce.ibmcloud.com/activity/list?filter=Vulnerabilities
         # https://www.kb.cert.org/vuls/search/
         # https://www.securityfocus.com/vulnerabilities
         # https://www.broadcom.com/support/security-center/attacksignatures
@@ -117,6 +137,10 @@ class DataCrawler(object){
                 cve_entry={}
                 for i in range(columns_size){
                     cve_entry[columns[i]]=cve[i]
+                    if columns[i]==source['index']{
+                        ref=cve[i].replace('CVE-', '')
+                        self.references['cve'].add(ref)
+                    }
                 }
                 documents.append(cve_entry)
             }
@@ -150,6 +174,7 @@ class DataCrawler(object){
                 for k,v in cwe.items(){
                     if k=='ID'{
                         k=source['index']
+                        self.references['cwe'].add(v)
                     }
                     cwe_entry[k]=v
                 }
@@ -286,6 +311,8 @@ class DataCrawler(object){
                     for k,v in cve_data.items(){
                         if k=='cve'{
                            cve_entry[source['index']]=v['CVE_data_meta']['ID']
+                           ref=v['CVE_data_meta']['ID'].replace('CVE-', '')
+                           self.references['cve'].add(ref)
                            for k2,v2 in v.items(){
                                if k2 not in ('data_type','data_format','data_version','CVE_data_meta'){
                                     if k2=='references'{
@@ -600,6 +627,7 @@ class DataCrawler(object){
                 try{
                     path=self.downloadFromLink(source['base_download_url']+str(exploit_id),destination_folder+'{}_id-{}.html'.format(source['id'],exploit_id),timeout=120)
                     first_timeout=True
+                    self.references['exploit'].add(exploit_id)
                 }except Exception as e {
                     if exploit_id>max_known_exploit{
                         if str(e)=='HTTP Error 404: Not Found'{
@@ -640,12 +668,19 @@ class DataCrawler(object){
     def downloadRawDataFromAllSources(self){
         failed=[]
         for source in DataCrawler.SOURCES{
-            documents,tmp_path=self.downloadRawDataFrom(source['id'])
-            if documents is not None{
-                self.mongo.insertManyOnRawDB(documents,source['id'],source['index'])
-                Utils.deletePath(tmp_path)
-            }else{
+            try{
+                documents,tmp_path=self.downloadRawDataFrom(source['id'])
+                if documents is not None{
+                    self.mongo.insertManyOnRawDB(documents,source['id'],source['index'])
+                    Utils.deletePath(tmp_path)
+                }else{
+                    failed.append(source['id'])
+                }
+            } except Exception as e {
+                self.logger.exception(e,fatal=False)
                 failed.append(source['id'])
+            }finally{
+                self.saveReferences()
             }
         }
         if len(failed)>0{

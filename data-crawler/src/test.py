@@ -46,14 +46,14 @@ crawler=DataCrawler(mongo,LOGGER)
 # out=crawler.parseDBtoDocuments('OVAL','/tmp/crawler/OVAL_all/oval.xml')
 # mongo.insertManyOnRawDB(out,'OVAL','oval')
 
-out=crawler.downloadRawDataFrom('EXPLOIT_DB')
-mongo.insertManyOnRawDB(out,'EXPLOIT_DB','exploit')
+# out=crawler.downloadRawDataFrom('EXPLOIT_DB')
+# mongo.insertManyOnRawDB(out,'EXPLOIT_DB','exploit')
 
 # crawler.downloadRawDataFrom('CVE_MITRE')
 # documents=crawler.parseCSVtoDocuments('CVE_MITRE','/tmp/crawler/CVE_MITRE_all_items (copy).csv')
 # mongo.insertManyOnRawDB(documents,'CVE_MITRE','cve')
 
 
-# crawler.downloadRawDataFromAllSources()
+crawler.downloadRawDataFromAllSources()
 
 LOGGER.fatal('GG')
