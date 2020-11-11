@@ -39,6 +39,7 @@ class DataCrawler(object){
         references_copy=self.references.copy()
         for k,_ in references_copy.items(){
             references_copy[k]=list(references_copy[k])
+            references_copy[k].sort()
         }
         # TODO use mongo
         Utils.saveJson(DataCrawler.TMP_FOLDER+'references.json',references_copy) 
@@ -46,6 +47,13 @@ class DataCrawler(object){
     
     def downloadFromLink(self,link,filename,timeout=600){
         retries=3
+        fake_headers={}
+        fake_headers['User-Agent']='Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11'
+        fake_headers['Accept']='text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+        fake_headers['Accept-Charset']='ISO-8859-1,utf-8;q=0.7,*;q=0.3'
+        fake_headers['Accept-Encoding']='none'
+        fake_headers['Accept-Language']='en-US,en;q=0.8'
+        fake_headers['Connection']='keep-alive'
         for i in range(retries+1){
             try{
                 Utils.createFolderIfNotExists(DataCrawler.TMP_FOLDER)
@@ -55,7 +63,8 @@ class DataCrawler(object){
                     path=DataCrawler.TMP_FOLDER+filename
                 }
                 self.logger.info('Downloading {} to {}...'.format(link,filename))
-                with urllib.request.urlopen(link,timeout=timeout) as response{
+                req = urllib.request.Request(link, headers=fake_headers)
+                with urllib.request.urlopen(req,timeout=timeout) as response{
                     if response.code == 200{
                         self.logger.info('HTTP Response Code = 200')
                         piece_size = 4096 # 4 KiB                        
@@ -75,7 +84,7 @@ class DataCrawler(object){
                     }
                 }
             } except Exception as e {
-                if str(e)=='HTTP Error 404: Not Found' or i>=retries{
+                if str(e) in ('HTTP Error 404: Not Found','HTTP Error 403: Forbidden') or i>=retries{
                     raise e
                 }else{
                     self.logger.exception(e,fatal=False)
@@ -91,6 +100,7 @@ class DataCrawler(object){
         DataCrawler.SOURCES.append({'id':'CVE_NVD','index':'cve','direct_download_urls':['https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2020.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2019.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2018.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2017.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2016.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2015.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2014.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2013.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2012.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2011.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2010.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2009.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2008.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2007.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2006.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2005.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2004.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2003.json.zip','https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2002.json.zip']})
         DataCrawler.SOURCES.append({'id':'CAPEC_MITRE','index':'capec','direct_download_url':'http://capec.mitre.org/data/archive/capec_latest.zip'})
         DataCrawler.SOURCES.append({'id':'OVAL','index':'oval','direct_download_url':'https://oval.cisecurity.org/repository/download/5.11.2/all/oval.xml.zip'})
+        DataCrawler.SOURCES.append({'id':'CVE_DETAILS','index':'cve','base_download_url':'https://www.cvedetails.com/cve/'})
         DataCrawler.SOURCES.append({'id':'EXPLOIT_DB','index':'exploit','base_download_url':'https://www.exploit-db.com/exploits/'})
         # TODO other sources
         # CVE DETAILS ALREADY HAS DATA AGGREGATED FROM MULTIPLES SOURCES
@@ -99,6 +109,15 @@ class DataCrawler(object){
         # https://www.securityfocus.com/vulnerabilities
         # https://www.broadcom.com/support/security-center/attacksignatures
         # ????????? Rapid 7’s Metasploit, D2 Security’s Elliot Kit and Canvas Exploitation Framework, OpenVAS
+    }
+
+    @staticmethod
+    def getAllDatabasesId(){
+        ids=[]
+        for source in DataCrawler.SOURCES{
+            ids.append(source['id'])
+        }
+        return ids
     }
 
     def getSourceFromId(self,id){
@@ -506,28 +525,89 @@ class DataCrawler(object){
                 }
             }
         }elif id=='EXPLOIT_DB'{
+            patterns={}
+            patterns[source['index']]=r'[.|\n]*EDB-ID:[\s|\n]*<\/.*>[\s|\n]*<.*>((\n|.)*?)<\/.*>[.|\n]*'
+            patterns['cve']=r'[.|\n]*CVE:[\s|\n]*<\/.*>[\s|\n]*<.*>((\n|.)*?)<\/.*>[.|\n]*'
+            patterns['author']=r'[.|\n]*Author:[\s|\n]*<\/.*>[\s|\n]*<.*>((\n|.)*?)<\/.*>[.|\n]*'
+            patterns['type']=r'[.|\n]*Type:[\s|\n]*<\/.*>[\s|\n]*<.*>((\n|.)*?)<\/.*>[.|\n]*'
+            patterns['platform']=r'[.|\n]*Platform:[\s|\n]*<\/.*>[\s|\n]*<.*>((\n|.)*?)<\/.*>[.|\n]*'
+            patterns['date']=r'[.|\n]*Date:[\s|\n]*<\/.*>[\s|\n]*<.*>((\n|.)*?)<\/.*>[.|\n]*'
+            patterns['vulnerable']=r'[.|\n]*Vulnerable App:[\s|\n]*<\/.*>[\s|\n]*<.*>((\n|.)*?)<\/.*>[.|\n]*'
+            patterns['verified']=r'[.|\n]*EDB Verified:[\s|\n]*<\/.*>[\s|\n]*(<.*\n.*>)[\s|\n]*'
+            patterns['code']=r'.*<code.*>((.|\n)*)<\/code>.*'
             documents.append({source['index']:'__metadata__'})
             documents[0]['Update Date']=Utils.getTodayDate()
             documents[0]['Data Count']=len(paths)
             for path in paths {
                 exploit_entry={}
                 raw_html=Utils.openFile(path)
-                patterns={source['index']:r'[.|\n]*EDB-ID:[\s|\n]*<\/.*>[\s|\n]*<.*>((\n|.)*?)<\/.*>[.|\n]*','cve':r'[.|\n]*CVE:[\s|\n]*<\/.*>[\s|\n]*<.*>((\n|.)*?)<\/.*>[.|\n]*','author':r'[.|\n]*Author:[\s|\n]*<\/.*>[\s|\n]*<.*>((\n|.)*?)<\/.*>[.|\n]*','type':r'[.|\n]*Type:[\s|\n]*<\/.*>[\s|\n]*<.*>((\n|.)*?)<\/.*>[.|\n]*','platform':r'[.|\n]*Platform:[\s|\n]*<\/.*>[\s|\n]*<.*>((\n|.)*?)<\/.*>[.|\n]*','date':r'[.|\n]*Date:[\s|\n]*<\/.*>[\s|\n]*<.*>((\n|.)*?)<\/.*>[.|\n]*','vulnerable':r'[.|\n]*Vulnerable App:[\s|\n]*<\/.*>[\s|\n]*<.*>((\n|.)*?)<\/.*>[.|\n]*','verified':r'[.|\n]*EDB Verified:[\s|\n]*<\/.*>[\s|\n]*(<.*\n.*>)[\s|\n]*','code':r'.*<code.*>((.|\n)*)<\/code>.*'}
+                found_at_least_one=False
                 for k,pattern in patterns.items(){
                     result=re.search(pattern, raw_html, re.MULTILINE)
-                    v=result.group(1)
-                    if 'mdi-close' in v{
-                        v='False'
-                    }elif 'mdi-check' in v{
-                        v='True'
+                    if result{
+                        found_at_least_one=True
+                        v=result.group(1)
+                        if 'mdi-close' in v{
+                            v='False'
+                        }elif 'mdi-check' in v{
+                            v='True'
+                        }
+                        v=re.sub(r'<.*>','',v).strip()
+                        if v and v!='N/A'{
+                            exploit_entry[k]=v
+                        }
+                    }else{
+                        self.logger.warn('Unknown \'{}\' value for file {} on {}'.format(k,path,id))
                     }
-                    v=re.sub(r'<.*>','',v).strip()
-                    if v and v!='N/A'{
-                        exploit_entry[k]=v
-                    }
-                }                
-                documents.append(exploit_entry)
+                }           
+                if found_at_least_one{     
+                    documents.append(exploit_entry)
+                }
             }
+        }elif XXXX{
+            patterns={}
+            patterns[source['index']]=r'Vulnerability Details *: *<.*>(CVE-[0-9\-]+)<\/'
+            patterns['cvss score']=r'[.|\n]*CVSS Score[\s|\n]*<\/.*>[\s|\n]*((\n|.)*?)<\/.*>'
+            patterns['confidentiality imp.']=r'[.|\n]*Confidentiality Impact[\s|\n]*<\/.*>[\s|\n]*((\n|.)*?)<\/.*>'
+            patterns['integrity imp.']=r'[.|\n]*Integrity Impact[\s|\n]*<\/.*>[\s|\n]*((\n|.)*?)<\/.*>'
+            patterns['availability imp.']=r'[.|\n]*Availability Impact[\s|\n]*<\/.*>[\s|\n]*((\n|.)*?)<\/.*>'
+            patterns['complexity']=r'[.|\n]*Access Complexity[\s|\n]*<\/.*>[\s|\n]*((\n|.)*?)<\/.*>'
+            patterns['authentication']=r'[.|\n]*Authentication[\s|\n]*<\/.*>[\s|\n]*((\n|.)*?)<\/.*>'
+            patterns['gained acc.']=r'[.|\n]*Gained Access[\s|\n]*<\/.*>[\s|\n]*((\n|.)*?)<\/.*>'
+            patterns['vul. type']=r'[.|\n]*Vulnerability Type\(s\)[\s|\n]*<\/.*>[\s|\n]*((\n|.)*?)<\/.*>'
+            patterns['cwe']=r'[.|\n]*CWE ID[\s|\n]*<\/.*>[\s|\n]*((\n|.)*?)<\/.*>'
+            filter_regex=r'.*>(.*)$'
+            invalid_regex=r'<strong>Unknown CVE ID<\/strong>'
+            table_regex=r'<table .*>(\n|.)*?<\/table>'
+            patterns['prod. affected']=r'Products Affected By CVE-[0-9\-]+[\s|\n]*<\/.*>[\s|\n]*(<table .*>(.|\n)*?<\/table>)'
+            patterns['versions affected']=r'Number Of Affected Versions By Product[\s|\n]*<\/.*>[\s|\n]*(<table .*>(.|\n)*?<\/table>)'
+            patterns['references']=r'References For CVE-[0-9\-]*[\s|\n]*<\/.*>[\s|\n]*(<table .*>(.|\n)*?<\/table>)'
+            patterns['metasploitable']=r'Metasploit Modules Related To CVE-[0-9\-]*[\s|\n]*<\/.*>[\s|\n]*<div id="metasploitmodstable">((.|\n)*?)<\/div>'
+
+            documents.append({source['index']:'__metadata__'})
+            documents[0]['Update Date']=Utils.getTodayDate()
+            documents[0]['Data Count']=0
+            for path in paths {
+                cve_entry={}
+                raw_html=Utils.openFile(path)
+                if not re.search(invalid_regex, raw_html, re.MULTILINE){
+                    for k,pattern in patterns.items(){
+                        result=re.search(pattern, raw_html, re.MULTILINE)
+                        v=result.group(1)
+                        if re.search(table_regex, v, re.MULTILINE){
+                            df=pd.read_html(v)[0]
+                            parserd_table={k: v.iloc[0, 1].split('  ') for k, v in df.groupby(0)}
+                            # TODO test
+                        }else{
+                            v=re.search(filter_regex, v, re.MULTILINE).group(1)
+                        }
+                        cve_entry[k]=v
+                    }       
+                    documents[0]['Data Count']+=1         
+                    documents.append(cve_entry)
+                }
+            }
+
         }else{
             raise Exception('Unknown id({}).'.format(id))
         }
@@ -611,7 +691,7 @@ class DataCrawler(object){
             self.logger.info('Downloading EXPLOITs from {}...'.format(id))
             destination_folder=Utils.getTmpFolder(id)
             exploit_id=1
-            max_known_exploit=48999
+            max_known_exploit=49066
             downloaded=[]
             for file_str in os.listdir(destination_folder){
                 result=re.search(r'.*id-([0-9]+)\..*$', file_str)
@@ -625,26 +705,29 @@ class DataCrawler(object){
             if len(downloaded)>0{
                 exploit_id=max(downloaded)+1
             }
-            first_timeout=True
+            timeouts=0
+            max_timeouts=2
             while True{
                 try{
-                    path=self.downloadFromLink(source['base_download_url']+str(exploit_id),destination_folder+'{}_id-{}.html'.format(source['id'],exploit_id),timeout=120)
-                    first_timeout=True
-                    self.references['exploit'].add(exploit_id)
+                    self.downloadFromLink(source['base_download_url']+str(exploit_id),destination_folder+'{}_id-{}.html'.format(source['id'],exploit_id),timeout=120)
+                    timeouts=0
                 }except Exception as e {
                     if exploit_id>max_known_exploit{
                         if str(e)=='HTTP Error 404: Not Found'{
                             self.logger.info('Last exploit found, id {}'.format(exploit_id-1))
                             break
-                        }else{
+                        }elif str(e) in ('<urlopen error timed out>','<urlopen error _ssl.c:1106: The handshake operation timed out>'){
                             self.logger.exception(e,fatal=False)
+                            break
+                        }else{
+                            raise e
                         }
                     }else{
                         if str(e)=='HTTP Error 404: Not Found'{
                             self.logger.warn('Exploit with id {} not found. 404. Keep going until: {}'.format(exploit_id,max_known_exploit))
-                        }else{
-                            if first_timeout{
-                                first_timeout=False
+                        }elif str(e) in ('<urlopen error timed out>','<urlopen error _ssl.c:1106: The handshake operation timed out>'){
+                            if timeouts<max_timeouts{
+                                timeouts+=1
                                 self.logger.warn('Server probably blocked access temporally on id {}. Waiting 20 Minutes...'.format(exploit_id))
                                 exploit_id-=1
                                 time.sleep(1200)
@@ -655,12 +738,60 @@ class DataCrawler(object){
                                 Utils.saveFile(destination_folder+'{}_id-{}.DELETEME'.format(source['id'],exploit_id-1),'') # checkpoint
                                 return documents, destination_folder
                             }
+                        }else{
+                            raise e
                         }
                     }
                 }
                 exploit_id+=1
             }
             self.logger.info('Downloaded EXPLOITs from {}...OK'.format(id))
+            paths=[]
+            for file_str in os.listdir(destination_folder){
+                result=re.search(r'.*id-([0-9]+)\.html$', file_str)
+                if result{
+                    paths.append(destination_folder+file_str)
+                    self.references['exploit'].add(int(result.group(1)))
+                }
+            }
+            documents=self.parseDBtoDocuments(id,paths)
+            return documents, destination_folder 
+        }elif id=='CVE_DETAILS'{
+            self.logger.info('Downloading CVEs from {}...'.format(id))
+            destination_folder=Utils.getTmpFolder(id)
+            cves=list(self.references['cve'])
+            for file_str in os.listdir(destination_folder){
+                result=re.search(r'.*id-([0-9\-]+)\..*$', file_str)
+                if result{
+                    cves.remove(result.group(1))
+                }
+            }
+            max_timeouts=2
+            timeouts=0
+            for i in range(len(cves)){
+                cve=cves[i]
+                cve_formatted='CVE-{}'.format(cve)
+                try{
+                    self.downloadFromLink(source['base_download_url']+str(cve_formatted),destination_folder+'{}_id-{}.html'.format(source['id'],cve),timeout=120)
+                    timeouts=0
+                }except Exception as e{
+                    if str(e)=='HTTP Error 404: Not Found'{
+                        self.logger.warn('Exploit with id {} not found. 404.'.format(cve))
+                    }elif str(e) in ('<urlopen error timed out>','<urlopen error _ssl.c:1106: The handshake operation timed out>'){
+                        if timeouts<max_timeouts{
+                            timeouts+=1
+                            self.logger.warn('Server probably blocked access temporally on CVE-{}. Waiting 20 Minutes...'.format(cve))
+                            i=-1
+                            time.sleep(1200)
+                        }else{
+                            raise e
+                        }
+                    }else{
+                        raise e
+                    }
+                }
+            }
+            self.logger.info('Downloaded CVEs from {}...OK'.format(id))
             paths=[]
             for file_str in os.listdir(destination_folder){
                 if re.search(r'.*\.html$', file_str){

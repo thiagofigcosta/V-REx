@@ -86,11 +86,14 @@ class MongoDB(object){
         while True{
             job=self.queue.next()
             if job is not None{
-                # TODO process job
-                if error {
-                    job.error(message)
-                }else{
+                try{
+                    print(job)
+                    # TODO process job
+                    # if job is to download every source use getAllDatabasesId to split it into several jobs, one for each id and them publish all of them of queue
                     job.complete()
+                }except Exception as e{
+                    # TODO log exception                    
+                    job.error(str(e))
                 }
             }
         }
