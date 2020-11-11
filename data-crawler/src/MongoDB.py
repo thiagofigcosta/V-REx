@@ -8,9 +8,9 @@ class MongoDB(object){
     QUEUE_DB_NAME='queue'
     QUEUE_COL_NAME='crawler'
     RAW_DATA_DB_NAME='raw_data'
-    DUMMY_FOLDER='/tmp/crawler/DummyMongo/'
+    DUMMY_FOLDER='tmp/crawler/DummyMongo/'
 
-	def __init__(self, address, port=27017, logger=None){
+	def __init__(self, address, port=27017, logger=None, user=None,password=None){
         if logger is None{
             raise Exception('MongoDB logger cannot be None')
         }
@@ -21,6 +21,8 @@ class MongoDB(object){
         }else{
             self.address=address
             self.port=port
+            self.user=user 
+            self.password=password
             self.logger.info('Preparing mongo on {}:{}...'.format(address,port))
             self.establishConnection()
             self.startMongoDatabases()
@@ -34,7 +36,7 @@ class MongoDB(object){
     }
 
     def establishConnection(self){
-        client = MongoClient(self.address, self.port)
+        client = MongoClient(self.address, self.port,username=self.user, password=self.password)
         self.client=client
     }
 

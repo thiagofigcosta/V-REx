@@ -31,8 +31,8 @@ crawler=DataCrawler(mongo,LOGGER)
 # crawler.downloadRawDataFromSources(sources=['CVE_NVD'])
 # crawler.downloadRawDataFromSources(sources=['CAPEC_MITRE'])
 # crawler.downloadRawDataFromSources(sources=['OVAL'])
-crawler.downloadRawDataFromSources(sources=['EXPLOIT_DB'])
-# crawler.downloadRawDataFromSources(sources=['CVE_DETAILS'])
+# crawler.downloadRawDataFromSources(sources=['EXPLOIT_DB'])
+crawler.downloadRawDataFromSources(sources=['CVE_DETAILS'])
 
 
 # crawler.downloadRawDataFromSources()

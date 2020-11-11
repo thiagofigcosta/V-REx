@@ -104,7 +104,6 @@ class DataCrawler(object){
         DataCrawler.SOURCES.append({'id':'EXPLOIT_DB','index':'exploit','base_download_url':'https://www.exploit-db.com/exploits/'})
         # TODO other sources
         # CVE DETAILS ALREADY HAS DATA AGGREGATED FROM MULTIPLES SOURCES
-        # https://www.cvedetails.com/
         # https://www.kb.cert.org/vuls/search/
         # https://www.securityfocus.com/vulnerabilities
         # https://www.broadcom.com/support/security-center/attacksignatures
@@ -564,7 +563,7 @@ class DataCrawler(object){
                     documents.append(exploit_entry)
                 }
             }
-        }elif XXXX{
+        }elif id=='CVE_DETAILS'{
             patterns={}
             patterns[source['index']]=r'Vulnerability Details *: *<.*>(CVE-[0-9\-]+)<\/'
             patterns['cvss score']=r'[.|\n]*CVSS Score[\s|\n]*<\/.*>[\s|\n]*((\n|.)*?)<\/.*>'
@@ -591,25 +590,59 @@ class DataCrawler(object){
                 cve_entry={}
                 raw_html=Utils.openFile(path)
                 if not re.search(invalid_regex, raw_html, re.MULTILINE){
+                    found_at_least_one=False
                     for k,pattern in patterns.items(){
                         result=re.search(pattern, raw_html, re.MULTILINE)
-                        v=result.group(1)
-                        if re.search(table_regex, v, re.MULTILINE){
-                            df=pd.read_html(v)[0]
-                            parserd_table={k: v.iloc[0, 1].split('  ') for k, v in df.groupby(0)}
-                            # TODO test
-                        }else{
-                            v=re.search(filter_regex, v, re.MULTILINE).group(1)
+                        if result{
+                            found_at_least_one=True
+                            v=result.group(1)
+                            if re.search(table_regex, v, re.MULTILINE){
+                                df=pd.read_html(v)[0]
+                                headers=df.columns.values
+                                rows=df.values
+                                v=[]
+                                for row in rows{
+                                    row_entry={}
+                                    for i in range(len(headers)){
+                                        header=str(headers[i])
+                                        if header != '#' and 'Unnamed' not in header{
+                                            header=header.replace('&nbsp',' ')
+                                            value=str(row[i]).replace('&nbsp',' ')
+                                            if value != 'nan'{
+                                                row_entry[header]=value
+                                            }
+                                        }
+                                    }
+                                    v.append(row_entry)
+                                }
+                                cve_entry[k]=v
+                            }else{
+                                result=re.search(filter_regex, v, re.MULTILINE)
+                                if result{
+                                    v=result.group(1)
+                                }
+                                if not (k=='metasploitable' and v==' for more information)') and not (k=='cwe' and v=='CWE id is not defined for this vulnerability'){
+                                    cve_entry[k]=v
+                                }
+                            }
                         }
-                        cve_entry[k]=v
                     }       
-                    documents[0]['Data Count']+=1         
-                    documents.append(cve_entry)
+                    if found_at_least_one{
+                        documents[0]['Data Count']+=1         
+                        documents.append(cve_entry)
+                    }
                 }
             }
 
         }else{
             raise Exception('Unknown id({}).'.format(id))
+        }
+        if type(paths) is str{
+            path=paths
+        }elif type(paths) is list{
+            path='Multiple files at {}'.format(Utils.partentFromPath(paths[0]))
+        }else{
+            raise Exception('Unknown data type for paths on parseDBtoDocuments. Type was {}'.format(type(paths)))
         }
         self.logger.info('Parsed data {} for {}...OK'.format(path,id))
         return documents
