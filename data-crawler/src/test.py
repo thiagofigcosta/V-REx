@@ -23,8 +23,8 @@ LOGGER.exception(Exception('TEST exception printing'))
 
 
 
-# mongo=MongoDB.asDummy(LOGGER)
-mongo=MongoDB('127.0.0.1',27017,LOGGER,user='root',password='123456')
+mongo=MongoDB.asDummy(LOGGER)
+# mongo=MongoDB('127.0.0.1',27017,LOGGER,user='root',password='123456')
 crawler=DataCrawler(mongo,LOGGER)
 
 crawler.downloadRawDataFromSources(sources=['CVE_MITRE'])

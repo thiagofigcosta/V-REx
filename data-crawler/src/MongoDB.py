@@ -3,7 +3,7 @@
 from Utils import Utils
 import pymongo
 from pymongo import MongoClient
-# from mongoqueue import MongoQueue
+from MongoQueue import MongoQueue,MongoJob
 
 class MongoDB(object){
     QUEUE_DB_NAME='queue'
@@ -81,32 +81,37 @@ class MongoDB(object){
     }
 
     def startQueue(self,id=0){ 
-        # TODO fix queue, add manually sources, pip code not working
-        #https://github.com/kapilt/mongoqueue/blob/master/mongoqueue/test.py
-        #https://github.com/kapilt/mongoqueue/blob/master/mongoqueue/mongoqueue.py
-        #https://github.com/kapilt/mongoqueue/blob/master/mongoqueue/lock.py
-        #https://github.com/kapilt/mongoqueue/blob/master/mongoqueue/__init__.py
-        
-        
-        # https://pypi.org/project/mongoqueue/ http://learnmongodbthehardway.com/schema/queues/
         consumer_id='consumer_{}'.format(id)
-        #collection=self.client.task_queue # TODO test
-        collection=self.client[QUEUE_DB_NAME][QUEUE_COL_NAME]
-        # self.queue = MongoQueue(collection, consumer_id=consumer_id, timeout=600, max_attempts=3)
+        collection=self.client[MongoDB.QUEUE_DB_NAME][MongoDB.QUEUE_COL_NAME]
+        self.consumer_id=consumer_id
+        self.queue=MongoQueue(collection, consumer_id=consumer_id, timeout=1500, max_attempts=3)
     }
 
-    def loop(self){
+    def getQueueConsumerId(self){
+        return self.consumer_id
+    }
+
+    def loopOnQueue(self,crawler){
         while True{
             job=self.queue.next()
             if job is not None{
+                payload=job.payload
+                task=payload['task']
                 try{
-                    print(job)
-                    # TODO process job
-                    # if job is to download every source use getAllDatabasesId to split it into several jobs, one for each id and them publish all of them of queue
+                    self.logger.info('Running job {}...'.format(task))
+                    if task=='DownloadAll'{
+                        for db_id in crawler.getAllDatabasesIds(){
+                            self.queue.put({'task': 'Download','args':{'id':db_id}})
+                        }
+                    }elif task=='Download'{
+                        crawler.downloadRawDataFromSources(sources=[payload['args']['id']],update_callback=lambda: job.progress())
+                    }
                     job.complete()
+                    self.logger.info('Runned job {}...OK'.format(task))
                 }except Exception as e{
-                    # TODO log exception                    
                     job.error(str(e))
+                    self.logger.error('Runned job {}...FAILED'.format(task))          
+                    self.logger.exception(e)
                 }
             }
         }

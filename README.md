@@ -1,7 +1,11 @@
 # V-REx
 Vulnerabilities' Risk of Exploitation
 
-Neural network based on: https://github.com/keroro824/HashingDeepLearning https://github.com/sarthakpati/cnpy https://github.com/madler/zlib
+Neural network with parts of the code from: 
+>- https://github.com/keroro824/HashingDeepLearning 
+>- https://github.com/kapilt/mongoqueue
+>- https://github.com/sarthakpati/cnpy 
+>- https://github.com/madler/zlib
 
 ## Passwords location
 Inside .env file

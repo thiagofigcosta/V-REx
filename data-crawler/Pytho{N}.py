@@ -80,24 +80,33 @@ def pre_compile(content,print_out=False):
     lines = content.split('\n')
     needed_tabs=0
     dictionary=False
+    reg_python=False
     for line in lines:
         turn_off_dictionary=False
-        line=line.strip()
-        if re.match(r'(.*[ |\t]*=[ |\t]*({)\s*(.*})?|(?<![\'|\"]).*\(\s*({)\s*(.*}\))\s*)$', line):
-            dictionary=True
-        if re.match(r'^.*}((?=(?:[^\"\']*\"\'[^\"\']*\"\')*[^\"\']*\Z)|\s*(else|elif))', line): 
-            if not dictionary:
-                line=re.sub('} *', '}', line)
-                line=replace_last(line,'}','')
-                needed_tabs-=1
-            else:
-                turn_off_dictionary=True
-        if (needed_tabs>0):
-            line="\t"*needed_tabs+line
-        if not dictionary:
-            if re.match(r'^.*({)\s*(#.*)?$', line):
-                line=replace_last(line,'{',':')
-                needed_tabs+=1
+        if re.match(r'\s*#\s*Pytho{\\}:\s*Ignore file\s*',line,re.IGNORECASE):
+            return content
+        if re.match(r'\s*#\s*Pytho{\\}:\s*Start regular Python\s*',line,re.IGNORECASE):
+            reg_python=True
+        elif re.match(r'\s*#\s*Pytho{\\}:\s*End regular Python\s*',line,re.IGNORECASE): 
+            reg_python=False
+        else:
+            if not reg_python:
+                line=line.strip()
+                if re.match(r'(.*[ |\t]*=[ |\t]*({)\s*(.*})?|(?<![\'|\"]).*\(\s*({)\s*(.*}\))\s*)$', line):
+                    dictionary=True
+                if re.match(r'^.*}((?=(?:[^\"\']*\"\'[^\"\']*\"\')*[^\"\']*\Z)|\s*(else|elif))', line): 
+                    if not dictionary:
+                        line=re.sub('} *', '}', line)
+                        line=replace_last(line,'}','')
+                        needed_tabs-=1
+                    else:
+                        turn_off_dictionary=True
+                if (needed_tabs>0):
+                    line="\t"*needed_tabs+line
+                if not dictionary:
+                    if re.match(r'^.*({)\s*(#.*)?$', line):
+                        line=replace_last(line,'{',':')
+                        needed_tabs+=1
         parsed_lines+=line+'\n'
         if turn_off_dictionary:
             dictionary=False

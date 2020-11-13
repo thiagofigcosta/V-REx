@@ -103,7 +103,6 @@ class DataCrawler(object){
         DataCrawler.SOURCES.append({'id':'CVE_DETAILS','index':'cve','base_download_url':'https://www.cvedetails.com/cve/'})
         DataCrawler.SOURCES.append({'id':'EXPLOIT_DB','index':'exploit','base_download_url':'https://www.exploit-db.com/exploits/'})
         # TODO other sources
-        # CVE DETAILS ALREADY HAS DATA AGGREGATED FROM MULTIPLES SOURCES
         # https://www.kb.cert.org/vuls/search/
         # https://www.securityfocus.com/vulnerabilities
         # https://www.broadcom.com/support/security-center/attacksignatures
@@ -119,6 +118,10 @@ class DataCrawler(object){
         return ids
     }
 
+    def getAllDatabasesIds(self){
+        return DataCrawler.getAllDatabasesId()
+    }
+
     def getSourceFromId(self,id){
         for source in DataCrawler.SOURCES{
             if source['id']==id{
@@ -128,7 +131,7 @@ class DataCrawler(object){
         return None
     }
 
-    def parseDBtoDocuments(self,id,paths){
+    def parseDBtoDocuments(self,id,paths,update_callback=None){
         source=self.getSourceFromId(id)
         if type(paths) is str{
             path=paths
@@ -161,6 +164,9 @@ class DataCrawler(object){
                     }
                 }
                 documents.append(cve_entry)
+                if update_callback {
+                    update_callback()
+                }
             }
         }elif id=='CWE_MITRE'{ # TODO Severe workarounds, it is not the ideal solution but xmlschema is not working
             xmldict=XmlDictParser.fromFile(path,filter=True)
@@ -197,6 +203,9 @@ class DataCrawler(object){
                     cwe_entry[k]=v
                 }
                 documents.append(cwe_entry)
+                if update_callback {
+                    update_callback()
+                }
             }
             for cat in xmldict['Categories']['Category']{
                 if 'Relationships' in cat {
@@ -308,6 +317,9 @@ class DataCrawler(object){
                 }        
                 documents[i]=XmlDictParser.compressDictOnFollowingKeys(documents[i],['p','li','ul','div','i'])
                 documents[i]=XmlDictParser.recursiveRemoveEmpty(documents[i])
+                if update_callback {
+                    update_callback()
+                }
             }
             Utils.deletePath(schema_path)
         }elif id=='CVE_NVD'{
@@ -348,6 +360,9 @@ class DataCrawler(object){
                     }
                     if source['index'] in cve_entry{
                         documents.append(cve_entry)
+                        if update_callback {
+                            update_callback()
+                        }
                     }else{
                         raise Exception('No CVE id found on source {} path {}'.format(id,json_path))
                     }
@@ -371,6 +386,9 @@ class DataCrawler(object){
                     capec_entry[k]=v
                 }
                 documents.append(capec_entry)
+                if update_callback {
+                    update_callback()
+                }
             }
             for cat in xmldict['Categories']['Category']{
                 if 'Relationships' in cat {
@@ -482,6 +500,9 @@ class DataCrawler(object){
                 }       
                 documents[i]=XmlDictParser.compressDictOnFollowingKeys(documents[i],['p','li','ul','div','i','class'])
                 documents[i]=XmlDictParser.recursiveRemoveEmpty(documents[i])
+                if update_callback {
+                    update_callback()
+                }
             }
         }elif id=='OVAL'{
             xmldict=XmlDictParser.fromFile(path,filter=True)
@@ -521,6 +542,9 @@ class DataCrawler(object){
                 }
                 if add_entry{
                     documents.append(oval_entry)
+                    if update_callback {
+                        update_callback()
+                    }
                 }
             }
         }elif id=='EXPLOIT_DB'{
@@ -561,6 +585,9 @@ class DataCrawler(object){
                 }           
                 if found_at_least_one{     
                     documents.append(exploit_entry)
+                    if update_callback {
+                        update_callback()
+                    }
                 }
             }
         }elif id=='CVE_DETAILS'{
@@ -630,6 +657,9 @@ class DataCrawler(object){
                     if found_at_least_one{
                         documents[0]['Data Count']+=1         
                         documents.append(cve_entry)
+                        if update_callback {
+                            update_callback()
+                        }
                     }
                 }
             }
@@ -648,7 +678,7 @@ class DataCrawler(object){
         return documents
     }
 
-    def downloadRawDataAndParseFrom(self,id){
+    def downloadRawDataAndParseFrom(self,id,update_callback=None){
         source=self.getSourceFromId(id)
         if id=='CVE_MITRE'{
             self.logger.info('Downloading CVEs from {}...'.format(id))
@@ -660,7 +690,10 @@ class DataCrawler(object){
                     csv_path=destination_folder+file_str
                 }
             }
-            documents=self.parseDBtoDocuments(id,csv_path)
+            if update_callback {
+                update_callback()
+            }
+            documents=self.parseDBtoDocuments(id,csv_path,update_callback=update_callback)
             return documents, destination_folder
         }elif id=='CWE_MITRE'{
             self.logger.info('Downloading CWEs from {}...'.format(id))
@@ -672,7 +705,10 @@ class DataCrawler(object){
                     xml_path=destination_folder+file_str
                 }
             }
-            documents=self.parseDBtoDocuments(id,xml_path)
+            if update_callback {
+                update_callback()
+            }
+            documents=self.parseDBtoDocuments(id,xml_path,update_callback=update_callback)
             return documents, destination_folder            
         }elif id=='CVE_NVD'{
             self.logger.info('Downloading CWEs from {}...'.format(id))
@@ -691,7 +727,10 @@ class DataCrawler(object){
                     json_files.append(destination_folder+file_str)
                 }
             }
-            documents=self.parseDBtoDocuments(id,json_files)
+            if update_callback {
+                update_callback()
+            }
+            documents=self.parseDBtoDocuments(id,json_files,update_callback=update_callback)
             return documents, destination_folder
         }elif id=='CAPEC_MITRE'{
             self.logger.info('Downloading CAPECs from {}...'.format(id))
@@ -706,7 +745,10 @@ class DataCrawler(object){
                     xsd_path=destination_folder+file_str
                 }
             }
-            documents=self.parseDBtoDocuments(id,[xml_path,xsd_path])
+            if update_callback {
+                update_callback()
+            }
+            documents=self.parseDBtoDocuments(id,[xml_path,xsd_path],update_callback=update_callback)
             return documents, destination_folder            
         }elif id=='OVAL'{
             self.logger.info('Downloading OVALs from {}...'.format(id))
@@ -718,7 +760,10 @@ class DataCrawler(object){
                     xml_path=destination_folder+file_str
                 }
             }
-            documents=self.parseDBtoDocuments(id,xml_path)
+            if update_callback {
+                update_callback()
+            }
+            documents=self.parseDBtoDocuments(id,xml_path,update_callback=update_callback)
             return documents, destination_folder            
         }elif id=='EXPLOIT_DB'{
             self.logger.info('Downloading EXPLOITs from {}...'.format(id))
@@ -744,6 +789,9 @@ class DataCrawler(object){
                 try{
                     self.downloadFromLink(source['base_download_url']+str(exploit_id),destination_folder+'{}_id-{}.html'.format(source['id'],exploit_id),timeout=120)
                     timeouts=0
+                    if update_callback {
+                        update_callback()
+                    }
                 }except Exception as e {
                     if exploit_id>max_known_exploit{
                         if str(e)=='HTTP Error 404: Not Found'{
@@ -787,7 +835,7 @@ class DataCrawler(object){
                     self.references['exploit'].add(int(result.group(1)))
                 }
             }
-            documents=self.parseDBtoDocuments(id,paths)
+            documents=self.parseDBtoDocuments(id,paths,update_callback=update_callback)
             return documents, destination_folder 
         }elif id=='CVE_DETAILS'{
             self.logger.info('Downloading CVEs from {}...'.format(id))
@@ -807,6 +855,9 @@ class DataCrawler(object){
                 try{
                     self.downloadFromLink(source['base_download_url']+str(cve_formatted),destination_folder+'{}_id-{}.html'.format(source['id'],cve),timeout=120)
                     timeouts=0
+                    if update_callback {
+                        update_callback()
+                    }
                 }except Exception as e{
                     if str(e)=='HTTP Error 404: Not Found'{
                         self.logger.warn('Exploit with id {} not found. 404.'.format(cve))
@@ -831,19 +882,19 @@ class DataCrawler(object){
                     paths.append(destination_folder+file_str)
                 }
             }
-            documents=self.parseDBtoDocuments(id,paths)
+            documents=self.parseDBtoDocuments(id,paths,update_callback=update_callback)
             return documents, destination_folder 
         }else{ 
             raise Exception('Unknown id({}).'.format(id))
         }
     }
 
-    def downloadRawDataFromSources(self,sources=None){
+    def downloadRawDataFromSources(self,sources=None,update_callback=None){
         failed=[]
         for source in DataCrawler.SOURCES{
             if sources is None or source['id'] in sources{
                 try{
-                    documents,tmp_path=self.downloadRawDataAndParseFrom(source['id'])
+                    documents,tmp_path=self.downloadRawDataAndParseFrom(source['id'],update_callback=update_callback)
                     if documents is not None{
                         self.mongo.insertManyOnRawDB(documents,source['id'],source['index'])
                         Utils.deletePath(tmp_path)
