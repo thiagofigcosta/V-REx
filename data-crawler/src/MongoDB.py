@@ -1,6 +1,7 @@
 #!/bin/python
 # -*- coding: utf-8 -*-
 from Utils import Utils
+import pymongo
 from pymongo import MongoClient
 # from mongoqueue import MongoQueue
 
@@ -19,6 +20,7 @@ class MongoDB(object){
             self.dummy=True
             Utils.createFolderIfNotExists(MongoDB.DUMMY_FOLDER)
         }else{
+            self.dummy=False
             self.address=address
             self.port=port
             self.user=user 
@@ -42,10 +44,10 @@ class MongoDB(object){
 
     def startMongoDatabases(self){
         dblist = self.client.list_database_names()
-        if RAW_DATA_DB_NAME not in dblist{
-            self.logger.warn('Database {} does not exists, creating it...'.format(RAW_DATA_DB_NAME))
+        if MongoDB.RAW_DATA_DB_NAME not in dblist{
+            self.logger.warn('Database {} does not exists, creating it...'.format(MongoDB.RAW_DATA_DB_NAME))
         }
-        self.raw_db = self.client[RAW_DATA_DB_NAME]
+        self.raw_db = self.client[MongoDB.RAW_DATA_DB_NAME]
     }
 
     def insertManyOnRawDB(self,documents,collection,index=None){
@@ -54,14 +56,13 @@ class MongoDB(object){
             Utils.saveJson(path,documents)
             return path
         }else{
-            self.logger.info('Inserting on raw db col:{} index:{} size:{}...'.format(collection,index,len(documents)))
+            self.logger.info('Inserting on raw db col:{} index: {} size: {}...'.format(collection,index,len(documents)))
             collection=self.raw_db[collection]
             if index is not None{
-                collection.createIndex([(index, pymongo.ASCENDING)], unique=True)
+                collection.create_index([(index, pymongo.ASCENDING)], unique=True)
             }
             result=collection.insert_many(documents)
-            self.logger.info('Inserted size: {}...OK'.format(len(result))) # TODO choose
-            self.logger.info('Inserted:\n{}'.format(result)) # TODO choose
+            self.logger.info('Inserted size: {}...OK'.format(len(result.inserted_ids)))
         }
     }
 
