@@ -60,9 +60,19 @@ class MongoDB(object){
             collection=self.raw_db[collection]
             if index is not None{
                 collection.create_index([(index, pymongo.ASCENDING)], unique=True)
+                mod_count=0
+                for doc in documents{
+                    query={index: doc[index]}
+                    result=collection.replace_one(query, doc, upsert=True) 
+                    if result.modified_count > 0{
+                        mod_count+=result.modified_count
+                    }
+                }
+                self.logger.info('Inserted size: {}...OK'.format(mod_count))
+            }else{
+                result=collection.update_many(documents,upsert=True)
+                self.logger.info('Inserted size: {}...OK'.format(len(result.inserted_ids)))
             }
-            result=collection.insert_many(documents)
-            self.logger.info('Inserted size: {}...OK'.format(len(result.inserted_ids)))
         }
     }
 
