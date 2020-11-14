@@ -42,12 +42,55 @@ class MongoDB(object){
         self.client=client
     }
 
+    def saveReferences(self,refs){
+        refs=refs.copy()
+        for k,_ in refs.items(){
+            refs[k]=list(refs[k])
+            refs[k].sort()
+        }
+        if self.dummy{
+            ref_path=MongoDB.DUMMY_FOLDER+'references.json'
+            Utils.saveJson(ref_path,refs) 
+        }else{
+            refs={'unique':'unique','refs':refs}
+            self.insertOneOnRawDB(refs,'References',index='unique')
+        }
+    }
+
+    def loadReferences(self){
+        if self.dummy{
+            ref_path=MongoDB.DUMMY_FOLDER+'references.json'
+            found= 1 if Utils.checkIfPathExists(ref_path) else 0
+        }else{
+            query={'unique':'unique'}
+            refs=self.raw_db['References'].find(query)
+            found=refs.count()
+        }
+        if found>0{
+            if self.dummy{
+                refs=refs.next()['refs']
+            }else{
+                refs=Utils.loadJson(ref_path)
+            }
+            for k,_ in refs.items(){
+                refs[k]=set(refs[k])
+            }
+        }else{
+            refs={'cve':set(),'cwe':set(),'exploit':set()}
+        }
+        return refs
+    }
+
     def startMongoDatabases(self){
         dblist = self.client.list_database_names()
         if MongoDB.RAW_DATA_DB_NAME not in dblist{
             self.logger.warn('Database {} does not exists, creating it...'.format(MongoDB.RAW_DATA_DB_NAME))
         }
         self.raw_db = self.client[MongoDB.RAW_DATA_DB_NAME]
+    }
+
+    def insertOneOnRawDB(self,document,collection,index=None){
+        return self.insertManyOnRawDB([document],collection,index=index)
     }
 
     def insertManyOnRawDB(self,documents,collection,index=None){
@@ -67,10 +110,13 @@ class MongoDB(object){
                     if result.modified_count > 0{
                         mod_count+=result.modified_count
                     }
+                    if result.upserted_id{
+                        mod_count+=1
+                    }
                 }
                 self.logger.info('Inserted size: {}...OK'.format(mod_count))
             }else{
-                result=collection.update_many(documents,upsert=True)
+                result=collection.update_many(documents)
                 self.logger.info('Inserted size: {}...OK'.format(len(result.inserted_ids)))
             }
         }

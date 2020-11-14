@@ -19,30 +19,7 @@ class DataCrawler(object){
         self.logger=logger
 		self.mongo=mongo
         self.loadDatabases()
-        self.loadReferences()
-    }
-
-    def loadReferences(self){
-        # TODO use mongo
-        ref_path=DataCrawler.TMP_FOLDER+'references.json'
-        if Utils.checkIfPathExists(ref_path){
-            self.references=Utils.loadJson(ref_path)
-            for k,_ in self.references.items(){
-                self.references[k]=set(self.references[k])
-            }
-        }else{
-            self.references={'cve':set(),'cwe':set(),'exploit':set()}
-        }
-    }
-
-    def saveReferences(self){
-        references_copy=self.references.copy()
-        for k,_ in references_copy.items(){
-            references_copy[k]=list(references_copy[k])
-            references_copy[k].sort()
-        }
-        # TODO use mongo
-        Utils.saveJson(DataCrawler.TMP_FOLDER+'references.json',references_copy) 
+        self.references=self.mongo.loadReferences()
     }
     
     def downloadFromLink(self,link,filename,timeout=600){
@@ -197,7 +174,7 @@ class DataCrawler(object){
                 for k,v in cwe.items(){
                     if k=='ID'{
                         k=source['index']
-                        self.references['cwe'].add(v)
+                        self.references['cwe'].add(int(v))
                     }
                     cwe_entry[k]=v
                 }
@@ -904,7 +881,7 @@ class DataCrawler(object){
                     self.logger.exception(e,fatal=False)
                     failed.append(source['id'])
                 }finally{
-                    self.saveReferences()
+                    self.mongo.saveReferences(self.references)
                 }
             }
         }

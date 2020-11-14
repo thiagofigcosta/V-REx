@@ -68,6 +68,9 @@ class MongoDB(object){
                     if result.modified_count > 0{
                         mod_count+=result.modified_count
                     }
+                    if result.upserted_id{
+                        mod_count+=1
+                    }
                 }
                 self.logger.info('Inserted size: {}...OK'.format(mod_count))
             }else{
