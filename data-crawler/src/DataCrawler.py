@@ -102,11 +102,10 @@ class DataCrawler(object){
         DataCrawler.SOURCES.append({'id':'OVAL','index':'oval','direct_download_url':'https://oval.cisecurity.org/repository/download/5.11.2/all/oval.xml.zip'})
         DataCrawler.SOURCES.append({'id':'CVE_DETAILS','index':'cve','base_download_url':'https://www.cvedetails.com/cve/'})
         DataCrawler.SOURCES.append({'id':'EXPLOIT_DB','index':'exploit','base_download_url':'https://www.exploit-db.com/exploits/'})
-        # TODO other sources
-        # https://www.kb.cert.org/vuls/search/
-        # https://www.securityfocus.com/vulnerabilities
-        # https://www.broadcom.com/support/security-center/attacksignatures
-        # ????????? Rapid 7’s Metasploit, D2 Security’s Elliot Kit and Canvas Exploitation Framework, OpenVAS
+        # TODO download data from: https://www.kb.cert.org/vuls/search/
+        # TODO download data from: https://www.securityfocus.com/vulnerabilities
+        # TODO download data from: https://www.broadcom.com/support/security-center/attacksignatures
+        # TODO download data from: ????????? Rapid 7’s Metasploit, D2 Security’s Elliot Kit and Canvas Exploitation Framework, OpenVAS
     }
 
     @staticmethod

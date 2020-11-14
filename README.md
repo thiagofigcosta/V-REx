@@ -40,7 +40,14 @@ sudo rm -rf docker_volumes
 ### Data crawler
 ```
 ./update_Pytho\{N\}.sh # update Pytho{\}
-docker build -t data_crawler:v1.0.0 data_crawler/  # build image
+docker build -t data-crawler:v1.0.0 data-crawler/  # build image
+docker rmi -f $(docker images -f "dangling=true" -q) # cleanup <none> images
+```
+
+### Front end
+```
+./update_Pytho\{N\}.sh # update Pytho{\}
+docker build -t front-end:v1.0.0 front-end/  # build image
 docker rmi -f $(docker images -f "dangling=true" -q) # cleanup <none> images
 ```
 
@@ -54,7 +61,12 @@ docker rmi -f $(docker images -f "dangling=true" -q) # cleanup <none> images
 
 ### Data crawler
 ```
-docker run data_crawler:v1.0.0
+docker run data-crawler:v1.0.0
+```
+
+### Front end
+```
+docker run front-end:v1.0.0 [arguments]
 ```
 
 ### Core

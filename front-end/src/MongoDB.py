@@ -4,6 +4,7 @@ from Utils import Utils
 import pymongo
 from pymongo import MongoClient
 from MongoQueue import MongoQueue,MongoJob
+import datetime
 
 class MongoDB(object){
     QUEUE_DB_NAME='queue'
@@ -81,8 +82,9 @@ class MongoDB(object){
     }
 
     def startQueue(self,id=0){ 
-        consumer_id='consumer_{}'.format(id)
+        consumer_id='front-end_{}'.format(id)
         collection=self.client[MongoDB.QUEUE_DB_NAME][MongoDB.QUEUE_COL_CRAWLER_NAME]
+        self.consumer_id=consumer_id
         self.queues={}
         self.queues[MongoDB.QUEUE_COL_CRAWLER_NAME]=MongoQueue(collection, consumer_id=consumer_id, timeout=1500, max_attempts=3)
     }
@@ -91,29 +93,74 @@ class MongoDB(object){
         return self.consumer_id
     }
 
-    def loopOnQueue(self,crawler){
-        while True{
-            job=self.queues[MongoDB.QUEUE_COL_CRAWLER_NAME].next()
-            if job is not None{
-                payload=job.payload
-                task=payload['task']
-                try{
-                    self.logger.info('Running job {}...'.format(task))
-                    if task=='DownloadAll'{
-                        for db_id in crawler.getAllDatabasesIds(){
-                            self.queues[MongoDB.QUEUE_COL_CRAWLER_NAME].put({'task': 'Download','args':{'id':db_id}})
-                        }
-                    }elif task=='Download'{
-                        crawler.downloadRawDataFromSources(sources=[payload['args']['id']],update_callback=lambda: job.progress())
+    def getQueueNames(self){
+        return self.client[MongoDB.QUEUE_DB_NAME].collection_names()
+    }
+
+
+    def clearQueue(self,name){
+        return self.queues[name].clear()
+    }
+
+    def getAllQueueJobs(self){
+        out={}
+        queues=self.getQueueNames()
+        for queue_name in queues{
+            queue=self.client[MongoDB.QUEUE_DB_NAME][queue_name]
+            jobs=queue.find({})
+            parsed_jobs=[]
+            for job in jobs{
+                job_dict={'task':job['payload']['task']}
+                if 'args' in job['payload']{
+                    if job['payload']['args']{
+                        job_dict['args']=job['payload']['args']
                     }
-                    job.complete()
-                    self.logger.info('Runned job {}...OK'.format(task))
-                }except Exception as e{
-                    job.error(str(e))
-                    self.logger.error('Runned job {}...FAILED'.format(task))          
-                    self.logger.exception(e)
                 }
+                if job['locked_by'] is None{
+                    status='WAITING'
+                }else{
+                    status='RUNNING'
+                    locked_at=job['locked_at']
+                    end_date=locked_at+datetime.timedelta(0,self.queues[queue_name].timeout+3)
+                    if end_date<datetime.datetime.now(){
+                        query={"_id": job['_id']}
+                        if job['attempts'] > self.queues[queue_name].max_attempts{
+                            status='FAILED ALL ATTEMPS'
+                            queue.remove(query)
+                        }else{
+                            status='FAILED'
+                        }
+                        time_failed=datetime.datetime.now()-end_date
+                        if datetime.timedelta(hours=2)<time_failed{
+                            status='CANCELING'
+                            update={"$set": {"locked_by": None, "locked_at": None},"$inc": {"attempts": 1}}
+                            queue.find_and_modify(query,update=update)
+                        }
+                    }
+                }
+                job_dict['status']=status
+                if status=='RUNNING'{
+                    job_dict['worker']=job['locked_by']
+                }
+                job_dict['attemps']=job['attempts']
+                if job['last_error']{
+                    job_dict['error']=job['last_error']
+                }
+                job_dict['id']=job['_id']
+                parsed_jobs.append(job_dict)
+            }
+            if len(parsed_jobs)>0{
+                out[queue_name]=parsed_jobs
             }
         }
+        return out
+    }
+
+    def insertOnCrawlerQueue(self,task,args=None){
+        payload={'task': task}
+        if args{
+            payload['args']=args
+        }
+        self.queues[MongoDB.QUEUE_COL_CRAWLER_NAME].put(payload)
     }
 }
