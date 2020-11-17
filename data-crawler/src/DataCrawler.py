@@ -358,6 +358,7 @@ class DataCrawler(object){
                 for k,v in capec.items(){
                     if k=='ID'{
                         k=source['index']
+                        self.references['capec'].add(int(v))
                     }
                     capec_entry[k]=v
                 }
@@ -493,6 +494,7 @@ class DataCrawler(object){
                 for k,v in definition.items(){
                     if k=='id'{
                         k=source['index']
+                        self.references['oval'].add(v)
                     }
                     if k=='metadata'{
                         for k2,v2 in v.items(){

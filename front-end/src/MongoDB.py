@@ -100,7 +100,6 @@ class MongoDB(object){
         return self.client[MongoDB.QUEUE_DB_NAME].collection_names()
     }
 
-
     def clearQueue(self,name){
         return self.queues[name].clear()
     }

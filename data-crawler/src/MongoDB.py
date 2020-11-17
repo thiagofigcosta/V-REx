@@ -68,15 +68,15 @@ class MongoDB(object){
         }
         if found>0{
             if self.dummy{
-                refs=refs.next()['refs']
-            }else{
                 refs=Utils.loadJson(ref_path)
+            }else{
+                refs=refs.next()['refs']
             }
             for k,_ in refs.items(){
                 refs[k]=set(refs[k])
             }
         }else{
-            refs={'cve':set(),'cwe':set(),'exploit':set()}
+            refs={'cve':set(),'cwe':set(),'exploit':set(),'capec':set(),'oval':set()}
         }
         return refs
     }
@@ -127,8 +127,9 @@ class MongoDB(object){
     }
 
     def startQueue(self,id=0){ 
-        consumer_id='consumer_{}'.format(id)
+        consumer_id='crawler_{}'.format(id)
         collection=self.client[MongoDB.QUEUE_DB_NAME][MongoDB.QUEUE_COL_CRAWLER_NAME]
+        self.consumer_id=consumer_id
         self.queues={}
         self.queues[MongoDB.QUEUE_COL_CRAWLER_NAME]=MongoQueue(collection, consumer_id=consumer_id, timeout=1500, max_attempts=3)
     }
