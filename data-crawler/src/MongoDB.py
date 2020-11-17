@@ -147,7 +147,7 @@ class MongoDB(object){
                 payload=job.payload
                 task=payload['task']
                 try{
-                    self.logger.info('Running job {}...'.format(task))
+                    self.logger.info('Running job {}-{}...'.format(task,job.job_id))
                     if task=='DownloadAll'{
                         for db_id in crawler.getAllDatabasesIds(){
                             self.queues[MongoDB.QUEUE_COL_CRAWLER_NAME].put({'task': 'Download','args':{'id':db_id}})
@@ -158,7 +158,7 @@ class MongoDB(object){
                                 self.logger.warn('Returning {} job to queue, because it does not have its requirements fulfilled'.format(payload['args']['id']))
                                 job.put_back()
                                 job=None
-                                time.sleep(200)
+                                time.sleep(200) # TODO change to 20 and check if there is an active job on queue processing CVE_MITRE or CVE_NVD, if yes wait
                             }
                         }
                         if job{
@@ -170,11 +170,11 @@ class MongoDB(object){
                     }
                     if job{
                         job.complete()
-                        self.logger.info('Runned job {}...OK'.format(task))
+                        self.logger.info('Runned job {}-{}...'.format(task,job.job_id))
                     }
                 }except Exception as e{
                     job.error(str(e))
-                    self.logger.error('Runned job {}...FAILED'.format(task))          
+                    self.logger.error('Runned job {}-{}...'.format(task,job.job_id))      
                     self.logger.exception(e)
                 }
             }

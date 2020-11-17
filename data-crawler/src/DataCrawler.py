@@ -134,10 +134,14 @@ class DataCrawler(object){
             for cve in df{
                 cve_entry={}
                 for i in range(columns_size){
-                    cve_entry[columns[i]]=cve[i]
-                    if columns[i]==source['index']{
-                        ref=cve[i].replace('CVE-', '')
-                        self.references['cve'].add(ref)
+                    column=columns[i]
+                    value=cve[i]
+                    if value==value{
+                        cve_entry[column]=value
+                        if column==source['index']{
+                            ref=value.replace('CVE-', '')
+                            self.references['cve'].add(ref)
+                        }
                     }
                 }
                 documents.append(cve_entry)
@@ -559,6 +563,14 @@ class DataCrawler(object){
                             v='True'
                         }
                         v=re.sub(r'<.*>','',v).strip()
+                        if k=='cve'{
+                            cve_ids=re.findall(r'[0-9]+\-[0-9]+', v,re.MULTILINE)
+                            if type(cve_ids) is list and len(cve_ids)>0{
+                                v=cve_ids[-1]
+                            }else{
+                                v='N/A'
+                            }
+                        }
                         if v and v!='N/A'{
                             exploit_entry[k]=v
                         }
@@ -585,7 +597,8 @@ class DataCrawler(object){
             patterns['gained acc.']=r'[.|\n]*Gained Access[\s|\n]*<\/.*>[\s|\n]*((\n|.)*?)<\/.*>'
             patterns['vul. type']=r'[.|\n]*Vulnerability Type\(s\)[\s|\n]*<\/.*>[\s|\n]*((\n|.)*?)<\/.*>'
             patterns['cwe']=r'[.|\n]*CWE ID[\s|\n]*<\/.*>[\s|\n]*((\n|.)*?)<\/.*>'
-            filter_regex=r'.*>(.*)$'
+            patterns['description']=r'<div class="cvedetailssummary"(>[.|\n]*(\n|.)*?)[\s|\n]*<\/div>'
+            filter_regex=r'.*>((.|\n)*)$'
             invalid_regex=r'<strong>Unknown CVE ID<\/strong>'
             table_regex=r'<table .*>(\n|.)*?<\/table>'
             patterns['prod. affected']=r'Products Affected By CVE-[0-9\-]+[\s|\n]*<\/.*>[\s|\n]*(<table .*>(.|\n)*?<\/table>)'
@@ -617,8 +630,8 @@ class DataCrawler(object){
                                     for i in range(len(headers)){
                                         header=str(headers[i])
                                         if header != '#' and 'Unnamed' not in header{
-                                            header=header.replace('&nbsp',' ')
-                                            value=str(row[i]).replace('&nbsp',' ')
+                                            header=header.replace('&nbsp',' ').strip()
+                                            value=str(row[i]).replace('&nbsp',' ').strip()
                                             if value != 'nan'{
                                                 row_entry[header]=value
                                             }
@@ -630,7 +643,31 @@ class DataCrawler(object){
                             }else{
                                 result=re.search(filter_regex, v, re.MULTILINE)
                                 if result{
-                                    v=result.group(1)
+                                    v=result.group(1).strip()
+                                    if k=='description'{
+                                        v=str(v).replace('<br>','\n')
+                                        result2=re.search(r'((.|\n)*)<span class="datenote">((.|\n)*)<', v, re.MULTILINE)
+                                        if result2{
+                                            remain=result2.group(3)
+                                            v=result2.group(1).strip()
+                                            result3=re.search(r'Publish ?Date ?: ?([0-9\-]*)', remain, re.MULTILINE)
+                                            result4=re.search(r'Last ?Update ?Date ?: ?([0-9\-]*)', remain, re.MULTILINE)
+                                            if result3{
+                                                cve_entry['publish date']=result3.group(1)
+                                            }
+                                            if result4{
+                                                cve_entry['last mod date']=result4.group(1)
+                                            }
+                                        }
+                                    }
+                                    if k=='vul. type'{
+                                        result2=re.search(r'<span class="(.*)">((.|\n)*)', v, re.MULTILINE)
+                                        if result2{
+                                            v='{} - {}'.format(result2.group(2).strip(),result2.group(1))
+                                        }else{
+                                            v=v.strip()
+                                        }
+                                    }
                                 }
                                 if not (k=='metasploitable' and v==' for more information)') and not (k=='cwe' and v=='CWE id is not defined for this vulnerability'){
                                     cve_entry[k]=v
