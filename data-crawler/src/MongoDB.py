@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 from Utils import Utils
 import pymongo
+import time
 from pymongo import MongoClient
 from MongoQueue import MongoQueue,MongoJob
 
@@ -44,8 +45,9 @@ class MongoDB(object){
 
     def saveReferences(self,refs){
         refs=refs.copy()
+        loaded=self.loadReferences()
         for k,_ in refs.items(){
-            refs[k]=list(refs[k])
+            refs[k]=list(refs[k].union(loaded[k]))
             refs[k].sort()
         }
         if self.dummy{
@@ -151,10 +153,25 @@ class MongoDB(object){
                             self.queues[MongoDB.QUEUE_COL_CRAWLER_NAME].put({'task': 'Download','args':{'id':db_id}})
                         }
                     }elif task=='Download'{
-                        crawler.downloadRawDataFromSources(sources=[payload['args']['id']],update_callback=lambda: job.progress())
+                        if payload['args']['id']=='CVE_DETAILS'{
+                            if not all(el in self.raw_db.list_collection_names() for el in ['CVE_MITRE','CVE_NVD']){
+                                self.logger.warn('Returning {} job to queue, because it does not have its requirements fulfilled'.format(payload['args']['id']))
+                                job.put_back()
+                                job=None
+                                time.sleep(200)
+                            }
+                        }
+                        if job{
+                            failed=crawler.downloadRawDataFromSources(sources=[payload['args']['id']],update_callback=lambda: job.progress())
+                            if failed{
+                                raise Exception('Failed to download from {}'.format(','.join(failed)))
+                            }
+                        }
                     }
-                    job.complete()
-                    self.logger.info('Runned job {}...OK'.format(task))
+                    if job{
+                        job.complete()
+                        self.logger.info('Runned job {}...OK'.format(task))
+                    }
                 }except Exception as e{
                     job.error(str(e))
                     self.logger.error('Runned job {}...FAILED'.format(task))          

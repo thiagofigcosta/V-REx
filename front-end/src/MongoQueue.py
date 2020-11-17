@@ -207,6 +207,13 @@ class MongoJob(object):
             {"_id": self.job_id, "locked_by": self._queue.consumer_id},
             update={"$set": {"locked_by": None, "locked_at": None},
                     "$inc": {"attempts": 1}})
+    
+    def put_back(self):
+        """Put the job back into_queue without attempt.
+        """
+        return self._queue.collection.find_and_modify(
+            {"_id": self.job_id, "locked_by": self._queue.consumer_id},
+            update={"$set": {"locked_by": None, "locked_at": None,"priority":-1}})
 
     ## Context Manager support
 

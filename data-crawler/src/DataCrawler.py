@@ -124,6 +124,7 @@ class DataCrawler(object){
             documents.append({source['index']:'__metadata__'})
             documents[0]['CVE Version']=Utils.changeStrDateFormat(re.sub('[^0-9]','', str(df[0][0])),'%Y%m%d','%d/%m/%Y')
             documents[0]['Update Date']=Utils.changeStrDateFormat(re.sub('[^0-9]','', str(df[1][0])),'%Y%m%d','%d/%m/%Y')
+            documents[0]['Inserted At']=Utils.getTodayDate()
             columns=[source['index']]
             for i in range(1,columns_size){
                 columns.append(df[2][i])
@@ -169,6 +170,7 @@ class DataCrawler(object){
             documents[0]['CWE Version']=xmldict['Version']
             documents[0]['Update Date']=Utils.changeStrDateFormat(xmldict['Date'],'%Y-%m-%d','%d/%m/%Y')
             documents[0]['Data Count']=len(xmldict['Weaknesses']['Weakness'])
+            documents[0]['Inserted At']=Utils.getTodayDate()
             for cwe in xmldict['Weaknesses']['Weakness']{
                 cwe_entry={}
                 for k,v in cwe.items(){
@@ -303,6 +305,7 @@ class DataCrawler(object){
             documents[0]['CVE Version']=[]
             documents[0]['Update Date']=[]
             documents[0]['Data Count']=0
+            documents[0]['Inserted At']=Utils.getTodayDate()
             for json_path in paths{
                 cves_data=Utils.loadJson(json_path)
                 if cves_data['CVE_data_version'] not in documents[0]['CVE Version']{
@@ -353,6 +356,7 @@ class DataCrawler(object){
             documents[0]['CAPEC Version']=xmldict['Version']
             documents[0]['Update Date']=Utils.changeStrDateFormat(xmldict['Date'],'%Y-%m-%d','%d/%m/%Y')
             documents[0]['Data Count']=len(xmldict['Attack_Patterns']['Attack_Pattern'])
+            documents[0]['Inserted At']=Utils.getTodayDate()
             for capec in xmldict['Attack_Patterns']['Attack_Pattern']{
                 capec_entry={}
                 for k,v in capec.items(){
@@ -487,7 +491,7 @@ class DataCrawler(object){
             documents[0]['OVAL Version']=xmldict['generator']['schema_version']
             documents[0]['Update Date']=Utils.changeStrDateFormat(xmldict['generator']['timestamp'],'%Y-%m-%dT%H:%M:%S','%d/%m/%Y')
             documents[0]['Data Count']=len(xmldict['definitions']['definition'])
-            
+            documents[0]['Inserted At']=Utils.getTodayDate()
             for definition in xmldict['definitions']['definition']{
                 oval_entry={}
                 add_entry=True
@@ -539,6 +543,7 @@ class DataCrawler(object){
             documents.append({source['index']:'__metadata__'})
             documents[0]['Update Date']=Utils.getTodayDate()
             documents[0]['Data Count']=len(paths)
+            documents[0]['Inserted At']=Utils.getTodayDate()
             for path in paths {
                 exploit_entry={}
                 raw_html=Utils.openFile(path)
@@ -591,6 +596,7 @@ class DataCrawler(object){
             documents.append({source['index']:'__metadata__'})
             documents[0]['Update Date']=Utils.getTodayDate()
             documents[0]['Data Count']=0
+            documents[0]['Inserted At']=Utils.getTodayDate()
             for path in paths {
                 cve_entry={}
                 raw_html=Utils.openFile(path)
