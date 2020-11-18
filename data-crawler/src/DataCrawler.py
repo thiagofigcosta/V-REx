@@ -648,6 +648,7 @@ class DataCrawler(object){
                                         if len(keys)==1 and keys[0]=='0'{
                                             row_entry=row_entry['0']
                                         }
+                                        row_entry=row_entry.split(' ')[0]
                                     }
                                     v.append(row_entry)
                                 }
@@ -682,7 +683,9 @@ class DataCrawler(object){
                                     }
                                 }
                                 if not (k=='metasploitable' and v=='for more information)') and not (k=='cwe' and v=='CWE id is not defined for this vulnerability'){
-                                    cve_entry[k]=v
+                                    if v!='None'{
+                                        cve_entry[k]=v
+                                    }
                                 }
                             }
                         }
