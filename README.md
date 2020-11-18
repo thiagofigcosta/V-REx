@@ -77,3 +77,4 @@ docker run core:v1.0.0
 
 ## Web Interfaces:
 >- Mongo-Express: http://localhost:8081/
+>- Portainer: http://localhost:9000/
