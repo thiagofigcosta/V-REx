@@ -66,7 +66,7 @@ docker run data-crawler:v1.0.0
 
 ### Front end
 ```
-docker run front-end:v1.0.0 [arguments]
+docker run front-end:v1.0.0
 ```
 
 ### Core
