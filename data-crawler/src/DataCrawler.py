@@ -330,6 +330,12 @@ class DataCrawler(object){
                                if k2 not in ('data_type','data_format','data_version','CVE_data_meta'){
                                     if k2=='references'{
                                         v2=v2['reference_data']
+                                        for i in range(len(v2)){
+                                            ref_data=v2[i]
+                                            if 'tags' in ref_data and ref_data['tags']==[]{
+                                                ref_data.pop('tags', None)
+                                            }
+                                        }
                                     }
                                     cve_entry[k2]=v2
                                }
@@ -637,6 +643,12 @@ class DataCrawler(object){
                                             }
                                         }
                                     }
+                                    if k=='references'{
+                                        keys=list(row_entry.keys())
+                                        if len(keys)==1 and keys[0]=='0'{
+                                            row_entry=row_entry['0']
+                                        }
+                                    }
                                     v.append(row_entry)
                                 }
                                 cve_entry[k]=v
@@ -669,7 +681,7 @@ class DataCrawler(object){
                                         }
                                     }
                                 }
-                                if not (k=='metasploitable' and v==' for more information)') and not (k=='cwe' and v=='CWE id is not defined for this vulnerability'){
+                                if not (k=='metasploitable' and v=='for more information)') and not (k=='cwe' and v=='CWE id is not defined for this vulnerability'){
                                     cve_entry[k]=v
                                 }
                             }
