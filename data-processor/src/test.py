@@ -1,0 +1,19 @@
+#!/bin/python
+#!/bin/python
+
+from DataProcessor import DataProcessor
+from Utils import Utils
+from Logger import Logger
+from MongoDB import MongoDB
+
+Utils.createFolderIfNotExists(DataProcessor.TMP_FOLDER)
+LOGGER=Logger(DataProcessor.TMP_FOLDER,verbose=True)
+Utils(DataProcessor.TMP_FOLDER,LOGGER)
+
+mongo=MongoDB('127.0.0.1',27017,LOGGER,user='root',password='123456')
+mongo.startQueue(id=0) # TODO get ID from enviroment var
+print(mongo.getQueueConsumerId())
+
+processor=DataProcessor(mongo,LOGGER)
+
+processor.mergeCveData()
