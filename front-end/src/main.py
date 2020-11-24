@@ -84,7 +84,7 @@ def main(argv){
 if __name__ == "__main__"{
     LOGGER.info('Starting Front end...')
     mongo=MongoDB('127.0.0.1',27017,LOGGER,user='root',password='123456')
-    mongo.startQueue(id=0) # TODO get ID from enviroment var
+    mongo.startQueue(id=0)
     LOGGER.info('Started Front end...OK')
     LOGGER.info('Writting on queue as {}'.format(mongo.getQueueConsumerId()))
     main(sys.argv[1:])

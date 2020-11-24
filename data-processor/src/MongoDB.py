@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 from Utils import Utils
 import pymongo
+import socket
 from pymongo import MongoClient
 from MongoQueue import MongoQueue,MongoJob
 
@@ -143,7 +144,7 @@ class MongoDB(object){
     }
 
     def startQueue(self,id=0){ 
-        consumer_id='processor_{}'.format(id)
+        consumer_id='processor_{}-{}'.format(socket.gethostname(),id)
         collection=self.client[MongoDB.QUEUE_DB_NAME][MongoDB.QUEUE_COL_CRAWLER_NAME]
         self.consumer_id=consumer_id
         self.queues={}
