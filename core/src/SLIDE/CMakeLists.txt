@@ -51,7 +51,7 @@ endfunction()
 ExternalProject_Add( 
   ZLIB
   DEPENDS ""
-  SOURCE_DIR /code/ZLIB-source
+  SOURCE_DIR /code/ZLIB
   BINARY_DIR ZLIB-build
   PATCH_COMMAND ""
   # INSTALL_COMMAND ""
@@ -79,7 +79,7 @@ ENDIF()
 ExternalProject_Add( 
   CNPY
   DEPENDS ZLIB
-  SOURCE_DIR /code/CNPY-source
+  SOURCE_DIR /code/CNPY
   BINARY_DIR CNPY-build
   PATCH_COMMAND ""
   # INSTALL_COMMAND ""
