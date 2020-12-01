@@ -12,12 +12,12 @@ LOGGER=Logger(TMP_FOLDER)
 Utils(TMP_FOLDER,LOGGER)
 
 def main(argv){
-    HELP_STR='main.py [-h]\n\t[--check-jobs]\n\t[--get-queue-names]\n\t[-q | --quit]\n\t[--download-source <source ID>]\n\t[--download-all-sources]\n\t[--empty-queue <queue name>]\n\t[--keep-alive-as-zombie]'
+    HELP_STR='main.py [-h]\n\t[--check-jobs]\n\t[--get-queue-names]\n\t[-q | --quit]\n\t[--download-source <source ID>]\n\t[--download-all-sources]\n\t[--empty-queue <queue name>]\n\t[--empty-all-queues]\n\t[--keep-alive-as-zombie]'
     args=[]
     zombie=False
     to_run=[]
     try{
-        opts, args = getopt.getopt(argv,"hq",["keep-alive-as-zombie","download-source=","download-all-sources","check-jobs","quit","get-queue-names","empty-queue="])
+        opts, args = getopt.getopt(argv,"hq",["keep-alive-as-zombie","download-source=","download-all-sources","check-jobs","quit","get-queue-names","empty-queue=","empty-all-queues"])
     }except getopt.GetoptError{
         print (HELP_STR)
         sys.exit(2)
@@ -33,6 +33,14 @@ def main(argv){
             LOGGER.info('Erasing queue {}...'.format(arg))
             mongo.clearQueue(arg)
             LOGGER.info('Erased queue {}...OK'.format(arg))
+        }elif opt == "--empty-all-queues"{
+            LOGGER.info('Erasing all queues...')
+            for queue in mongo.getQueueNames(){
+                LOGGER.info('Erasing queue {}...'.format(queue))
+                mongo.clearQueue(queue)
+                LOGGER.info('Erased queue {}...OK'.format(queue))
+            }
+            LOGGER.info('Erased all queues...OK')
         }elif opt == "--get-queue-names"{
             LOGGER.info('Getting queue names...')
             for queue in mongo.getQueueNames(){
@@ -52,7 +60,7 @@ def main(argv){
             LOGGER.info('Checking jobs on Queue...')
             queues=mongo.getAllQueueJobs()
             for queue,jobs in queues.items(){
-                LOGGER.clean('Under queue {}:'.format(queue.capitalize()))
+                LOGGER.clean('Under \'{}\' queue:'.format(queue))
                 for job in jobs{
                     for k,v in job.items(){
                         tab='\t'
@@ -76,7 +84,18 @@ def main(argv){
     }else{
         print()
         value = input("Keeping Front end alive on Iterative Mode...\nEnter a command (e.g. -h):")
-        main(value.split(' '))
+        args=value.split(' ')
+        args[0]=args[0].strip()
+        if len(args[0])==1{
+            if not args[0].startswith('-'){
+                args[0]='-{}'.format(args[0])
+            }
+        }else{
+            if not args[0].startswith('--'){
+                args[0]='--{}'.format(args[0])
+            }
+        }
+        main(args)
     }
 }
 
