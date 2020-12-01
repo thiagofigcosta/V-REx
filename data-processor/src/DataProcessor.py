@@ -12,7 +12,7 @@ class DataProcessor(object){
         self.references=self.mongo.loadReferences()
     }
 
-    def mergeCveData(self,update_callback=None){
+    def mergeCve(self,update_callback=None){
         raw_db=self.mongo.getRawDB()
         keys_source={'CVE_MITRE':set(),'CVE_NVD':set(),'CVE_DETAILS':set()}
         cve_collections=[k for k,_ in keys_source.items()]
@@ -62,18 +62,44 @@ class DataProcessor(object){
         self.logger.info('Merged and inserted CVEs Data...OK')
     }
 
-    def transformCveData(self,update_callback=None){
-        # TODO flattern and prepare data (transform into features)
-        pass
+    def flatternAndSimplifyCve(self,update_callback=None){
+        pass # TODO
     }
 
-    def transformExtraData(self,update_callback=None){
-        # TODO flattern and prepare data (transform into features)
-        # TODO CWE
-        # TODO CAPEC
-        # TODO OVAL
-        # TODO EXPLOIT
-        pass
+    def flatternAndSimplifyOval(self,update_callback=None){
+        pass # TODO
+    }
+
+    def flatternAndSimplifyCapec(self,update_callback=None){
+        pass # TODO
+    }
+
+    def flatternAndSimplifyCwe(self,update_callback=None){
+        pass # TODO
+    }
+
+    def filterExploits(self,update_callback=None){
+        pass # TODO
+    }   
+
+    def transformCve(self,update_callback=None){
+        pass # TODO
+    }
+
+    def transformOval(self,update_callback=None){
+        pass # TODO
+    }
+
+    def transformCapec(self,update_callback=None){
+        pass # TODO
+    }
+
+    def transformCwe(self,update_callback=None){
+        pass # TODO
+    }
+
+    def transformExploits(self,update_callback=None){
+        pass # TODO
     }
     
     def enrichData(self,update_callback=None){
@@ -83,24 +109,32 @@ class DataProcessor(object){
         pass
     }
 
-    def analyzeData(self,update_callback=None){
+    def analyzeFullDataset(self,update_callback=None){
         # TODO check the coverage of each feature to decide later which ones to exclude
         # return list of key and its coverage
         pass
     }
 
-    def filterData(self,analyze_result,update_callback=None){
+    def filterAndNormalizeFullDataset(self,update_callback=None){
         # TODO filter bad features
         pass
     }
 
     def runPipeline(self,update_callback=None){
-        self.mergeCveData(update_callback=update_callback)
-        self.transformCveData(update_callback=update_callback)
-        self.transformExtraData(update_callback=update_callback)
+        self.mergeCve(update_callback=update_callback)
+        self.flatternAndSimplifyCve(update_callback=update_callback)
+        self.flatternAndSimplifyOval(update_callback=update_callback)
+        self.flatternAndSimplifyCapec(update_callback=update_callback)
+        self.flatternAndSimplifyCwe(update_callback=update_callback)
+        self.filterExploits(update_callback=update_callback)
+        self.transformCve(update_callback=update_callback)
+        self.transformOval(update_callback=update_callback)
+        self.transformCapec(update_callback=update_callback)
+        self.transformCwe(update_callback=update_callback)
+        self.transformExploits(update_callback=update_callback)
         self.enrichData(update_callback=update_callback)
-        analyze_result=self.analyzeData(update_callback=update_callback)
-        self.filterData(analyze_result,update_callback=update_callback)
+        self.analyzeFullDataset(update_callback=update_callback)
+        self.filterAndNormalizeFullDataset(update_callback=update_callback)
     }
 
     # cve
