@@ -244,7 +244,7 @@ class MongoLock(object):
     def __init__(self, collection, lock_name, lease=120):
         self.collection = collection
         self.lock_name = lock_name
-        self._client_id = uuid.uuid4().get_hex()
+        self._client_id = uuid.uuid4().hex
         self._locked = False
         self._lease_time = lease
         self._lock_expires = False
@@ -253,11 +253,23 @@ class MongoLock(object):
     def locked(self):
         if not self._locked:
             return self._locked
-        return self._locked and (datetime.now() < self._lock_expires)
+        valid=datetime.now() < self._lock_expires
+        if not valid:
+            self.release()
+        return self._locked and valid
 
     @property
     def client_id(self):
         return self._client_id
+
+    def fetch(self):
+        result=self.collection.find({'_id': self.lock_name})
+        if result.count()>0:
+            lock_on_db=result.next()
+            self._lock_expires=lock_on_db['ttl']
+            self._client_id=lock_on_db['client_id']
+            self._locked = True
+        
 
     def acquire(self, wait=None, poll_period=5):
         result = self._acquire()
@@ -279,7 +291,7 @@ class MongoLock(object):
                 '_id': self.lock_name,
                 'ttl': ttl,
                 'client_id': self._client_id},
-                w=1, j=1)
+                w=1, j=True)
         except errors.DuplicateKeyError:
             self.collection.remove(
                 {"_id": self.lock_name, 'ttl': {'$lt': datetime.now()}})
