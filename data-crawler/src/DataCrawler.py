@@ -38,7 +38,7 @@ class DataCrawler(object){
                 if filename.startswith(DataCrawler.TMP_FOLDER){
                     path=filename
                 }else{
-                    path=DataCrawler.TMP_FOLDER+filename
+                    path=Utils.joinPath(DataCrawler.TMP_FOLDER,filename)
                 }
                 self.logger.info('Downloading {} to {}...'.format(link,filename))
                 req = urllib.request.Request(link, headers=fake_headers)
@@ -113,7 +113,7 @@ class DataCrawler(object){
         if type(paths) is str{
             path=paths
         }elif type(paths) is list{
-            path='Multiple files at {}'.format(Utils.partentFromPath(paths[0]))
+            path='Multiple files at {}'.format(Utils.parentFromPath(paths[0]))
         }else{
             raise Exception('Unknown data type for paths on parseDBtoDocuments. Type was {}'.format(type(paths)))
         }
@@ -707,7 +707,7 @@ class DataCrawler(object){
         if type(paths) is str{
             path=paths
         }elif type(paths) is list{
-            path='Multiple files at {}'.format(Utils.partentFromPath(paths[0]))
+            path='Multiple files at {}'.format(Utils.parentFromPath(paths[0]))
         }else{
             raise Exception('Unknown data type for paths on parseDBtoDocuments. Type was {}'.format(type(paths)))
         }
@@ -724,7 +724,7 @@ class DataCrawler(object){
             destination_folder=Utils.gunzip(path,'')
             for file_str in os.listdir(destination_folder){
                 if re.search(r'.*\.csv$', file_str){
-                    csv_path=destination_folder+file_str
+                    csv_path=Utils.joinPath(destination_folder,file_str)
                 }
             }
             if update_callback {
@@ -739,7 +739,7 @@ class DataCrawler(object){
             destination_folder=Utils.unzip(path)
             for file_str in os.listdir(destination_folder){
                 if re.search(r'cwe.*\.xml$', file_str){
-                    xml_path=destination_folder+file_str
+                    xml_path=Utils.joinPath(destination_folder,file_str)
                 }
             }
             if update_callback {
@@ -761,7 +761,7 @@ class DataCrawler(object){
             json_files=[]
             for file_str in os.listdir(destination_folder){
                 if re.search(r'.*\.json$', file_str){
-                    json_files.append(destination_folder+file_str)
+                    json_files.append(Utils.joinPath(destination_folder,file_str))
                 }
             }
             if update_callback {
@@ -776,10 +776,10 @@ class DataCrawler(object){
             destination_folder=Utils.unzip(path)
             for file_str in os.listdir(destination_folder){
                 if re.search(r'.*\.xml$', file_str){
-                    xml_path=destination_folder+file_str
+                    xml_path=Utils.joinPath(destination_folder,file_str)
                 }
                 if re.search(r'.*\.xsd$', file_str){
-                    xsd_path=destination_folder+file_str
+                    xsd_path=Utils.joinPath(destination_folder,file_str)
                 }
             }
             if update_callback {
@@ -794,7 +794,7 @@ class DataCrawler(object){
             destination_folder=Utils.unzip(path)
             for file_str in os.listdir(destination_folder){
                 if re.search(r'.*\.xml$', file_str){
-                    xml_path=destination_folder+file_str
+                    xml_path=Utils.joinPath(destination_folder,file_str)
                 }
             }
             if update_callback {
@@ -814,7 +814,7 @@ class DataCrawler(object){
                     downloaded.append(int(result.group(1)))
                 }
                 if re.search(r'.*id-([0-9]+)\.DELETEME$', file_str){
-                    Utils.deletePath(destination_folder+file_str)
+                    Utils.deletePath(Utils.joinPath(destination_folder,file_str))
                 }
             }
             if len(downloaded)>0{
@@ -824,7 +824,7 @@ class DataCrawler(object){
             max_timeouts=2
             while True{
                 try{
-                    self.downloadFromLink(source['base_download_url']+str(exploit_id),destination_folder+'{}_id-{}.html'.format(source['id'],exploit_id),timeout=120)
+                    self.downloadFromLink(source['base_download_url']+str(exploit_id),Utils.joinPath(destination_folder,'{}_id-{}.html'.format(source['id'],exploit_id)),timeout=120)
                     timeouts=0
                     if update_callback {
                         update_callback()
@@ -853,7 +853,7 @@ class DataCrawler(object){
                                 self.logger.warn('Downloaded EXPLOITs from {}...FAILED. Server probably blocked access temporally. Aborting...'.format(exploit_id))
                                 self.logger.exception(e,fatal=False)
                                 documents=None
-                                Utils.saveFile(destination_folder+'{}_id-{}.DELETEME'.format(source['id'],exploit_id-1),'') # checkpoint
+                                Utils.saveFile(Utils.joinPath(destination_folder,'{}_id-{}.DELETEME'.format(source['id'],exploit_id-1)),'') # checkpoint
                                 return documents, destination_folder
                             }
                         }else{
@@ -868,7 +868,7 @@ class DataCrawler(object){
             for file_str in os.listdir(destination_folder){
                 result=re.search(r'.*id-([0-9]+)\.html$', file_str)
                 if result{
-                    paths.append(destination_folder+file_str)
+                    paths.append(Utils.joinPath(destination_folder,file_str))
                     self.references['exploit'].add(int(result.group(1)))
                 }
             }
@@ -890,7 +890,7 @@ class DataCrawler(object){
                 cve=cves[i]
                 cve_formatted='CVE-{}'.format(cve)
                 try{
-                    self.downloadFromLink(source['base_download_url']+str(cve_formatted),destination_folder+'{}_id-{}.html'.format(source['id'],cve),timeout=120)
+                    self.downloadFromLink(source['base_download_url']+str(cve_formatted),Utils.joinPath(destination_folder,'{}_id-{}.html'.format(source['id'],cve)),timeout=120)
                     timeouts=0
                     if update_callback {
                         update_callback()
@@ -916,7 +916,7 @@ class DataCrawler(object){
             paths=[]
             for file_str in os.listdir(destination_folder){
                 if re.search(r'.*\.html$', file_str){
-                    paths.append(destination_folder+file_str)
+                    paths.append(Utils.joinPath(destination_folder,file_str))
                 }
             }
             documents=self.parseDBtoDocuments(id,paths,update_callback=update_callback)
