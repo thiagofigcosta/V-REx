@@ -24,7 +24,6 @@ LOGGER.exception(Exception('TEST exception printing'))
 
 
 mongo=MongoDB.asDummy(LOGGER)
-# mongo=MongoDB('127.0.0.1',27017,LOGGER,user='root',password='123456')
 crawler=DataCrawler(mongo,LOGGER)
 
 # crawler.downloadRawDataFromSources(sources=['CVE_MITRE'])
@@ -37,5 +36,9 @@ crawler.downloadRawDataFromSources(sources=['CWE_MITRE'])
 
 
 # crawler.downloadRawDataFromSources()
+
+mongo=MongoDB('127.0.0.1',27017,LOGGER,user='root',password='123456')
+mongo.dumpDB(mongo.getDB('queue'),'tmp/crawler')
+mongo.restoreDB('tmp/crawler/queue.zip',db_name='queue_dump')
 
 LOGGER.fatal('GG')

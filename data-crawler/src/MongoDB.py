@@ -4,6 +4,7 @@ from Utils import Utils
 import pymongo
 import time
 import socket
+import os
 from pymongo import MongoClient
 from MongoQueue import MongoQueue,MongoJob,MongoLock
 
@@ -53,7 +54,7 @@ class MongoDB(object){
             refs[k].sort()
         }
         if self.dummy{
-            ref_path=MongoDB.DUMMY_FOLDER+'references.json'
+            ref_path=Utils.joinPath(MongoDB.DUMMY_FOLDER,'references.json')
             Utils.saveJson(ref_path,refs) 
         }else{
             refs={'unique':'unique','refs':refs}
@@ -63,7 +64,7 @@ class MongoDB(object){
 
     def loadReferences(self){
         if self.dummy{
-            ref_path=MongoDB.DUMMY_FOLDER+'references.json'
+            ref_path=Utils.joinPath(MongoDB.DUMMY_FOLDER,'references.json')
             found= 1 if Utils.checkIfPathExists(ref_path) else 0
         }else{
             query={'unique':'unique'}
@@ -93,6 +94,10 @@ class MongoDB(object){
         self.raw_db = self.client[MongoDB.RAW_DATA_DB_NAME]
     }
 
+    def getDB(self,name){
+        return self.client[name]
+    }
+
     def getRawDB(self){
         return self.raw_db
     }
@@ -103,7 +108,7 @@ class MongoDB(object){
 
     def insertManyOnDB(self,db,documents,collection_str,index=None,verbose=True){
         if self.dummy {
-            path=MongoDB.DUMMY_FOLDER+'{}.json'.format(collection_str)
+            path=Utils.joinPath(MongoDB.DUMMY_FOLDER,'{}.json'.format(collection_str))
             Utils.saveJson(path,documents)
             return path
         }else{
@@ -117,8 +122,12 @@ class MongoDB(object){
                 lock.acquire()
                 if index is not None{
                     collection.create_index([(index, pymongo.ASCENDING)], unique=True)
-                    mod_count=0
-                    for doc in documents{
+                }else{
+                    index='_id'
+                }
+                mod_count=0
+                for doc in documents{
+                    if index in doc{
                         query={index: doc[index]}
                         result=collection.replace_one(query, doc, upsert=True) 
                         if result.modified_count > 0{
@@ -127,19 +136,19 @@ class MongoDB(object){
                         if result.upserted_id{
                             mod_count+=1
                         }
+                    }else{
+                        result=collection.insert_one(doc)
+                        if result.upserted_id{
+                            mod_count+=1
+                        }
                     }
-                    if verbose{
-                        self.logger.info('Inserted size: {}...OK'.format(mod_count))
-                    }
-                }else{
-                    result=collection.update_many(documents)
-                    if verbose{
-                        self.logger.info('Inserted size: {}...OK'.format(len(result.inserted_ids)))
-                    }
+                }
+                if verbose{
+                    self.logger.info('Inserted size: {}...OK'.format(mod_count))
                 }
                 lock.release()
             }else{
-                raise Exception('Cannot insert on {}, collection is locked!'.format(collection_str))
+                raise Exception('Cannot insert on collection {} of db {}, collection is locked!'.format(collection_str,db.name))
             }
             
         }
@@ -177,7 +186,7 @@ class MongoDB(object){
     }
 
     def getQueueNames(self){
-        return self.client[MongoDB.QUEUE_DB_NAME].collection_names()
+        return self.client[MongoDB.QUEUE_DB_NAME].list_collection_names()
     }
 
     def clearQueue(self,name){
@@ -266,4 +275,82 @@ class MongoDB(object){
         return self.findOneOnDB(db,collection,query)
     }
 
+    def getAllDbNames(self,filter_non_data=True){
+        dbs=self.client.list_database_names()
+        if filter_non_data{
+            if 'admin' in dbs {
+                dbs.remove('admin')
+            }
+            if 'config' in dbs {
+                dbs.remove('config')
+            }
+            if 'local' in dbs {
+                dbs.remove('local')
+            }
+        }
+        return dbs
+    }
+
+    def dumpDB(self,db,base_path){
+        dst_path=Utils.joinPath(base_path,db.name)
+        zip_path=dst_path+'.zip'
+        self.logger.info('Dumping database {} to file {}...'.format(db.name,zip_path))
+        Utils.createFolderIfNotExists(dst_path)
+        collections=db.list_collection_names()
+        for col in collections{
+            col_path=Utils.joinPath(dst_path,col)
+            Utils.createFolderIfNotExists(col_path)
+            collection=db[col]
+            indexes_info=collection.index_information()
+            for k,v in indexes_info.items(){
+                key_name=v['key'][0][0]
+                if key_name!='_id'{
+                    idx_path=Utils.joinPath(col_path,key_name+'.idx')
+                    Utils.saveFile(idx_path,key_name)
+                }
+            }
+            for document in collection.find(){
+                doc_path=Utils.joinPath(col_path,str(document['_id'])+'.json')
+                Utils.saveJson(doc_path,document,use_bson=True)
+            }
+        }
+        Utils.zip(dst_path,zip_path,base=db.name)
+        Utils.deletePath(dst_path)
+        self.logger.info('Dumped database {} to file {}...OK'.format(db.name,zip_path))
+    }
+
+    def restoreDB(self,compressed_db_dump,db_name=None){
+        if not db_name{
+            db_name=Utils.filenameFromPath(compressed_db_dump)
+        }
+        self.logger.info('Restoring database {} from file {}...'.format(db_name,compressed_db_dump))
+        uncompressed_root=Utils.unzip(compressed_db_dump,db_name,delete=False)
+        folders_inside=os.listdir(uncompressed_root)
+        if len(folders_inside)>1{
+            raise Exception('Wrong compressed file format on restoreDB, please use dumpDB to generate the compressed file. File:{}'.format(compressed_db_dump))
+        }
+        uncompressed_path=Utils.joinPath(uncompressed_root,folders_inside[0])
+        db=self.getDB(db_name)
+        for col in os.listdir(uncompressed_path){
+            index=None
+            col_path=Utils.joinPath(uncompressed_path,col)
+            for doc in os.listdir(col_path){
+                if doc.endswith('.json'){
+                    pass
+                }elif doc.endswith('.idx'){
+                    index=Utils.removeExtFromFilename(doc)
+                }else{
+                    raise Exception('Wrong compressed file format on restoreDB, please use dumpDB to generate the compressed file. File:{}'.format(compressed_db_dump))
+                }
+            }
+            for doc in os.listdir(col_path){
+                if doc.endswith('.json'){
+                    doc_path=Utils.joinPath(col_path,doc)
+                    self.insertOneOnDB(db,Utils.loadJson(doc_path,use_bson=True),col,index=index,verbose=False)
+                }
+            }
+        }
+        Utils.deletePath(uncompressed_root)
+        self.logger.info('Restored database {} from file {}...OK'.format(db_name,compressed_db_dump))
+    }
 }
