@@ -14,13 +14,13 @@ LOGGER=Logger(TMP_FOLDER)
 Utils(TMP_FOLDER,LOGGER)
 
 def main(argv){
-    HELP_STR='main.py [-h]\n\t[--check-jobs]\n\t[--get-queue-names]\n\t[-q | --quit]\n\t[--download-source <source ID>]\n\t[--download-all-sources]\n\t[--empty-queue <queue name>]\n\t[--empty-all-queues]\n\t[--keep-alive-as-zombie]'
+    HELP_STR='main.py [-h]\n\t[--check-jobs]\n\t[--get-queue-names]\n\t[--get-all-db-names]\n\t[-q | --quit]\n\t[--download-source <source ID>]\n\t[--download-all-sources]\n\t[--empty-queue <queue name>]\n\t[--empty-all-queues]\n\t[--dump-db <db name>#<folder path to export> | --dump-db <db name> {saves on default tmp folder} \n\t\te.g. --dump-db queue#/home/thiago/Desktop]\n\t[--restore-db <file path to import>#<db name> | --restore-db <file path to import> {saves db under file name} \n\t\te.g. --restore-db /home/thiago/Desktop/queue.zip#restored_queue]\n\t[--keep-alive-as-zombie]'
     args=[]
     zombie=False
     global ITERATIVE
     to_run=[]
     try{
-        opts, args = getopt.getopt(argv,"hq",["keep-alive-as-zombie","download-source=","download-all-sources","check-jobs","quit","get-queue-names","empty-queue=","empty-all-queues"])
+        opts, args = getopt.getopt(argv,"hq",["keep-alive-as-zombie","download-source=","download-all-sources","check-jobs","quit","get-queue-names","empty-queue=","empty-all-queues","get-all-db-names","dump-db=","restore-db="])
     }except getopt.GetoptError{
         print (HELP_STR)
         if not ITERATIVE {
@@ -35,6 +35,28 @@ def main(argv){
                 exit()
             }elif opt == "--keep-alive-as-zombie"{
                 zombie=True
+            }elif opt == "--dump-db"{
+                splited_arg=arg.split('#')
+                if len(splited_arg)>0 and len(splited_arg)<=2{
+                    path_to_export=TMP_FOLDER
+                    if len(splited_arg)>1{
+                        path_to_export=splited_arg[1]
+                    }
+                    mongo.dumpDB(mongo.getDB(splited_arg[0]),path_to_export)
+                }else{
+                    LOGGER.error('Invalid argument, type the db_name or "db_name#path": {}'.format(arg))
+                }
+            }elif opt == "--restore-db"{
+                splited_arg=arg.split('#')
+                if len(splited_arg)>0 and len(splited_arg)<=2{
+                    db_name=None
+                    if len(splited_arg)>1{
+                        db_name=splited_arg[1]
+                    }
+                    mongo.restoreDB(splited_arg[0],db_name)
+                }else{
+                    LOGGER.error('Invalid argument, type the compressed_file_path or "compressed_file_path#db_name": {}'.format(arg))
+                }
             }elif opt == "--empty-queue"{
                 LOGGER.info('Erasing queue {}...'.format(arg))
                 mongo.clearQueue(arg)
@@ -53,6 +75,12 @@ def main(argv){
                     LOGGER.clean('\t{}'.format(queue))
                 }
                 LOGGER.info('Gotten queue names...OK')
+            }elif opt == "--get-all-db-names"{
+                LOGGER.info('Getting db names...')
+                for db in mongo.getAllDbNames(){
+                    LOGGER.clean('\t{}'.format(db))
+                }
+                LOGGER.info('Gotten db names...OK')
             }elif opt == "--download-source"{
                 LOGGER.info('Writting to Crawler to Download {}...'.format(arg))
                 job_args={'id':arg}
