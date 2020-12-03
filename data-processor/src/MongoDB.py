@@ -326,6 +326,7 @@ class MongoDB(object){
         Utils.zip(dst_path,zip_path,base=db.name)
         Utils.deletePath(dst_path)
         self.logger.info('Dumped database {} to file {}...OK'.format(db.name,zip_path))
+        return zip_path
     }
 
     def restoreDB(self,compressed_db_dump,db_name=None){
