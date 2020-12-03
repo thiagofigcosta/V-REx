@@ -2,9 +2,10 @@
 # -*- coding: utf-8 -*-
 from Utils import Utils
 import pymongo
-import time
+import datetime
 import socket
 import os
+import time
 from pymongo import MongoClient
 from MongoQueue import MongoQueue,MongoJob,MongoLock
 
@@ -49,6 +50,13 @@ class MongoDB(object){
     def saveReferences(self,refs){
         refs=refs.copy()
         loaded=self.loadReferences()
+        if not self.dummy{
+            lock=self.getLock(self.getRawDB(),'References',lease=150)
+            while self.checkIfCollectionIsLocked(self.getRawDB(),'References'){
+                time.sleep(1)
+            }
+            lock.acquire()
+        }
         for k,_ in refs.items(){
             refs[k]=list(refs[k].union(loaded[k]))
             refs[k].sort()
@@ -58,7 +66,8 @@ class MongoDB(object){
             Utils.saveJson(ref_path,refs) 
         }else{
             refs={'unique':'unique','refs':refs}
-            self.insertOneOnDB(self.getRawDB(),refs,'References',index='unique')
+            self.insertOneOnDB(self.getRawDB(),refs,'References',index='unique',ignore_lock=True)
+            lock.release()
         }
     }
 
@@ -68,14 +77,14 @@ class MongoDB(object){
             found= 1 if Utils.checkIfPathExists(ref_path) else 0
         }else{
             query={'unique':'unique'}
-            refs=self.raw_db['References'].find(query)
-            found=refs.count()
+            refs=self.findOneOnDB(self.getRawDB(),'References',query,wait_unlock=True)
+            found=1 if refs else 0
         }
         if found>0{
             if self.dummy{
                 refs=Utils.loadJson(ref_path)
             }else{
-                refs=refs.next()['refs']
+                refs=refs['refs']
             }
             for k,_ in refs.items(){
                 refs[k]=set(refs[k])
@@ -102,11 +111,11 @@ class MongoDB(object){
         return self.raw_db
     }
 
-    def insertOneOnDB(self,db,document,collection,index=None,verbose=True){
-        return self.insertManyOnDB(db,[document],collection,index=index,verbose=verbose)
+    def insertOneOnDB(self,db,document,collection,index=None,verbose=True,ignore_lock=False){
+        return self.insertManyOnDB(db,[document],collection,index=index,verbose=verbose,ignore_lock=ignore_lock)
     }
 
-    def insertManyOnDB(self,db,documents,collection_str,index=None,verbose=True){
+    def insertManyOnDB(self,db,documents,collection_str,index=None,verbose=True,ignore_lock=False){
         if self.dummy {
             path=Utils.joinPath(MongoDB.DUMMY_FOLDER,'{}.json'.format(collection_str))
             Utils.saveJson(path,documents)
@@ -116,50 +125,86 @@ class MongoDB(object){
                 self.logger.info('Inserting on {} db on col: {} with index: {} and size: {}...'.format(db.name,collection_str,index,len(documents)))
             }
             collection=db[collection_str]
-            lock=MongoLock(collection,'MongoDB-Inserting',lease=MongoDB.QUEUE_TIMEOUT_WITHOUT_PROGRESS)
-            lock.fetch()
-            if not lock.locked{
-                lock.acquire()
-                if index is not None{
-                    collection.create_index([(index, pymongo.ASCENDING)], unique=True)
-                }else{
-                    index='_id'
-                }
-                mod_count=0
-                for doc in documents{
-                    if index in doc{
-                        query={index: doc[index]}
-                        result=collection.replace_one(query, doc, upsert=True) 
-                        if result.modified_count > 0{
-                            mod_count+=result.modified_count
+            lock=self.getLock(db,collection_str)
+            MAX_TRIES=3
+            SECONDS_BETWEEN_TRIES=60
+            tries=0
+            trying=True
+            while trying{
+                try{
+                    if not ignore_lock{
+                        lock.fetch()
+                    }
+                    if not lock.locked or ignore_lock{
+                        if not ignore_lock{
+                            lock.acquire()
                         }
-                        if result.upserted_id{
-                            mod_count+=1
+                        trying=False
+                        if index is not None{
+                            collection.create_index([(index, pymongo.ASCENDING)], unique=True)
+                        }else{
+                            index='_id'
+                        }
+                        mod_count=0
+                        for doc in documents{
+                            if index in doc{
+                                query={index: doc[index]}
+                                result=collection.replace_one(query, doc, upsert=True) 
+                                if result.modified_count > 0{
+                                    mod_count+=result.modified_count
+                                }
+                                if result.upserted_id{
+                                    mod_count+=1
+                                }
+                            }else{
+                                result=collection.insert_one(doc)
+                                if result.upserted_id{
+                                    mod_count+=1
+                                }
+                            }
+                        }
+                        if verbose{
+                            self.logger.info('Inserted size: {}...OK'.format(mod_count))
+                        }
+                        if not ignore_lock{
+                            lock.release()
                         }
                     }else{
-                        result=collection.insert_one(doc)
-                        if result.upserted_id{
-                            mod_count+=1
-                        }
+                        raise Exception('Cannot insert on collection {} of db {}, collection is locked!'.format(collection_str,db.name))
+                    }
+                }except Exception as e{
+                    tries+=1
+                    if tries <= MAX_TRIES {
+                        self.logger.warn('Collection {} of db {}, collection is locked, trying again later! {} of {}'.format(collection_str,db.name,tries,MAX_TRIES))
+                        time.sleep(SECONDS_BETWEEN_TRIES)
+                    }else{
+                        trying=False
+                        raise e
                     }
                 }
-                if verbose{
-                    self.logger.info('Inserted size: {}...OK'.format(mod_count))
-                }
-                lock.release()
-            }else{
-                raise Exception('Cannot insert on collection {} of db {}, collection is locked!'.format(collection_str,db.name))
             }
-            
         }
+    }
+
+    def getLock(self,db,collection_str,lease=None){
+        if not lease{
+            lease=MongoDB.QUEUE_TIMEOUT_WITHOUT_PROGRESS
+        }
+        lock=MongoLock(db[collection_str],'__MongoDB-Inserting__',lease=lease)
+        lock.fetch()
+        return lock
+    }
+
+    def checkIfCollectionIsLocked(self,db,collection_str){
+        lock=MongoLock(db[collection_str],'__MongoDB-Inserting__',lease=MongoDB.QUEUE_TIMEOUT_WITHOUT_PROGRESS)
+        lock.fetch()
+        return lock.locked
     }
 
     def checkIfListOfCollectionsExistsAndItsNotLocked(self,db,collections_to_check){
         if all(el in db.list_collection_names() for el in collections_to_check){
             for col in collections_to_check{
-                lock=MongoLock(db[col],'MongoDB-Inserting',lease=MongoDB.QUEUE_TIMEOUT_WITHOUT_PROGRESS)
-                lock.fetch()
-                if lock.locked {
+                if self.checkIfCollectionIsLocked(db,col) {
                     return False
                 }
             }
@@ -259,9 +304,14 @@ class MongoDB(object){
         self.insertOnQueue(MongoDB.QUEUE_COL_CRAWLER_NAME,task,args)
     }
 
-    def findOneOnDB(self,db,collection,query){
+    def findOneOnDB(self,db,collection,query,wait_unlock=True){
         if self.dummy{
             raise Exception('Find one is not supported on DummyMode')
+        }
+        if wait_unlock{
+            while self.checkIfCollectionIsLocked(db,collection){
+                time.sleep(1)
+            }
         }
         result=db[collection].find(query)
         found=result.count()
@@ -270,9 +320,9 @@ class MongoDB(object){
         }
     }
 
-    def findOneOnDBFromIndex(self,db,collection,index_field,index_value){
+    def findOneOnDBFromIndex(self,db,collection,index_field,index_value,wait_unlock=True){
         query={index_field:index_value}
-        return self.findOneOnDB(db,collection,query)
+        return self.findOneOnDB(db,collection,query,wait_unlock=wait_unlock)
     }
 
     def getAllDbNames(self,filter_non_data=True){

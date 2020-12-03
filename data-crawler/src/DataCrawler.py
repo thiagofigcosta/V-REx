@@ -970,6 +970,8 @@ class DataCrawler(object){
                                 job.put_back()
                                 job=None
                                 time.sleep(20)
+                            }else{
+                                time.sleep(10)
                             }
                         }
                         if job{
