@@ -5,13 +5,14 @@ import pymongo
 import time
 import socket
 from pymongo import MongoClient
-from MongoQueue import MongoQueue,MongoJob
+from MongoQueue import MongoQueue,MongoJob,MongoLock
 
 class MongoDB(object){
     QUEUE_DB_NAME='queue'
     QUEUE_COL_CRAWLER_NAME='crawler'
     RAW_DATA_DB_NAME='raw_data'
     DUMMY_FOLDER='tmp/crawler/DummyMongo/'
+    QUEUE_TIMEOUT_WITHOUT_PROGRESS=1500
 
 	def __init__(self, address, port=27017, logger=None, user=None,password=None){
         if logger is None{
@@ -56,7 +57,7 @@ class MongoDB(object){
             Utils.saveJson(ref_path,refs) 
         }else{
             refs={'unique':'unique','refs':refs}
-            self.insertOneOnRawDB(refs,'References',index='unique')
+            self.insertOneOnDB(self.getRawDB(),refs,'References',index='unique')
         }
     }
 
@@ -92,41 +93,71 @@ class MongoDB(object){
         self.raw_db = self.client[MongoDB.RAW_DATA_DB_NAME]
     }
 
-    def insertOneOnRawDB(self,document,collection,index=None){
-        return self.insertManyOnRawDB([document],collection,index=index)
+    def getRawDB(self){
+        return self.raw_db
     }
 
-    def insertManyOnRawDB(self,documents,collection,index=None){
+    def insertOneOnDB(self,db,document,collection,index=None,verbose=True){
+        return self.insertManyOnDB(db,[document],collection,index=index,verbose=verbose)
+    }
+
+    def insertManyOnDB(self,db,documents,collection_str,index=None,verbose=True){
         if self.dummy {
-            path=MongoDB.DUMMY_FOLDER+'{}.json'.format(collection)
+            path=MongoDB.DUMMY_FOLDER+'{}.json'.format(collection_str)
             Utils.saveJson(path,documents)
             return path
         }else{
-            self.logger.info('Inserting on raw db col:{} index: {} size: {}...'.format(collection,index,len(documents)))
-            collection=self.raw_db[collection]
-            if index is not None{
-                collection.create_index([(index, pymongo.ASCENDING)], unique=True)
-                mod_count=0
-                for doc in documents{
-                    query={index: doc[index]}
-                    result=collection.replace_one(query, doc, upsert=True) 
-                    if result.modified_count > 0{
-                        mod_count+=result.modified_count
+            if verbose{
+                self.logger.info('Inserting on {} db on col: {} with index: {} and size: {}...'.format(db.name,collection_str,index,len(documents)))
+            }
+            collection=db[collection_str]
+            lock=MongoLock(collection,'MongoDB-Inserting',lease=MongoDB.QUEUE_TIMEOUT_WITHOUT_PROGRESS)
+            lock.fetch()
+            if not lock.locked{
+                lock.acquire()
+                if index is not None{
+                    collection.create_index([(index, pymongo.ASCENDING)], unique=True)
+                    mod_count=0
+                    for doc in documents{
+                        query={index: doc[index]}
+                        result=collection.replace_one(query, doc, upsert=True) 
+                        if result.modified_count > 0{
+                            mod_count+=result.modified_count
+                        }
+                        if result.upserted_id{
+                            mod_count+=1
+                        }
                     }
-                    if result.upserted_id{
-                        mod_count+=1
+                    if verbose{
+                        self.logger.info('Inserted size: {}...OK'.format(mod_count))
+                    }
+                }else{
+                    result=collection.update_many(documents)
+                    if verbose{
+                        self.logger.info('Inserted size: {}...OK'.format(len(result.inserted_ids)))
                     }
                 }
-                self.logger.info('Inserted size: {}...OK'.format(mod_count))
+                lock.release()
             }else{
-                result=collection.update_many(documents)
-                self.logger.info('Inserted size: {}...OK'.format(len(result.inserted_ids)))
+                raise Exception('Cannot insert on {}, collection is locked!'.format(collection_str))
             }
+            
         }
     }
 
-    def getRawDB(self){
-        return self.raw_db
+    def checkIfListOfCollectionsExistsAndItsNotLocked(self,db,collections_to_check){
+        if all(el in db.list_collection_names() for el in collections_to_check){
+            for col in collections_to_check{
+                lock=MongoLock(db[col],'MongoDB-Inserting',lease=MongoDB.QUEUE_TIMEOUT_WITHOUT_PROGRESS)
+                lock.fetch()
+                if lock.locked {
+                    return False
+                }
+            }
+            return True
+        }else{
+            return False
+        }
     }
 
     def startQueue(self,id=0){ 
@@ -134,51 +165,105 @@ class MongoDB(object){
         collection=self.client[MongoDB.QUEUE_DB_NAME][MongoDB.QUEUE_COL_CRAWLER_NAME]
         self.consumer_id=consumer_id
         self.queues={}
-        self.queues[MongoDB.QUEUE_COL_CRAWLER_NAME]=MongoQueue(collection, consumer_id=consumer_id, timeout=1500, max_attempts=3)
+        self.queues[MongoDB.QUEUE_COL_CRAWLER_NAME]=MongoQueue(collection, consumer_id=consumer_id, timeout=MongoDB.QUEUE_TIMEOUT_WITHOUT_PROGRESS, max_attempts=3)
+    }
+
+    def getQueues(self){
+        return self.queues
     }
 
     def getQueueConsumerId(self){
         return self.consumer_id
     }
 
-    def loopOnQueue(self,crawler){
-        while True{
-            job=self.queues[MongoDB.QUEUE_COL_CRAWLER_NAME].next()
-            if job is not None{
-                payload=job.payload
-                task=payload['task']
-                try{
-                    self.logger.info('Running job {}-{}...'.format(task,job.job_id))
-                    if task=='DownloadAll'{
-                        for db_id in crawler.getAllDatabasesIds(){
-                            self.queues[MongoDB.QUEUE_COL_CRAWLER_NAME].put({'task': 'Download','args':{'id':db_id}})
-                        }
-                    }elif task=='Download'{
-                        if payload['args']['id']=='CVE_DETAILS'{
-                            if not all(el in self.raw_db.list_collection_names() for el in ['CVE_MITRE','CVE_NVD']){
-                                self.logger.warn('Returning {} job to queue, because it does not have its requirements fulfilled'.format(payload['args']['id']))
-                                job.put_back()
-                                job=None
-                                time.sleep(200) # TODO change to 20 and check if there is an active job on queue processing CVE_MITRE or CVE_NVD, if yes wait
-                            }
-                        }
-                        if job{
-                            failed=crawler.downloadRawDataFromSources(sources=[payload['args']['id']],update_callback=lambda: job.progress())
-                            if failed{
-                                raise Exception('Failed to download from {}'.format(','.join(failed)))
-                            }
-                        }
+    def getQueueNames(self){
+        return self.client[MongoDB.QUEUE_DB_NAME].collection_names()
+    }
+
+    def clearQueue(self,name){
+        return self.queues[name].clear()
+    }
+
+    def getAllQueueJobs(self){
+        out={}
+        queues=self.getQueueNames()
+        for queue_name in queues{
+            queue=self.client[MongoDB.QUEUE_DB_NAME][queue_name]
+            jobs=queue.find({})
+            parsed_jobs=[]
+            for job in jobs{
+                job_dict={'task':job['payload']['task']}
+                if 'args' in job['payload']{
+                    if job['payload']['args']{
+                        job_dict['args']=job['payload']['args']
                     }
-                    if job{
-                        job.complete()
-                        self.logger.info('Runned job {}-{}...'.format(task,job.job_id))
-                    }
-                }except Exception as e{
-                    job.error(str(e))
-                    self.logger.error('Runned job {}-{}...'.format(task,job.job_id))      
-                    self.logger.exception(e)
                 }
+                if job['locked_by'] is None{
+                    status='WAITING'
+                }else{
+                    status='RUNNING'
+                    locked_at=job['locked_at']
+                    end_date=locked_at+datetime.timedelta(0,self.queues[queue_name].timeout+3)
+                    if end_date<datetime.datetime.now(){
+                        query={"_id": job['_id']}
+                        if job['attempts'] > self.queues[queue_name].max_attempts{
+                            status='FAILED ALL ATTEMPS'
+                            queue.remove(query)
+                        }else{
+                            status='FAILED'
+                        }
+                        time_failed=datetime.datetime.now()-end_date
+                        if datetime.timedelta(hours=2)<time_failed{
+                            status='CANCELING'
+                            update={"$set": {"locked_by": None, "locked_at": None},"$inc": {"attempts": 1}}
+                            queue.find_and_modify(query,update=update)
+                        }
+                    }
+                }
+                job_dict['status']=status
+                if status=='RUNNING'{
+                    job_dict['worker']=job['locked_by']
+                }
+                job_dict['attemps']=job['attempts']
+                if job['last_error']{
+                    job_dict['error']=job['last_error']
+                }
+                job_dict['id']=job['_id']
+                parsed_jobs.append(job_dict)
+            }
+            if len(parsed_jobs)>0{
+                out[queue_name]=parsed_jobs
             }
         }
+        return out
     }
+
+    def insertOnQueue(self,queue,task,args=None){
+        payload={'task': task}
+        if args{
+            payload['args']=args
+        }
+        self.queues[queue].put(payload)
+    }
+
+    def insertOnCrawlerQueue(self,task,args=None){
+        self.insertOnQueue(MongoDB.QUEUE_COL_CRAWLER_NAME,task,args)
+    }
+
+    def findOneOnDB(self,db,collection,query){
+        if self.dummy{
+            raise Exception('Find one is not supported on DummyMode')
+        }
+        result=db[collection].find(query)
+        found=result.count()
+        if found>0{
+            return result.next()
+        }
+    }
+
+    def findOneOnDBFromIndex(self,db,collection,index_field,index_value){
+        query={index_field:index_value}
+        return self.findOneOnDB(db,collection,query)
+    }
+
 }

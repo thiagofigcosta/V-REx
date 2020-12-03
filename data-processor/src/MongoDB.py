@@ -2,9 +2,10 @@
 # -*- coding: utf-8 -*-
 from Utils import Utils
 import pymongo
+import datetime
 import socket
 from pymongo import MongoClient
-from MongoQueue import MongoQueue,MongoJob
+from MongoQueue import MongoQueue,MongoJob,MongoLock
 
 class MongoDB(object){
     QUEUE_DB_NAME='queue'
@@ -12,6 +13,7 @@ class MongoDB(object){
     RAW_DATA_DB_NAME='raw_data'
     PROCESSED_DATA_DB_NAME='processed_data'
     DUMMY_FOLDER='tmp/crawler/DummyMongo/'
+    QUEUE_TIMEOUT_WITHOUT_PROGRESS=1500
 
 	def __init__(self, address, port=27017, logger=None, user=None,password=None){
         if logger is None{
@@ -56,7 +58,7 @@ class MongoDB(object){
             Utils.saveJson(ref_path,refs) 
         }else{
             refs={'unique':'unique','refs':refs}
-            self.insertOneOnRawDB(refs,'References',index='unique')
+            self.insertOneOnDB(self.getRawDB(),refs,'References',index='unique')
         }
     }
 
@@ -96,45 +98,6 @@ class MongoDB(object){
         self.processed_db = self.client[MongoDB.PROCESSED_DATA_DB_NAME]
     }
 
-    def insertOneOnDB(self,db,document,collection,index=None,verbose=True){
-        return self.insertManyOnDB(db,[document],collection,index=index,verbose=verbose)
-    }
-
-    def insertManyOnDB(self,db,documents,collection,index=None,verbose=True){
-        if self.dummy {
-            path=MongoDB.DUMMY_FOLDER+'{}.json'.format(collection)
-            Utils.saveJson(path,documents)
-            return path
-        }else{
-            if verbose{
-                self.logger.info('Inserting on {} db on col: {} with index: {} and size: {}...'.format(db.name,collection,index,len(documents)))
-            }
-            collection=db[collection]
-            if index is not None{
-                collection.create_index([(index, pymongo.ASCENDING)], unique=True)
-                mod_count=0
-                for doc in documents{
-                    query={index: doc[index]}
-                    result=collection.replace_one(query, doc, upsert=True) 
-                    if result.modified_count > 0{
-                        mod_count+=result.modified_count
-                    }
-                    if result.upserted_id{
-                        mod_count+=1
-                    }
-                }
-                if verbose{
-                    self.logger.info('Inserted size: {}...OK'.format(mod_count)),
-                }
-            }else{
-                result=collection.update_many(documents)
-                if verbose{
-                    self.logger.info('Inserted size: {}...OK'.format(len(result.inserted_ids)))
-                }
-            }
-        }
-    }
-
     def getRawDB(self){
         return self.raw_db
     }
@@ -143,12 +106,79 @@ class MongoDB(object){
         return self.processed_db
     }
 
+    def insertOneOnDB(self,db,document,collection,index=None,verbose=True){
+        return self.insertManyOnDB(db,[document],collection,index=index,verbose=verbose)
+    }
+
+    def insertManyOnDB(self,db,documents,collection_str,index=None,verbose=True){
+        if self.dummy {
+            path=MongoDB.DUMMY_FOLDER+'{}.json'.format(collection_str)
+            Utils.saveJson(path,documents)
+            return path
+        }else{
+            if verbose{
+                self.logger.info('Inserting on {} db on col: {} with index: {} and size: {}...'.format(db.name,collection_str,index,len(documents)))
+            }
+            collection=db[collection_str]
+            lock=MongoLock(collection,'MongoDB-Inserting',lease=MongoDB.QUEUE_TIMEOUT_WITHOUT_PROGRESS)
+            lock.fetch()
+            if not lock.locked{
+                lock.acquire()
+                if index is not None{
+                    collection.create_index([(index, pymongo.ASCENDING)], unique=True)
+                    mod_count=0
+                    for doc in documents{
+                        query={index: doc[index]}
+                        result=collection.replace_one(query, doc, upsert=True) 
+                        if result.modified_count > 0{
+                            mod_count+=result.modified_count
+                        }
+                        if result.upserted_id{
+                            mod_count+=1
+                        }
+                    }
+                    if verbose{
+                        self.logger.info('Inserted size: {}...OK'.format(mod_count))
+                    }
+                }else{
+                    result=collection.update_many(documents)
+                    if verbose{
+                        self.logger.info('Inserted size: {}...OK'.format(len(result.inserted_ids)))
+                    }
+                }
+                lock.release()
+            }else{
+                raise Exception('Cannot insert on {}, collection is locked!'.format(collection_str))
+            }
+            
+        }
+    }
+
+    def checkIfListOfCollectionsExistsAndItsNotLocked(self,db,collections_to_check){
+        if all(el in db.list_collection_names() for el in collections_to_check){
+            for col in collections_to_check{
+                lock=MongoLock(db[col],'MongoDB-Inserting',lease=MongoDB.QUEUE_TIMEOUT_WITHOUT_PROGRESS)
+                lock.fetch()
+                if lock.locked {
+                    return False
+                }
+            }
+            return True
+        }else{
+            return False
+        }
+    }
+
     def startQueue(self,id=0){ 
         consumer_id='processor_{}-{}'.format(socket.gethostname(),id)
         collection=self.client[MongoDB.QUEUE_DB_NAME][MongoDB.QUEUE_COL_CRAWLER_NAME]
         self.consumer_id=consumer_id
         self.queues={}
-        self.queues[MongoDB.QUEUE_COL_CRAWLER_NAME]=MongoQueue(collection, consumer_id=consumer_id, timeout=1500, max_attempts=3)
+        self.queues[MongoDB.QUEUE_COL_CRAWLER_NAME]=MongoQueue(collection, consumer_id=consumer_id, timeout=MongoDB.QUEUE_TIMEOUT_WITHOUT_PROGRESS, max_attempts=3)
+    }
+
+    def getQueues(self){
+        return self.queues
     }
 
     def getQueueConsumerId(self){
@@ -217,12 +247,16 @@ class MongoDB(object){
         return out
     }
 
-    def insertOnCrawlerQueue(self,task,args=None){
+    def insertOnQueue(self,queue,task,args=None){
         payload={'task': task}
         if args{
             payload['args']=args
         }
-        self.queues[MongoDB.QUEUE_COL_CRAWLER_NAME].put(payload)
+        self.queues[queue].put(payload)
+    }
+
+    def insertOnCrawlerQueue(self,task,args=None){
+        self.insertOnQueue(MongoDB.QUEUE_COL_CRAWLER_NAME,task,args)
     }
 
     def findOneOnDB(self,db,collection,query){
