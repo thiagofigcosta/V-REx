@@ -12,8 +12,15 @@ import json
 import sys
 from pympler.asizeof import asizeof
 import random as rd
+from bson.json_util import dumps as bdumps
+from bson.json_util import loads as bloads
 
 class Utils(object){
+    if os.name == 'nt'{
+        FILE_SEPARATOR='\\'
+    }else{
+        FILE_SEPARATOR='/'
+    }
     TMP_FOLDER=None
     LOGGER=None
 
@@ -64,7 +71,11 @@ class Utils(object){
     }
 
     @staticmethod
-    def saveJson(path,data,pretty=True){
+    def saveJson(path,data,pretty=True,use_bson=False){
+        if use_bson{
+            Utils.saveFile(path,bdumps(data))
+            return
+        }
         with open(path, 'w') as fp{
             json.dump(data, fp, indent=3 if pretty else None)
         }
@@ -77,9 +88,14 @@ class Utils(object){
     }
 
     @staticmethod
-    def loadJson(path){
-        with open(path, 'r') as fp {
-            data=json.load(fp)
+    def loadJson(path,use_bson=False){
+        if use_bson {
+            data=Utils.openFile(path)
+            data=bloads(data)
+        }else{
+            with open(path, 'r') as fp {
+                data=json.load(fp)
+            }
         }
         return data
     }
@@ -87,9 +103,9 @@ class Utils(object){
     @staticmethod
     def getTmpFolder(base_name,random=False){
         if random{
-            destination_folder=Utils.TMP_FOLDER+base_name+str(rd.randint(0,65535))+'/'
+            destination_folder=Utils.joinPath(Utils.TMP_FOLDER,base_name+str(rd.randint(0,65535)))
         }else{
-            destination_folder=Utils.TMP_FOLDER+base_name+'/'
+            destination_folder=Utils.joinPath(Utils.TMP_FOLDER,base_name)
         }
         Utils.createFolderIfNotExists(destination_folder)
         return destination_folder
@@ -127,46 +143,75 @@ class Utils(object){
     @staticmethod
     def filenameFromPath(path,get_extension=False){
         if get_extension {
-            re_result=re.search(r'.+(\/.+)', path)
+            re_result=re.search(r'.+\/(.+)', path)
             return re_result.group(1) if re_result is not None else path
         }else{
-            re_result=re.search(r'.+(\/.+)\..+', path)
+            re_result=re.search(r'.+\/(.+)\..+', path)
             return re_result.group(1) if re_result is not None else path
         }
     } 
 
     @staticmethod
-    def partentFromPath(path){
+    def removeExtFromFilename(filename){
+        re_result=re.search(r'(.*)\..*', filename)
+        return re_result.group(1) if re_result is not None else filename
+    } 
+
+    @staticmethod
+    def parentFromPath(path){
         re_result=re.search(r'(.+\/).+', path)
         return re_result.group(1) if re_result is not None else path
     } 
 
     @staticmethod
-    def unzip(path,destination_folder=None){
+    def unzip(path,destination_folder=None,delete=True){
         Utils.LOGGER.info('Unziping file {}...'.format(path))
         if not destination_folder{
-            destination_folder=Utils.TMP_FOLDER+Utils.filenameFromPath(path)+'/'
+            destination_folder=Utils.joinPath(Utils.TMP_FOLDER,Utils.filenameFromPath(path))
         }else{
-            destination_folder=Utils.TMP_FOLDER+destination_folder
+            destination_folder=Utils.joinPath(Utils.TMP_FOLDER,destination_folder)
         }
         Utils.createFolderIfNotExists(destination_folder)
         with zipfile.ZipFile(path, 'r') as zip_ref{
             zip_ref.extractall(destination_folder)
         }
-        Utils.deleteFile(path)
+        if delete{
+            Utils.deleteFile(path)
+        }
         Utils.LOGGER.info('Unziped file {}...OK'.format(path))
         return destination_folder
     }
 
     @staticmethod
+    def zip(path_to_zip,compressed_output_file,base=None){
+        Utils.LOGGER.info('Ziping file {}...'.format(path_to_zip))
+        zipf=zipfile.ZipFile(compressed_output_file, 'w', zipfile.ZIP_DEFLATED)
+        for root, dirs, files in os.walk(path_to_zip){
+            for file in files{
+                file_path=os.path.join(root, file)
+                if base {
+                    re_result=re.search(r'('+base+r'.*)', file_path)
+                    file_path_on_zip=re_result.group(1) if re_result is not None else file_path
+                    zipf.write(file_path,file_path_on_zip)
+                }else{
+                    zipf.write(file_path)
+                }
+            }
+        }
+        zipf.close()
+        Utils.LOGGER.info('Ziped file {}...OK'.format(path_to_zip))
+        return compressed_output_file
+    }
+
+    @staticmethod
     def gunzip(path,extension){
         Utils.LOGGER.info('Gunziping file {}...'.format(path))
-        destination_folder=Utils.TMP_FOLDER+Utils.filenameFromPath(path)+'/'
+        destination_folder=Utils.joinPath(Utils.TMP_FOLDER,Utils.filenameFromPath(path))
         Utils.createFolderIfNotExists(destination_folder)        
         destination_filename=Utils.filenameFromPath(path)+extension
         block_size=65536
         with gzip.open(path, 'rb') as s_file{
-            destination_path=destination_folder+destination_filename
+            destination_path=Utils.joinPath(destination_folder,destination_filename)
             with open(destination_path, 'wb') as d_file{
                 while True{
                     block = s_file.read(block_size)
@@ -217,4 +262,17 @@ class Utils(object){
         return size
     }   
 
+    @staticmethod
+    def appendToStrIfDoesNotEndsWith(base,suffix){
+        if not base.endswith(suffix){
+            return base+suffix
+        }
+        return base
+    }
+
+    @staticmethod
+    def joinPath(parent,child){
+        parent=Utils.appendToStrIfDoesNotEndsWith(parent,Utils.FILE_SEPARATOR)
+        return parent+child
+    }
 }
