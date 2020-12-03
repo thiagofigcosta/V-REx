@@ -10,6 +10,7 @@ import re
 import time
 from Utils import Utils
 from XmlDictParser import XmlDictParser
+from MongoDB import MongoDB
 
 class DataCrawler(object){
     SOURCES=[]
@@ -747,7 +748,7 @@ class DataCrawler(object){
             documents=self.parseDBtoDocuments(id,xml_path,update_callback=update_callback)
             return documents, destination_folder            
         }elif id=='CVE_NVD'{
-            self.logger.info('Downloading CWEs from {}...'.format(id))
+            self.logger.info('Downloading CVEs from {}...'.format(id))
             urls = source['direct_download_urls']
             paths = []
             for url in urls{
@@ -932,7 +933,7 @@ class DataCrawler(object){
                 try{
                     documents,tmp_path=self.downloadRawDataAndParseFrom(source['id'],update_callback=update_callback)
                     if documents is not None{
-                        self.mongo.insertManyOnRawDB(documents,source['id'],source['index'])
+                        self.mongo.insertManyOnDB(self.mongo.getRawDB(),documents,source['id'],source['index'])
                         Utils.deletePath(tmp_path)
                     }else{
                         failed.append(source['id'])
@@ -947,6 +948,47 @@ class DataCrawler(object){
         }
         if len(failed)>0{
             return failed
+        }
+    }
+
+    def loopOnQueue(self){
+        while True{
+            job=self.mongo.getQueues()[MongoDB.QUEUE_COL_CRAWLER_NAME].next()
+            if job is not None{
+                payload=job.payload
+                task=payload['task']
+                try{
+                    self.logger.info('Running job {}-{}...'.format(task,job.job_id))
+                    if task=='DownloadAll'{
+                        for db_id in self.getAllDatabasesIds(){
+                            self.mongo.getQueues()[MongoDB.QUEUE_COL_CRAWLER_NAME].put({'task': 'Download','args':{'id':db_id}})
+                        }
+                    }elif task=='Download'{
+                        if payload['args']['id']=='CVE_DETAILS'{
+                            if not self.mongo.checkIfListOfCollectionsExistsAndItsNotLocked(self.mongo.getRawDB(),['CVE_MITRE','CVE_NVD']){
+                                self.logger.warn('Returning {} job to queue, because it does not have its requirements fulfilled'.format(payload['args']['id']))
+                                job.put_back()
+                                job=None
+                                time.sleep(20)
+                            }
+                        }
+                        if job{
+                            failed=self.downloadRawDataFromSources(sources=[payload['args']['id']],update_callback=lambda: job.progress())
+                            if failed{
+                                raise Exception('Failed to download from {}'.format(','.join(failed)))
+                            }
+                        }
+                    }
+                    if job{
+                        job.complete()
+                        self.logger.info('Runned job {}-{}...'.format(task,job.job_id))
+                    }
+                }except Exception as e{
+                    job.error(str(e))
+                    self.logger.error('Runned job {}-{}...'.format(task,job.job_id))      
+                    self.logger.exception(e)
+                }
+            }
         }
     }
 }
