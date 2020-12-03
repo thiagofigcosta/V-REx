@@ -17,27 +17,33 @@ class Logger(object){
     DATE_FORMAT='%Y%m%d'
     EYE_CATCHER=False
 
-	def __init__(self, log_folder,verbose=False,print_on_screen=True){
+	def __init__(self, log_folder,print_on_screen=True){
+		if not log_folder.endswith('\\' if os.name == 'nt' else '/'){
+            log_folder+='\\' if os.name == 'nt' else '/'
+        }
 		self.log_folder=log_folder
         self.print_on_screen=print_on_screen
-		self.print_verbose=verbose
     }
 		
-	def _log(self,message,error=False,traceback=False,warn=False,fatal=False){
-		now = datetime.now()
-		nowstr='{}.{:06d}'.format(now.strftime(Logger.DATETIME_FORMAT),now.microsecond)
-		info_header="[{}|{}] ".format(socket.gethostname(),nowstr)
-        if fatal {
-            info_header+='- FATAL: '
-        }elif error {
-            info_header+='- ERROR: '
-        }elif traceback {
-            info_header+='- EXCEPTION: '
-        }elif warn {
-            info_header+='- WARN: '
-        }else{
-            info_header+='- INFO: '
-        }
+	def _log(self,message,error=False,traceback=False,warn=False,fatal=False,clean=False){
+		if not clean{
+			now = datetime.now()
+			nowstr='{}.{:06d}'.format(now.strftime(Logger.DATETIME_FORMAT),now.microsecond)
+			info_header="[{}|{}] ".format(socket.gethostname(),nowstr)
+			if fatal {
+				info_header+='- FATAL: '
+			}elif error {
+				info_header+='- ERROR: '
+			}elif traceback {
+				info_header+='- EXCEPTION: '
+			}elif warn {
+				info_header+='- WARN: '
+			}else{
+				info_header+='- INFO: '
+			}
+		}else{
+			info_header=''
+		}
 		fail_delimiter="***********************************************"
 		error_header  ="*--------------------ERROR--------------------*"
 		traceb_header ="*------------------TRACE_BACK------------------"
@@ -137,17 +143,11 @@ class Logger(object){
 
 	def getLogFilename(self){
 		now = datetime.now()
-		return self.log_folder+'log-crawler-{}.txt'.format(now.strftime(Logger.DATE_FORMAT))
+		return self.log_folder+'log-front-{}.txt'.format(now.strftime(Logger.DATE_FORMAT))
 	}
 
     def info(self,message){
         self._log(message,error=False,traceback=False,warn=False)
-    }
-
-	def verbose(self,message){
-		if self.print_verbose{
-			self.info(message)
-		}
     }
 
     def fatal(self,message){
@@ -170,5 +170,9 @@ class Logger(object){
 
     def warn(self,message){
         self._log(message,error=False,traceback=False,warn=True)
+    }
+
+	def clean(self,message){
+        self._log(message,clean=True)
     }
 }

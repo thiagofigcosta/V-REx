@@ -18,6 +18,9 @@ class Logger(object){
     EYE_CATCHER=False
 
 	def __init__(self, log_folder,print_on_screen=True){
+		if not log_folder.endswith('\\' if os.name == 'nt' else '/'){
+            log_folder+='\\' if os.name == 'nt' else '/'
+        }
 		self.log_folder=log_folder
         self.print_on_screen=print_on_screen
     }
