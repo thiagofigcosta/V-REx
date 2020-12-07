@@ -6,7 +6,7 @@ from Logger import Logger
 from MongoDB import MongoDB
 
 Utils.createFolderIfNotExists(DataCrawler.TMP_FOLDER)
-LOGGER=Logger(DataCrawler.TMP_FOLDER)
+LOGGER=Logger(DataCrawler.TMP_FOLDER,name='crawler')
 Utils(DataCrawler.TMP_FOLDER,LOGGER)
 
 LOGGER.info('Starting Data Crawler...')

@@ -413,4 +413,16 @@ class MongoDB(object){
         Utils.deletePath(uncompressed_root)
         self.logger.info('Restored database {} from file {}...OK'.format(db_name,compressed_db_dump))
     }
+
+    def findAllOnDB(self,db,collection,wait_unlock=True){
+        if self.dummy{
+            raise Exception('Find all is not supported on DummyMode')
+        }
+        if wait_unlock{
+            while self.checkIfCollectionIsLocked(db,collection){
+                time.sleep(1)
+            }
+        }
+        return db[collection].find()
+    }
 }

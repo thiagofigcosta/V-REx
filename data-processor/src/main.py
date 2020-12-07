@@ -6,7 +6,7 @@ from Logger import Logger
 from MongoDB import MongoDB
 
 Utils.createFolderIfNotExists(DataProcessor.TMP_FOLDER)
-LOGGER=Logger(DataProcessor.TMP_FOLDER)
+LOGGER=Logger(DataProcessor.TMP_FOLDER,name='processor')
 Utils(DataProcessor.TMP_FOLDER,LOGGER)
 
 LOGGER.info('Starting Data Processor...')

@@ -92,15 +92,19 @@ def pre_compile(content,print_out=False):
         else:
             if not reg_python:
                 line=line.strip()
-                if re.match(r'(.*[ |\t]*=[ |\t]*({)\s*(.*})?|(?<![\'|\"]).*\(\s*({)\s*(.*}\))\s*)$', line):
-                    dictionary=True
-                if re.match(r'^.*}((?=(?:[^\"\']*\"\'[^\"\']*\"\')*[^\"\']*\Z)|\s*(else|elif))', line): 
-                    if not dictionary:
-                        line=re.sub('} *', '}', line)
-                        line=replace_last(line,'}','')
-                        needed_tabs-=1
-                    else:
-                        turn_off_dictionary=True
+                if re.match(r'\s*(if.+?){(.*)}\s*$', line):
+                    result=re.match(r'\s*(if.+?){(.*)}\s*$', line)
+                    line=result.group(1)+':\n'+"\t"*(needed_tabs+1)+result.group(2)
+                else:
+                    if re.match(r'(.*[ |\t]*=[ |\t]*({)\s*(.*})?|(?<![\'|\"]).*\(\s*({)\s*(.*}\))\s*)$', line):
+                        dictionary=True
+                    if re.match(r'^.*}((?=(?:[^\"\']*\"\'[^\"\']*\"\')*[^\"\']*\Z)|\s*(else|elif))', line): 
+                        if not dictionary:
+                            line=re.sub('} *', '}', line)
+                            line=replace_last(line,'}','')
+                            needed_tabs-=1
+                        else:
+                            turn_off_dictionary=True
                 if (needed_tabs>0):
                     line="\t"*needed_tabs+line
                 if not dictionary:

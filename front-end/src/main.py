@@ -10,7 +10,7 @@ TMP_FOLDER='tmp/front/'
 ITERATIVE=False
 
 Utils.createFolderIfNotExists(TMP_FOLDER)
-LOGGER=Logger(TMP_FOLDER)
+LOGGER=Logger(TMP_FOLDER,name='front')
 Utils(TMP_FOLDER,LOGGER)
 
 def main(argv){

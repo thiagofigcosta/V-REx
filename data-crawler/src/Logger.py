@@ -17,12 +17,14 @@ class Logger(object){
     DATE_FORMAT='%Y%m%d'
     EYE_CATCHER=False
 
-	def __init__(self, log_folder,print_on_screen=True){
+	def __init__(self, log_folder,verbose=False,print_on_screen=True,name='application'){
 		if not log_folder.endswith('\\' if os.name == 'nt' else '/'){
             log_folder+='\\' if os.name == 'nt' else '/'
         }
 		self.log_folder=log_folder
         self.print_on_screen=print_on_screen
+		self.print_verbose=verbose
+		self.name=name
     }
 		
 	def _log(self,message,error=False,traceback=False,warn=False,fatal=False,clean=False){
@@ -143,7 +145,7 @@ class Logger(object){
 
 	def getLogFilename(self){
 		now = datetime.now()
-		return self.log_folder+'log-front-{}.txt'.format(now.strftime(Logger.DATE_FORMAT))
+		return self.log_folder+'log-{}-{}.txt'.format(self.name,now.strftime(Logger.DATE_FORMAT))
 	}
 
     def info(self,message){
@@ -174,5 +176,11 @@ class Logger(object){
 
 	def clean(self,message){
         self._log(message,clean=True)
+    }
+
+	def verbose(self,message){
+		if self.print_verbose{
+			self.info(message)
+		}
     }
 }

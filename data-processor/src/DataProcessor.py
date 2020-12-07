@@ -24,7 +24,7 @@ class DataProcessor(object){
         frequency_count=1
         data_size=0
         total_iters=len(self.references['cve'])
-        self.logger.info('Merging and inserting CVEs Data...')
+        self.logger.info('Running \"Merge\" on CVEs Data...')
         for cve_ref in self.references['cve']{
             merged_entry={}
             for col in cve_collections{
@@ -42,6 +42,7 @@ class DataProcessor(object){
                             keys_source[col].add(k)
                         }
                     }
+                    if update_callback { update_callback() }
                 }
             }
             if len(merged_entry)>0{
@@ -59,11 +60,16 @@ class DataProcessor(object){
             frequency_count+=1
         }
         self.logger.info('Percentage done {:.2f}% - Total data size: {}'.format((iter_count/total_iters*100),Utils.bytesToHumanReadable(data_size)))
-        self.logger.info('Merged and inserted CVEs Data...OK')
+        self.logger.info('Runned \"Merge\" on CVEs Data...OK')
     }
 
     def flatternAndSimplifyCve(self,update_callback=None){
-        pass # TODO
+        self.logger.info('Running \"Flattern and Simplify\" on CVEs Data...')
+        merged_data=self.mongo.findAllOnDB(self.mongo.getProcessedDB(),'merged_cve')
+        for cve in merged_data{
+            break
+        }
+        self.logger.info('Runned \"Flattern and Simplify\" on CVEs Data...OK')
     }
 
     def flatternAndSimplifyOval(self,update_callback=None){

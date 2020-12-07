@@ -7,7 +7,7 @@ from MongoDB import MongoDB
 from XmlDictParser import XmlDictParser
 
 Utils.createFolderIfNotExists(DataCrawler.TMP_FOLDER)
-LOGGER=Logger(DataCrawler.TMP_FOLDER)
+LOGGER=Logger(DataCrawler.TMP_FOLDER,name='crawler')
 Utils(DataCrawler.TMP_FOLDER,LOGGER)
 
 LOGGER.info('oi')
