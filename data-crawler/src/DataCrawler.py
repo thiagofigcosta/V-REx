@@ -146,9 +146,7 @@ class DataCrawler(object){
                     }
                 }
                 documents.append(cve_entry)
-                if update_callback {
-                    update_callback()
-                }
+                if update_callback { update_callback() }
             }
         }elif id=='CWE_MITRE'{ # TODO Severe workarounds, it is not the ideal solution but xmlschema is not working
             xmldict=XmlDictParser.fromFile(path,filter=True)
@@ -186,9 +184,7 @@ class DataCrawler(object){
                     cwe_entry[k]=v
                 }
                 documents.append(cwe_entry)
-                if update_callback {
-                    update_callback()
-                }
+                if update_callback { update_callback() }
             }
             for cat in xmldict['Categories']['Category']{
                 if 'Relationships' in cat {
@@ -300,9 +296,7 @@ class DataCrawler(object){
                 }        
                 documents[i]=XmlDictParser.compressDictOnFollowingKeys(documents[i],['p','li','ul','div','i'])
                 documents[i]=XmlDictParser.recursiveRemoveEmpty(documents[i])
-                if update_callback {
-                    update_callback()
-                }
+                if update_callback { update_callback() }
             }
             Utils.deletePath(schema_path)
         }elif id=='CVE_NVD'{
@@ -378,9 +372,7 @@ class DataCrawler(object){
                     capec_entry[k]=v
                 }
                 documents.append(capec_entry)
-                if update_callback {
-                    update_callback()
-                }
+                if update_callback { update_callback() }
             }
             for cat in xmldict['Categories']['Category']{
                 if 'Relationships' in cat {
@@ -492,9 +484,7 @@ class DataCrawler(object){
                 }       
                 documents[i]=XmlDictParser.compressDictOnFollowingKeys(documents[i],['p','li','ul','div','i','class'])
                 documents[i]=XmlDictParser.recursiveRemoveEmpty(documents[i])
-                if update_callback {
-                    update_callback()
-                }
+                if update_callback { update_callback() }
             }
         }elif id=='OVAL'{
             xmldict=XmlDictParser.fromFile(path,filter=True)

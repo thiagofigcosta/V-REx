@@ -42,15 +42,12 @@ class DataProcessor(object){
                             keys_source[col].add(k)
                         }
                     }
-                    if update_callback { update_callback() }
                 }
             }
             if len(merged_entry)>0{
                 self.mongo.insertOneOnDB(self.mongo.getProcessedDB(),merged_entry,'merged_cve','cve',verbose=False)
                 data_size+=Utils.sizeof(merged_entry)
-                if update_callback {
-                    update_callback()
-                }
+                if update_callback { update_callback() }
                 if verbose_frequency==frequency_count{
                     self.logger.verbose('Percentage done {:.2f}% - Total data size: {}'.format((iter_count/total_iters*100),Utils.bytesToHumanReadable(data_size)))
                     frequency_count=0
@@ -67,6 +64,7 @@ class DataProcessor(object){
         self.logger.info('Running \"Flattern and Simplify\" on CVEs Data...')
         merged_data=self.mongo.findAllOnDB(self.mongo.getProcessedDB(),'merged_cve')
         for cve in merged_data{
+            if update_callback { update_callback() }
             break
         }
         self.logger.info('Runned \"Flattern and Simplify\" on CVEs Data...OK')
