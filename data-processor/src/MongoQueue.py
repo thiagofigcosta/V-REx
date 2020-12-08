@@ -269,6 +269,10 @@ class MongoLock(object):
             self._lock_expires=lock_on_db['ttl']
             self._client_id=lock_on_db['client_id']
             self._locked = True
+        else:
+            self._lock_expires=False
+            self._locked = False
+
         
 
     def acquire(self, wait=None, poll_period=5):
@@ -299,7 +303,7 @@ class MongoLock(object):
                 self.collection.insert(
                     {'_id': self.lock_name,
                      'ttl': ttl,
-                     'client_id': self._client_id}, w=1, j=1)
+                     'client_id': self._client_id}, w=1, j=True)
             except errors.DuplicateKeyError:
                 self._locked = False
                 return self._locked
