@@ -575,7 +575,273 @@ class DataProcessor(object){
     }
 
     def flatternAndSimplifyCapec(self,update_callback=None){
-        pass # TODO
+        self.logger.info('Running \"Flattern and Simplify\" on CAPEC Data...')
+        capec_data=self.mongo.findAllOnDB(self.mongo.getRawDB(),'CAPEC_MITRE')
+        verbose_frequency=1333
+        iter_count=0
+        data_size=0
+        total_iters=capec_data.count()
+        lock=self.mongo.getLock(self.mongo.getProcessedDB(),'flat_capec')
+        while self.mongo.checkIfCollectionIsLocked(lock=lock){
+            time.sleep(1)
+        }
+        lock.acquire()
+        for capec in capec_data{
+            if capec['capec']!='__metadata__' and capec['Status']!='Deprecated'{
+                if 'Description' in capec and type(capec['Description']) is dict{
+                    desc=""
+                    for k,v in capec['Description'].items(){
+                        if type(v) is list{
+                            desc+='\n'.join(v)
+                        }else{
+                            desc+='\n{}'.format(v)
+                        }
+                    }
+                    capec['Description']=desc
+                }
+                if 'Related_Attack_Patterns' in capec{
+                    relationship={}
+                    for rel in capec['Related_Attack_Patterns']{
+                        if rel['Nature'] not in relationship{
+                            rel['Nature']=[rel['CAPEC_ID']]
+                        }else{
+                            rel['Nature'].append(rel['CAPEC_ID'])
+                        }
+                    }
+                    for k,v in relationship.items(){
+                        capec[k]=v
+                    }
+                    capec.pop('Related_Attack_Patterns', None)
+                }
+                if 'Execution_Flow' in capec{
+                    capec['Steps']=[]
+                    for step in capec['Execution_Flow']{
+                        if type(step) is dict{
+                            capec['Steps'].append(step['Phase'])
+                        }
+                    }
+                    capec.pop('Execution_Flow', None)
+                }
+                if 'Skills_Required' in capec{
+                    capec['Skill']=[]
+                    capec['Skill_level']=[]
+                    for skill in capec['Skills_Required']{
+                        if 'Skill' not in skill{
+                            skill['Skill']='Not specified'
+                        }
+                        capec['Skill'].append(skill['Skill'])
+                        capec['Skill_level'].append(skill['Level'])
+                    }
+                    capec.pop('Skills_Required', None)
+                }
+                if 'Resources_Required' in capec{
+                    capec['Resources_req']=[]
+                    if type(capec['Resources_Required']) is list{
+                        for res in capec['Resources_Required']{
+                            res=res['Resource']
+                            if res.split(':',1)[0]!='None'{
+                                capec['Resources_req'].append(res)
+                            }
+                        }
+                    }else{
+                        res=capec['Resources_Required']['Resource']
+                        if type(res) is list{
+                            for el in res{
+                                capec['Resources_req'].append(el)
+                            }
+                        }elif res.split(':',1)[0]!='None'{
+                            capec['Resources_req'].append(res)
+                        }
+                    }
+                    capec.pop('Resources_Required', None)
+                    if len(capec['Resources_req'])==0{
+                        capec.pop('Resources_req', None)
+                    }
+                }
+                if 'Consequences' in capec{
+                    capec['Affected_Scopes']=set()
+                    capec['Damage']=set()
+                    for conseq in capec['Consequences']{
+                        if type(conseq['Scope']) is not list{
+                            conseq['Scope']=[conseq['Scope']]
+                        }
+                        for scope in conseq['Scope']{
+                            capec['Affected_Scopes'].add(scope)
+                        }
+                        if type(conseq['Impact']) is not list{
+                            conseq['Impact']=[conseq['Impact']]
+                        }
+                        for impac in conseq['Impact']{
+                            capec['Damage'].add(impac)
+                        }
+                    }
+                    capec.pop('Consequences', None)
+                    capec['Affected_Scopes']=list(capec['Damage'])
+                    capec['Damage']=list(capec['Damage'])
+                    if len(capec['Affected_Scopes'])==0{
+                        capec.pop('Affected_Scopes', None)
+                    }
+                    if len(capec['Damage'])==0{
+                        capec.pop('Damage', None)
+                    }
+                }
+                if 'Example_Instances' in capec or 'value' in capec{
+                    capec['Examples']=[]
+                    if 'Example_Instances' in capec{
+                        if type(capec['Example_Instances']['Example']) is dict{
+                            if 'value' in capec['Example_Instances']['Example']{
+                                capec['Example_Instances']=capec['Example_Instances']['Example']['value']
+                            }else{
+                                capec['Example_Instances']=[]
+                            }
+                        }elif type(capec['Example_Instances']['Example']) is not list{
+                            capec['Example_Instances']=[capec['Example_Instances']['Example']]
+                        }
+                        for example in capec['Example_Instances']{
+                            capec['Examples'].append(example)
+                        }
+                        capec.pop('Example_Instances', None)
+                        if len(capec['Examples'])==0{
+                            capec.pop('Examples', None)
+                        }
+                    }
+                    if 'value' in capec{
+                        for ex in capec['value']{
+                            if ex not in capec['Examples']{
+                                capec['Examples'].append(ex)
+                            }
+                        }
+                        capec.pop('value', None)
+                    }
+                }
+                if 'Related_Weaknesses' in capec{
+                    capec['CWEs']=[]
+                    if type(capec['Related_Weaknesses']) is not list{
+                        capec['Related_Weaknesses']=[capec['Related_Weaknesses']]
+                    }
+                    for cwes in capec['Related_Weaknesses']{
+                        capec['CWEs'].append(cwes['CWE_ID'])
+                    }
+                    capec.pop('Related_Weaknesses', None)
+                }
+                if 'References' in capec{
+                    capec['Reference']=[]
+                    if type(capec['References']) is not list{
+                        capec['References']=[capec['References']]
+                    }
+                    for ref in capec['References']{
+                        if 'URL' in ref{
+                            capec['Reference'].append(ref['URL'])
+                        }else{
+                            capec['Reference'].append(ref['Title'])
+                        }
+                        
+                    }
+                    capec.pop('References', None)
+                }
+                if 'Content_History' in capec{
+                    if 'Submission' in capec['Content_History']{
+                        capec['submittedDate']=Utils.changeStrDateFormat(capec['Content_History']['Submission']['Submission_Date'],'%Y-%m-%d','%d/%m/%Y')
+                    }
+                    if 'Modification' in capec['Content_History']{
+                        if type(capec['Content_History']['Modification']) is not list{
+                            capec['Content_History']['Modification']=[capec['Content_History']['Modification']]
+                        }
+                        capec['modifiedDate']=Utils.changeStrDateFormat(capec['Content_History']['Modification'][0]['Modification_Date'],'%Y-%m-%d','%d/%m/%Y')
+                        for entry in capec['Content_History']['Modification']{
+                            date=Utils.changeStrDateFormat(entry['Modification_Date'],'%Y-%m-%d','%d/%m/%Y')
+                            if Utils.isFirstStrDateOldest(capec['modifiedDate'],date,'%d/%m/%Y'){ # newest
+                                capec['modifiedDate']=date
+                            }
+                        }
+                    }
+                    capec.pop('Content_History', None)
+                }
+                if 'Mitigations' in capec{
+                    to_remove=[]
+                    for i in range(len(capec['Mitigations'])){
+                        if type(capec['Mitigations'][i]) is dict{
+                            for k,v in capec['Mitigations'][i].items(){
+                                if type(v) is list{
+                                    for el in v{
+                                        if type(el) is dict{
+                                            if 'p' in el{
+                                                el=el['p']
+                                                if type(el) is list{
+                                                    el='\n'.join(el)
+                                                }
+                                            }else{
+                                                el=None
+                                            }
+                                        }
+                                        if el{
+                                            capec['Mitigations'].append(el)
+                                        }
+                                    }
+                                }else{
+                                    capec['Mitigations'].append(v)
+                                }
+                            }
+                            to_remove.append(i)
+                        }
+                        if not capec['Mitigations'][i]{
+                            to_remove.append(i)
+                        }
+                    }
+                    capec['Mitigations'] = [i for j, i in enumerate(capec['Mitigations']) if j not in to_remove]
+                }
+                if 'Taxonomy_Mappings' in capec{
+                    capec['Taxonomy']=[]
+                    if type(capec['Taxonomy_Mappings']['Taxonomy_Mapping']) is not list{
+                        capec['Taxonomy_Mappings']=[capec['Taxonomy_Mappings']['Taxonomy_Mapping']]
+                    }else{
+                        capec['Taxonomy_Mappings']=capec['Taxonomy_Mappings']['Taxonomy_Mapping']
+                    }
+                    for tax in capec['Taxonomy_Mappings']{
+                        capec['Taxonomy'].append('{}-{}'.format(tax['Taxonomy_Name'],tax['Entry_ID']))
+                    }
+                    capec.pop('Taxonomy_Mappings', None)
+                }
+                if 'Indicators' in capec{
+                    capec['Indicators']=capec['Indicators']['Indicator']
+                }
+                if 'Category' in capec{
+                    capec.pop('Category', None)
+                }
+                if 'Notes' in capec{
+                    capec.pop('Notes', None)
+                }
+                if 'Alternate_Terms' in capec{
+                    capec.pop('Alternate_Terms', None)
+                }
+
+                
+                for k,v in capec.items(){
+                    if type(v) not in (int,str,float) and k not in ('_id'){
+                        if type(v) is list{
+                            for el in v{
+                                if type(el) not in (int,str,float){
+                                    raise Exception('Non-flat field on {} inside list {}: type:{} v:{}'.format(capec['capec'],k,type(el),el))
+                                }
+                            }
+                        }else{
+                            raise Exception('Non-flat field on {}: type:{} k:{} v:{}'.format(capec['capec'],type(v),k,v))
+                        }
+                    }
+                }
+                if update_callback { update_callback() }
+                self.mongo.insertOneOnDB(self.mongo.getProcessedDB(),capec,'flat_capec','capec',verbose=False,ignore_lock=True)
+                data_size+=Utils.sizeof(capec)
+            }
+            iter_count+=1
+            if iter_count%verbose_frequency==0{
+                lock.refresh()
+                self.logger.verbose('Percentage done {:.2f}% - Total data size: {}'.format((float(iter_count)/total_iters*100),Utils.bytesToHumanReadable(data_size)))
+            }
+        }
+        self.logger.verbose('Percentage done {:.2f}% - Total data size: {}'.format((float(iter_count)/total_iters*100),Utils.bytesToHumanReadable(data_size)))
+        lock.release()
+        self.logger.info('Runned \"Flattern and Simplify\" on CAPEC Data...OK')
     }
 
     def flatternAndSimplifyCwe(self,update_callback=None){
