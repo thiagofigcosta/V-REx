@@ -478,7 +478,6 @@ class DataProcessor(object){
                 cve['Comments']=len(cve['Comments'].split('|'))
             }
 
-            # check - TODO fix
             for k,v in cve.items(){
                 if type(v) not in (int,str,float) and k not in ('_id','References_class'){
                     if type(v) is list{
@@ -507,7 +506,72 @@ class DataProcessor(object){
     }
 
     def flatternAndSimplifyOval(self,update_callback=None){
-        pass # TODO
+        self.logger.info('Running \"Flattern and Simplify\" on OVAL Data...')
+        oval_data=self.mongo.findAllOnDB(self.mongo.getRawDB(),'OVAL')
+        verbose_frequency=1333
+        iter_count=0
+        data_size=0
+        total_iters=oval_data.count()
+        lock=self.mongo.getLock(self.mongo.getProcessedDB(),'flat_oval')
+        while self.mongo.checkIfCollectionIsLocked(lock=lock){
+            time.sleep(1)
+        }
+        lock.acquire()
+        for oval in oval_data{
+            oval_parsed={}
+            append=False
+            if 'reference' in oval{
+                if type(oval['reference']) is list{
+                    for ref in oval['reference']{
+                        if ref['source']=='CVE'{
+                            append=True
+                            oval_parsed['CVE']=ref['ref_id']
+                            break
+                        }
+                    }
+                }else{
+                    if oval['reference']['source']=='CVE'{
+                        append=True
+                        oval_parsed['CVE']=oval['reference']['ref_id']
+                    }
+                }
+            }
+            if append{
+                oval_parsed['oval']=oval['oval'].split(':')[-1]
+                oval_parsed['type']=oval['class']
+                if 'oval_repository' in oval{
+                    if 'dates' in oval['oval_repository']{
+                        if 'submitted' in oval['oval_repository']['dates']{
+                            oval_parsed['submittedDate']=Utils.changeStrDateFormat(oval['oval_repository']['dates']['submitted']['date'].split('T')[0],'%Y-%m-%d','%d/%m/%Y')
+                        }
+                        if 'modified' in oval['oval_repository']['dates']{
+                            if type(oval['oval_repository']['dates']['modified']) is list{
+                                oval_parsed['modifiedDate']=Utils.changeStrDateFormat(oval['oval_repository']['dates']['modified'][0]['date'].split('T')[0],'%Y-%m-%d','%d/%m/%Y')
+                                for entry in oval['oval_repository']['dates']['modified']{
+                                    date=Utils.changeStrDateFormat(entry['date'].split('T')[0],'%Y-%m-%d','%d/%m/%Y')
+                                    if Utils.isFirstStrDateOldest(oval_parsed['modifiedDate'],date,'%d/%m/%Y'){ # newest
+                                        oval_parsed['modifiedDate']=date
+                                    }
+                                }
+                            }else{
+                                oval_parsed['modifiedDate']=Utils.changeStrDateFormat(oval['oval_repository']['dates']['modified']['date'].split('T')[0],'%Y-%m-%d','%d/%m/%Y')
+                            }
+                        }
+                    }
+                }
+                self.mongo.insertOneOnDB(self.mongo.getProcessedDB(),oval_parsed,'flat_oval','oval',verbose=False,ignore_lock=True)
+                data_size+=Utils.sizeof(oval_parsed)
+            }
+            if update_callback { update_callback() }
+            iter_count+=1
+            if iter_count%verbose_frequency==0{
+                lock.refresh()
+                self.logger.verbose('Percentage done {:.2f}% - Total data size: {}'.format((float(iter_count)/total_iters*100),Utils.bytesToHumanReadable(data_size)))
+            }
+        }
+        self.logger.verbose('Percentage done {:.2f}% - Total data size: {}'.format((float(iter_count)/total_iters*100),Utils.bytesToHumanReadable(data_size)))
+        lock.release()
+        self.logger.info('Runned \"Flattern and Simplify\" on OVAL Data...OK')
     }
 
     def flatternAndSimplifyCapec(self,update_callback=None){
