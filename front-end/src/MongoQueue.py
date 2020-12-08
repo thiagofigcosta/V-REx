@@ -153,7 +153,7 @@ class MongoJob(object):
 
     @property
     def job_id(self):
-        return self._data["_id"]
+        return self._data['_id']
 
     @property
     def priority(self):
@@ -181,14 +181,14 @@ class MongoJob(object):
         """MongoJob has been completed.
         """
         return self._queue.collection.find_and_modify(
-            {"_id": self.job_id, "locked_by": self._queue.consumer_id},
+            {'_id': self.job_id, "locked_by": self._queue.consumer_id},
             remove=True)
 
     def error(self, message=None):
         """Note an error processing a job, and return it to the queue.
         """
         self._queue.collection.find_and_modify(
-            {"_id": self.job_id, "locked_by": self._queue.consumer_id},
+            {'_id': self.job_id, "locked_by": self._queue.consumer_id},
             update={"$set": {
                 "locked_by": None, "locked_at": None, "last_error": message},
                 "$inc": {"attempts": 1}})
@@ -197,14 +197,14 @@ class MongoJob(object):
         """Note progress on a long running task.
         """
         return self._queue.collection.find_and_modify(
-            {"_id": self.job_id, "locked_by": self._queue.consumer_id},
+            {'_id': self.job_id, "locked_by": self._queue.consumer_id},
             update={"$set": {"progress": count, "locked_at": datetime.now()}})
 
     def release(self):
         """Put the job back into_queue.
         """
         return self._queue.collection.find_and_modify(
-            {"_id": self.job_id, "locked_by": self._queue.consumer_id},
+            {'_id': self.job_id, "locked_by": self._queue.consumer_id},
             update={"$set": {"locked_by": None, "locked_at": None},
                     "$inc": {"attempts": 1}})
     
@@ -212,7 +212,7 @@ class MongoJob(object):
         """Put the job back into_queue without attempt.
         """
         return self._queue.collection.find_and_modify(
-            {"_id": self.job_id, "locked_by": self._queue.consumer_id},
+            {'_id': self.job_id, "locked_by": self._queue.consumer_id},
             update={"$set": {"locked_by": None, "locked_at": None,"priority":-1}})
 
     ## Context Manager support
@@ -273,7 +273,15 @@ class MongoLock(object):
             self._lock_expires=False
             self._locked = False
 
-        
+    def refresh(self):
+        ttl = datetime.now() + timedelta(seconds=self._lease_time)
+        try:
+            self.collection.update_one({'_id': self.lock_name, 'client_id': self._client_id}, { '$set': { 'ttl': ttl }})
+            self._lock_expires = ttl
+            self._locked = True
+        except Exception:
+            pass
+        return self._locked
 
     def acquire(self, wait=None, poll_period=5):
         result = self._acquire()
@@ -298,7 +306,7 @@ class MongoLock(object):
                 w=1, j=True)
         except errors.DuplicateKeyError:
             self.collection.remove(
-                {"_id": self.lock_name, 'ttl': {'$lt': datetime.now()}})
+                {'_id': self.lock_name, 'ttl': {'$lt': datetime.now()}})
             try:
                 self.collection.insert(
                     {'_id': self.lock_name,
@@ -315,6 +323,6 @@ class MongoLock(object):
         if not self._locked:
             return False
         self.collection.remove(
-            {"_id": self.lock_name, 'client_id': self._client_id}, j=True, w=1)
+            {'_id': self.lock_name, 'client_id': self._client_id}, j=True, w=1)
         self._locked = False
         return True

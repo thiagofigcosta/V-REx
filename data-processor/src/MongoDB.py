@@ -53,7 +53,7 @@ class MongoDB(object){
         loaded=self.loadReferences()
         if not self.dummy{
             lock=self.getLock(self.getRawDB(),'References',lease=150)
-            while self.checkIfCollectionIsLocked(self.getRawDB(),'References'){
+            while self.checkIfCollectionIsLocked(lock=lock){
                 time.sleep(1)
             }
             lock.acquire()
@@ -204,8 +204,10 @@ class MongoDB(object){
         return lock
     }
 
-    def checkIfCollectionIsLocked(self,db,collection_str){
-        lock=MongoLock(db[collection_str],'__MongoDB-Inserting__',lease=MongoDB.QUEUE_TIMEOUT_WITHOUT_PROGRESS)
+    def checkIfCollectionIsLocked(self,db=None,collection_str=None,lock=None){
+        if not lock{
+            lock=MongoLock(db[collection_str],'__MongoDB-Inserting__',lease=MongoDB.QUEUE_TIMEOUT_WITHOUT_PROGRESS)
+        }
         lock.fetch()
         return lock.locked
     }

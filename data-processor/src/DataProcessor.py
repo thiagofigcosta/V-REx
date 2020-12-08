@@ -3,6 +3,7 @@
 
 from Utils import Utils
 import re
+import time
 
 class DataProcessor(object){
     TMP_FOLDER='tmp/processor/'
@@ -21,11 +22,15 @@ class DataProcessor(object){
             raise Exception('Mongo does not contains every needed collection: {}'.format(' - '.join(cve_collections)))
         }
         verbose_frequency=666
-        iter_count=1
-        frequency_count=1
+        iter_count=0
         data_size=0
         total_iters=len(self.references['cve'])
         self.logger.info('Running \"Merge\" on CVEs Data...')
+        lock=self.mongo.getLock(self.mongo.getProcessedDB(),'merged_cve')
+        while self.mongo.checkIfCollectionIsLocked(lock=lock){
+            time.sleep(1)
+        }
+        lock.acquire()
         for cve_ref in self.references['cve']{
             merged_entry={}
             for col in cve_collections{
@@ -45,19 +50,19 @@ class DataProcessor(object){
                     }
                 }
             }
-            if len(merged_entry)>0{
-                self.mongo.insertOneOnDB(self.mongo.getProcessedDB(),merged_entry,'merged_cve','cve',verbose=False)
-                data_size+=Utils.sizeof(merged_entry)
-                if update_callback { update_callback() }
-                if verbose_frequency==frequency_count{
-                    self.logger.verbose('Percentage done {:.2f}% - Total data size: {}'.format((iter_count/total_iters*100),Utils.bytesToHumanReadable(data_size)))
-                    frequency_count=0
-                }
-            }
+            if update_callback { update_callback() }
             iter_count+=1
-            frequency_count+=1
+            if len(merged_entry)>0{
+                self.mongo.insertOneOnDB(self.mongo.getProcessedDB(),merged_entry,'merged_cve','cve',verbose=False,ignore_lock=True)
+                data_size+=Utils.sizeof(merged_entry)
+            }
+            if iter_count%verbose_frequency==0{
+                lock.refresh()
+                self.logger.verbose('Percentage done {:.2f}% - Total data size: {}'.format((float(iter_count)/total_iters*100),Utils.bytesToHumanReadable(data_size)))
+            }
         }
-        self.logger.info('Percentage done {:.2f}% - Total data size: {}'.format((iter_count/total_iters*100),Utils.bytesToHumanReadable(data_size)))
+        self.logger.info('Percentage done {:.2f}% - Total data size: {}'.format((float(iter_count)/total_iters*100),Utils.bytesToHumanReadable(data_size)))
+        lock.release()
         self.logger.info('Runned \"Merge\" on CVEs Data...OK')
     }
 
@@ -68,50 +73,61 @@ class DataProcessor(object){
         # references-CVE_MITRE - OK
         # Phase - OK
         # Votes - OK
-        # problemtype
+        # problemtype - OK
         # references-CVE_NVD - OK
         # description-CVE_NVD - OK
-        # configurations
-        # impact
-        # publishedDate
-        # lastModifiedDate
-        # cvss score
-        # confidentiality imp.
-        # integrity imp.
-        # availability imp.
-        # complexity
-        # authentication
-        # gained acc.
-        # vul. type
-        # publish date
-        # last mod date
+        # configurations - OK
+        # impact - OK
+        # publishedDate - OK
+        # lastModifiedDate - OK
+        # cvss score - OK
+        # confidentiality imp. - OK
+        # integrity imp. - OK
+        # availability imp. - OK
+        # complexity - OK
+        # authentication - OK
+        # gained acc. - OK
+        # vul. type - OK
+        # publish date - OK
+        # last mod date - OK
         # description-CVE_DETAILS - OK
-        # prod. affected
-        # versions affected
+        # prod. affected - OK
+        # versions affected - OK
         # references-CVE_DETAILS - OK
-        # cwe
-        # metasploitable
-        # Comments
+        # cwe - OK
+        # metasploitable - OK
+        # Comments - OK
         self.logger.info('Running \"Flattern and Simplify\" on CVEs Data...')
         merged_data=self.mongo.findAllOnDB(self.mongo.getProcessedDB(),'merged_cve')
-        tmp=set() # TODO remove me
-        maxs=0
+        verbose_frequency=1333
+        iter_count=0
+        data_size=0
+        total_iters=merged_data.count()
+        lock=self.mongo.getLock(self.mongo.getProcessedDB(),'flat_cve')
+        while self.mongo.checkIfCollectionIsLocked(lock=lock){
+            time.sleep(1)
+        }
+        lock.acquire()
         for cve in merged_data{
             # References
             cve['References']=[]
-            cve['References-class']=[]
+            cve['References_class']=[]
             if 'references-CVE_NVD' in cve{
                 refs_mitre=cve['references-CVE_NVD']
                 for ref in refs_mitre{
                     ref_url=ref['url'].strip()
                     if ref_url not in cve['References']{
                         cve['References'].append(ref_url)
-                        cve['References-class'].append(ref['tags'])
+                        if 'tags' in ref{
+                            cve['References_class'].append(ref['tags'])
+                        }else{
+                            cve['References_class'].append(['URL'])
+                        }
                     }else{
                         ref_idx=cve['References'].index(ref_url)
                         for tag in ref['tags']{
-                            if tag.strip() not in cve['References-class'][ref_idx]{
-                                cve['References-class'][ref_idx].append(tag.strip())
+                            if tag.strip() not in cve['References_class'][ref_idx]{
+                                cve['References_class'][ref_idx].append(tag.strip())
                             }
                         }
                     }
@@ -122,14 +138,16 @@ class DataProcessor(object){
                 refs_mitre=cve['references-CVE_MITRE'].split('|')
                 for ref in refs_mitre{
                     ref=ref.split(':',1)
-                    ref_url=ref[1].strip()
-                    if ref_url not in cve['References']{
-                        cve['References'].append(ref_url)
-                        cve['References-class'].append([ref[0].strip()])
-                    }else{
-                        ref_idx=cve['References'].index(ref_url)
-                        if ref[0].strip() not in cve['References-class'][ref_idx]{
-                            cve['References-class'][ref_idx].append(ref[0].strip())
+                    if len(ref)>1{
+                        ref_url=ref[1].strip()
+                        if ref_url not in cve['References']{
+                            cve['References'].append(ref_url)
+                            cve['References_class'].append([ref[0].strip()])
+                        }else{
+                            ref_idx=cve['References'].index(ref_url)
+                            if ref[0].strip() not in cve['References_class'][ref_idx]{
+                                cve['References_class'][ref_idx].append(ref[0].strip())
+                            }
                         }
                     }
                 }
@@ -141,15 +159,19 @@ class DataProcessor(object){
                     ref_url=ref.strip()
                     if ref_url not in cve['References']{
                         cve['References'].append(ref_url)
-                        cve['References-class'].append('MISC')
+                        cve['References_class'].append(['URL'])
                     }
                 }
                 cve.pop('references-CVE_DETAILS', None)
             }
-            for i in range(len(cve['References-class'])){
-                if len(cve['References-class'][i])>1 and 'MISC' in cve['References-class'][i]{
-                    cve['References-class'][i].remove('MISC')
+            for i in range(len(cve['References_class'])){
+                if len(cve['References_class'][i])>1 and 'URL' in cve['References_class'][i]{
+                    cve['References_class'][i].remove('URL')
                 }
+            }
+            if len(cve['References'])==0{
+                cve.pop('References', None)
+                cve.pop('References_class', None)
             }
             # References
 
@@ -160,6 +182,7 @@ class DataProcessor(object){
                 if cve_description not in cve['Description']{
                     cve['Description'].append(cve_description)
                 }
+                cve.pop('description-CVE_MITRE', None)
             }
             if 'description-CVE_NVD' in cve{
                 for desc in cve['description-CVE_NVD']['description_data']{
@@ -168,12 +191,14 @@ class DataProcessor(object){
                         cve['Description'].append(cve_description)
                     }
                 }
+                cve.pop('description-CVE_NVD', None)
             }
             if 'description-CVE_DETAILS' in cve{
                 cve_description=cve['description-CVE_DETAILS'].strip().replace('&quot;','\"')
                 if cve_description not in cve['Description']{
                     cve['Description'].append(cve_description)
                 }
+                cve.pop('description-CVE_DETAILS', None)
             }
             if len(cve['Description'])>0{
                 cve['Description']='\n'.join(cve['Description'])
@@ -181,6 +206,8 @@ class DataProcessor(object){
                     cve['Status']='RESERVED'
                     cve.pop('Description', None)
                 }
+            }else{
+                cve.pop('Description', None)
             }
             # Description
             
@@ -189,7 +216,7 @@ class DataProcessor(object){
                 result=re.match(r'([a-zA-Z]*) \(([0-9]{8})\)', cve['Phase'])
                 if result{
                     cve['Phase']=result.group(1)
-                    cve['{} Date'.format(result.group(1))]=Utils.changeStrDateFormat(result.group(2),'%Y%m%d','%d/%m/%Y')
+                    cve['{}Date'.format(result.group(1).lower())]=Utils.changeStrDateFormat(result.group(2),'%Y%m%d','%d/%m/%Y')
                 }else{
                     cve['Phase']=cve['Phase'].strip()
                 }
@@ -200,17 +227,263 @@ class DataProcessor(object){
                 cve.pop('Votes', None)
             }
 
+            # problemtype AND cwe
+            cve['CWEs']=[]
+            if 'problemtype' in cve{
+                cwes=cve['problemtype']['problemtype_data']
+                for cwe in cwes{
+                    cwes2=cwe['description']
+                    for cwe in cwes2{
+                        cwe=cwe['value'].split('-')[1]
+                        if cwe.isdecimal(){
+                            cve['CWEs'].append(cwe)
+                        }
+                    }
+                }
+                cve.pop('problemtype', None)
+            }
+            if 'cwe' in cve{
+                cwe=cve['cwe']
+                if cwe.isdecimal() and cwe not in cve['CWEs']{
+                    cve['CWEs'].append(cwe)
+                }
+                cve.pop('cwe', None)
+            }
+            if len(cve['CWEs'])==0{
+                cve.pop('CWEs', None)
+            }
+            # problemtype AND cwe
 
-            # problemtype AND cwe
-            # TODO
-            # problemtype AND cwe
+            # configurations and prod. affected and versions affected
+            cve['vendors']=set()
+            cve['products']=set()
+            if 'configurations' in cve{
+                cve['CPEs_vulnerable']=[]
+                cve['CPEs_non_vulnerable']=[]
+                for conf in cve['configurations']{
+                    if 'cpe_match' in conf{
+                        for cpe in conf['cpe_match']{
+                            if cpe['vulnerable']{
+                                cve['CPEs_vulnerable'].append(cpe['cpe23Uri'])
+                                uncompressed_cpe=cpe['cpe23Uri'].split(':')
+                                cve['vendors'].add(uncompressed_cpe[3].lower())
+                                cve['products'].add(uncompressed_cpe[4].lower())
+                            }else{
+                                cve['CPEs_non_vulnerable'].append(cpe['cpe23Uri'])
+                            }
+                        }
+                    }
+                    if 'children' in conf{
+                        for children in conf['children']{
+                            if 'cpe_match' in children{
+                                for cpe in children['cpe_match']{
+                                    if cpe['vulnerable']{
+                                        cve['CPEs_vulnerable'].append(cpe['cpe23Uri'])
+                                        uncompressed_cpe=cpe['cpe23Uri'].split(':')
+                                        cve['vendors'].add(uncompressed_cpe[3].lower())
+                                        cve['products'].add(uncompressed_cpe[4].lower())
+                                    }else{
+                                        cve['CPEs_non_vulnerable'].append(cpe['cpe23Uri'])
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                cve.pop('configurations', None)
+                if len(cve['CPEs_non_vulnerable'])==0{
+                    cve.pop('CPEs_non_vulnerable', None)
+                }
+                if len(cve['CPEs_vulnerable'])==0{
+                    cve.pop('CPEs_vulnerable', None)
+                }
+            }
+
+            if 'versions affected' in cve {
+                cve['AffectedVersionsCount']=0
+                for prod in cve['versions affected']{
+                    cve['vendors'].add(prod['Vendor'].lower())
+                    if 'Product' in prod{
+                        cve['products'].add(prod['Product'].lower())
+                    }
+                    cve['AffectedVersionsCount']+=int(prod['Vulnerable Versions'])
+                }
+                cve.pop('versions affected', None)
+            }
+            if 'prod. affected' in cve {
+                cve.pop('prod. affected', None)
+            }
+            cve['vendors']=list(cve['vendors'])
+            if '*' in cve['vendors']{
+                cve['vendors'].remove('*')
+            }
+            cve['products']=list(cve['products'])
+            if '*' in cve['products']{
+                cve['products'].remove('*')
+            }
+            if len(cve['vendors'])==0{
+                cve.pop('vendors', None)
+            }
+            if len(cve['products'])==0{
+                cve.pop('products', None)
+            }
+            # configurations and prod. affected and versions affected
+
+            # impact
+            if 'impact' in cve{
+                if 'baseMetricV2' in cve['impact']{
+                    cve['CVSS_version']=cve['impact']['baseMetricV2']['cvssV2']['version']
+                    cve['CVSS_score']=cve['impact']['baseMetricV2']['cvssV2']['baseScore']
+                    cve['CVSS_AV']=cve['impact']['baseMetricV2']['cvssV2']['accessVector']
+                    cve['CVSS_AC']=cve['impact']['baseMetricV2']['cvssV2']['accessComplexity']
+                    cve['CVSS_AuPR']=cve['impact']['baseMetricV2']['cvssV2']['authentication']
+                    cve['CVSS_C']=cve['impact']['baseMetricV2']['cvssV2']['confidentialityImpact']
+                    cve['CVSS_I']=cve['impact']['baseMetricV2']['cvssV2']['integrityImpact']
+                    cve['CVSS_A']=cve['impact']['baseMetricV2']['cvssV2']['availabilityImpact']
+                    cve['CVSS_exploitabilityScore']=cve['impact']['baseMetricV2']['exploitabilityScore']
+                    cve['CVSS_impactScore']=cve['impact']['baseMetricV2']['impactScore']
+                }
+                if 'baseMetricV3' in cve['impact']{
+                    cve['CVSS_version']=cve['impact']['baseMetricV3']['cvssV3']['version']
+                    cve['CVSS_score']=cve['impact']['baseMetricV3']['cvssV3']['baseScore']
+                    cve['CVSS_AV']=cve['impact']['baseMetricV3']['cvssV3']['attackVector']
+                    cve['CVSS_AC']=cve['impact']['baseMetricV3']['cvssV3']['attackComplexity']
+                    cve['CVSS_AuPR']=cve['impact']['baseMetricV3']['cvssV3']['privilegesRequired']
+                    cve['CVSS_UI']=cve['impact']['baseMetricV3']['cvssV3']['userInteraction']
+                    cve['CVSS_S']=cve['impact']['baseMetricV3']['cvssV3']['scope']
+                    cve['CVSS_C']=cve['impact']['baseMetricV3']['cvssV3']['confidentialityImpact']
+                    cve['CVSS_I']=cve['impact']['baseMetricV3']['cvssV3']['integrityImpact']
+                    cve['CVSS_A']=cve['impact']['baseMetricV3']['cvssV3']['availabilityImpact']
+                    cve['CVSS_exploitabilityScore']=cve['impact']['baseMetricV3']['exploitabilityScore']
+                    cve['CVSS_impactScore']=cve['impact']['baseMetricV3']['impactScore']
+                }
+                cve.pop('impact', None)
+            }
+            # impact
+
+            if 'publishedDate' in cve{
+                cve['publishedDate']=Utils.changeStrDateFormat(cve['publishedDate'].split('T')[0],'%Y-%m-%d','%d/%m/%Y')
+            }
+
+            if 'lastModifiedDate' in cve{
+                cve['lastModifiedDate']=Utils.changeStrDateFormat(cve['lastModifiedDate'].split('T')[0],'%Y-%m-%d','%d/%m/%Y')
+            }
+
+            if 'cvss score' in cve{
+                if 'CVSS_score' not in cve{
+                    cve['CVSS_score']=cve['cvss score']
+                }
+                cve.pop('cvss score', None)
+            }
+
+            if 'confidentiality imp.' in cve{
+                if 'CVSS_C' not in cve{
+                    cve['CVSS_C']=cve['confidentiality imp.'].upper()
+                }
+                cve.pop('confidentiality imp.', None)
+            }
+
+            if 'integrity imp.' in cve{
+                if 'CVSS_I' not in cve{
+                    cve['CVSS_I']=cve['integrity imp.'].upper()
+                }
+                cve.pop('integrity imp.', None)
+            }
+
+            if 'availability imp.' in cve{
+                if 'CVSS_A' not in cve{
+                    cve['CVSS_A']=cve['availability imp.'].upper()
+                }
+                cve.pop('availability imp.', None)
+            }
+
+            if 'complexity' in cve{
+                if 'CVSS_AC' not in cve{
+                    cve['CVSS_AC']=cve['complexity'].upper()
+                }
+                cve.pop('complexity', None)
+            }
+
+            if 'authentication' in cve{
+                if 'CVSS_AuPR' not in cve{
+                    cve['CVSS_AuPR']=cve['authentication'].replace('Not required','NONE').upper()
+                }
+                cve.pop('authentication', None)
+            }
+
+            if 'vul. type' in cve{
+                vul=cve['vul. type'].split('-',1)
+                if len(vul)>1{
+                    cve['Type']=vul[1].strip()
+                }else{
+                    cve['Type']=vul[0].strip()
+                }
+                cve.pop('vul. type', None)
+            }
+
+            if 'publish date' in cve{
+                date=Utils.changeStrDateFormat(cve['publish date'],'%Y-%m-%d','%d/%m/%Y')
+                if 'publishedDate' not in cve{
+                    cve['publishedDate']=date
+                }else{
+                    if Utils.isFirstStrDateOldest(date,cve['publishedDate'],'%d/%m/%Y'){ # oldest
+                        cve['publishedDate']=date
+                    }
+                }
+                cve.pop('publish date', None)
+            }
+
+            if 'last mod date' in cve{
+                date=Utils.changeStrDateFormat(cve['last mod date'],'%Y-%m-%d','%d/%m/%Y')
+                if 'lastModifiedDate' not in cve{
+                    cve['lastModifiedDate']=date
+                }else{
+                    if Utils.isFirstStrDateOldest(cve['lastModifiedDate'],date,'%d/%m/%Y'){ # newest
+                        cve['lastModifiedDate']=date
+                    }
+                }
+                cve.pop('last mod date', None)
+            }
+
+            if 'gained acc.' in cve{
+                cve.pop('gained acc.', None)
+            }
+
+            if 'metasploitable' in cve{
+                modules={}
+                for module in cve['metasploitable']{
+                    for k,v in module.items(){
+                        result=re.match(r'Module type\s*:\s*([A-Za-z]*)', v)
+                        mod_type='other'
+                        if result{
+                            mod_type=result.group(1)
+                        }
+                        if mod_type not in modules{
+                            modules[mod_type]=1
+                        }else{
+                            modules[mod_type]+=1
+                        }
+                    }
+                }
+                cve.pop('metasploitable', None)
+                cve['weaponized_modules_types']=[]
+                cve['weaponized_modules_count']=[]
+                for k,v in modules.items(){
+                    cve['weaponized_modules_types'].append(k)
+                    cve['weaponized_modules_count'].append(v)
+                }
+            }
+
+            if 'Comments' in cve{
+                cve['Comments']=len(cve['Comments'].split('|'))
+            }
 
             # check - TODO fix
             for k,v in cve.items(){
-                if type(v) not in (int,str) and k!='_id'{
+                if type(v) not in (int,str,float) and k not in ('_id','References_class'){
                     if type(v) is list{
                         for el in v{
-                            if type(el) not in (int,str){
+                            if type(el) not in (int,str,float){
                                 raise Exception('Non-flat field on {} inside list {}: type:{} v:{}'.format(cve['cve'],k,type(el),el))
                             }
                         }
@@ -220,10 +493,16 @@ class DataProcessor(object){
                 }
             }
             if update_callback { update_callback() }
-            self.mongo.insertOneOnDB(self.mongo.getProcessedDB(),cve,'flat_cve','cve',verbose=False)
+            self.mongo.insertOneOnDB(self.mongo.getProcessedDB(),cve,'flat_cve','cve',verbose=False,ignore_lock=True)
+            data_size+=Utils.sizeof(cve)
+            iter_count+=1
+            if iter_count%verbose_frequency==0{
+                lock.refresh()
+                self.logger.verbose('Percentage done {:.2f}% - Total data size: {}'.format((float(iter_count)/total_iters*100),Utils.bytesToHumanReadable(data_size)))
+            }
         }
-
-
+        self.logger.verbose('Percentage done {:.2f}% - Total data size: {}'.format((float(iter_count)/total_iters*100),Utils.bytesToHumanReadable(data_size)))
+        lock.release()
         self.logger.info('Runned \"Flattern and Simplify\" on CVEs Data...OK')
     }
 
