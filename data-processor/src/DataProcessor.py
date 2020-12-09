@@ -25,7 +25,7 @@ class DataProcessor(object){
         iter_count=0
         data_size=0
         total_iters=len(self.references['cve'])
-        self.logger.info('Running \"Merge\" on CVEs Data...')
+        self.logger.info('Running \"Merge\" on CVE Data...')
         lock=self.mongo.getLock(self.mongo.getProcessedDB(),'merged_cve')
         while self.mongo.checkIfCollectionIsLocked(lock=lock){
             time.sleep(1)
@@ -63,7 +63,7 @@ class DataProcessor(object){
         }
         self.logger.info('Percentage done {:.2f}% - Total data size: {}'.format((float(iter_count)/total_iters*100),Utils.bytesToHumanReadable(data_size)))
         lock.release()
-        self.logger.info('Runned \"Merge\" on CVEs Data...OK')
+        self.logger.info('Runned \"Merge\" on CVE Data...OK')
     }
 
     def flatternAndSimplifyCve(self,update_callback=None){
@@ -97,7 +97,7 @@ class DataProcessor(object){
         # cwe - OK
         # metasploitable - OK
         # Comments - OK
-        self.logger.info('Running \"Flattern and Simplify\" on CVEs Data...')
+        self.logger.info('Running \"Flattern and Simplify\" on CVE Data...')
         merged_data=self.mongo.findAllOnDB(self.mongo.getProcessedDB(),'merged_cve')
         verbose_frequency=1333
         iter_count=0
@@ -502,7 +502,7 @@ class DataProcessor(object){
         }
         self.logger.verbose('Percentage done {:.2f}% - Total data size: {}'.format((float(iter_count)/total_iters*100),Utils.bytesToHumanReadable(data_size)))
         lock.release()
-        self.logger.info('Runned \"Flattern and Simplify\" on CVEs Data...OK')
+        self.logger.info('Runned \"Flattern and Simplify\" on CVE Data...OK')
     }
 
     def flatternAndSimplifyOval(self,update_callback=None){
@@ -676,7 +676,7 @@ class DataProcessor(object){
                         }
                     }
                     capec.pop('Consequences', None)
-                    capec['Affected_Scopes']=list(capec['Damage'])
+                    capec['Affected_Scopes']=list(capec['Affected_Scopes'])
                     capec['Damage']=list(capec['Damage'])
                     if len(capec['Affected_Scopes'])==0{
                         capec.pop('Affected_Scopes', None)
@@ -725,19 +725,22 @@ class DataProcessor(object){
                     capec.pop('Related_Weaknesses', None)
                 }
                 if 'References' in capec{
-                    capec['Reference']=[]
+                    refs=[]
                     if type(capec['References']) is not list{
                         capec['References']=[capec['References']]
                     }
                     for ref in capec['References']{
                         if 'URL' in ref{
-                            capec['Reference'].append(ref['URL'])
+                            refs.append(ref['URL'])
                         }else{
-                            capec['Reference'].append(ref['Title'])
+                            refs.append(ref['Title'])
                         }
                         
                     }
                     capec.pop('References', None)
+                    if len(refs)>0{
+                        capec['References']=refs
+                    }
                 }
                 if 'Content_History' in capec{
                     if 'Submission' in capec['Content_History']{
@@ -845,7 +848,317 @@ class DataProcessor(object){
     }
 
     def flatternAndSimplifyCwe(self,update_callback=None){
-        pass # TODO
+        self.logger.info('Running \"Flattern and Simplify\" on CWE Data...')
+        cwe_data=self.mongo.findAllOnDB(self.mongo.getRawDB(),'CWE_MITRE')
+        verbose_frequency=1333
+        iter_count=0
+        data_size=0
+        total_iters=cwe_data.count()
+        lock=self.mongo.getLock(self.mongo.getProcessedDB(),'flat_cwe')
+        while self.mongo.checkIfCollectionIsLocked(lock=lock){
+            time.sleep(1)
+        }
+        lock.acquire()
+        for cwe in cwe_data{
+            if cwe['cwe']!='__metadata__'{
+                if 'Related_Weaknesses' in cwe{
+                    relationship={}
+                    for rel in cwe['Related_Weaknesses']{
+                        if rel['Nature'] not in relationship{
+                            rel['Nature']=[rel['CWE_ID']]
+                        }else{
+                            rel['Nature'].append(rel['CWE_ID'])
+                        }
+                    }
+                    for k,v in relationship.items(){
+                        cwe[k]=v
+                    }
+                    cwe.pop('Related_Weaknesses', None)
+                }
+                if 'Applicable_Platforms' in cwe{
+                    if 'Language' in cwe['Applicable_Platforms']{
+                        if type(cwe['Applicable_Platforms']['Language']) is not list{
+                            cwe['Applicable_Platforms']['Language']=[cwe['Applicable_Platforms']['Language']]
+                        }
+                        for lang in cwe['Applicable_Platforms']['Language']{
+                            if 'Name' in lang{
+                                cwe['Language']=lang['Name']
+                            }else{
+                                cwe['Language']=lang['Class']
+                            }
+                        }
+                    }
+                    if 'Technology' in cwe['Applicable_Platforms']{
+                        tech=[]
+                        if type(cwe['Applicable_Platforms']['Technology']) is not list{
+                            cwe['Applicable_Platforms']['Technology']=[cwe['Applicable_Platforms']['Technology']]
+                        }
+                        for tec in cwe['Applicable_Platforms']['Technology']{
+                            if 'Class' in tec{
+                                tech.append(tec['Class'])
+                            }else{
+                                tech.append(tec['Name'])
+                            }
+                        }
+                        cwe['Technology']=tech
+                    }
+                    cwe.pop('Applicable_Platforms', None)
+                }
+                if 'Background_Details' in cwe{
+                    cwe['Background_Details']=cwe['Background_Details']['Background_Detail']
+                }
+                if 'Modes_Of_Introduction' in cwe{
+                    if type(cwe['Modes_Of_Introduction']['Introduction']) is not list{
+                        cwe['Modes_Of_Introduction']['Introduction']=[cwe['Modes_Of_Introduction']['Introduction']]
+                    } 
+                    intros=[]
+                    for intro in cwe['Modes_Of_Introduction']['Introduction']{
+                        if type(intro) is dict{
+                            intros.append(intro['Phase'])
+                        }else{
+                            intros.append('\n'.join(intro))
+                        }
+                    }
+                    cwe['Modes_Of_Introduction']=intros
+                }
+                if 'Common_Consequences' in cwe{
+                    cwe['Affected_Scopes']=set()
+                    cwe['Damage']=set()
+                    for conseq in cwe['Common_Consequences']{
+                        if type(conseq['Scope']) is not list{
+                            conseq['Scope']=[conseq['Scope']]
+                        }
+                        for scope in conseq['Scope']{
+                            cwe['Affected_Scopes'].add(scope)
+                        }
+                        if 'Impact' in conseq{
+                            if type(conseq['Impact']) is not list{
+                                conseq['Impact']=[conseq['Impact']]
+                            }
+                            for impac in conseq['Impact']{
+                                cwe['Damage'].add(impac)
+                            }
+                        }
+                    }
+                    cwe.pop('Common_Consequences', None)
+                    cwe['Affected_Scopes']=list(cwe['Affected_Scopes'])
+                    cwe['Damage']=list(cwe['Damage'])
+                    if len(cwe['Affected_Scopes'])==0{
+                        cwe.pop('Affected_Scopes', None)
+                    }
+                    if len(cwe['Damage'])==0{
+                        cwe.pop('Damage', None)
+                    }
+                }
+                if 'Potential_Mitigations' in cwe{
+                    mitigations=[]
+                    cwe['MitigationsEffectiveness']=[]
+                    for mit in cwe['Potential_Mitigations']{
+                        if type is dict{
+                            if 'Description' in mit {
+                                mitigations.append(mit['Description'])
+                            }else{
+                                mitigations.append(mit['Phase'])
+                            }
+                            if 'Effectiveness' in mit {
+                                cwe['MitigationsEffectiveness'].append(mit['Effectiveness'])
+                            }else{
+                                cwe['MitigationsEffectiveness'].append('UNKNOWN')
+                            }
+                        }else{
+                            mitigations.append('\n'.join(mit))
+                            cwe['MitigationsEffectiveness'].append('UNKNOWN')
+                        }
+                    }
+                    cwe['Potential_Mitigations']=mitigations
+                }
+                if 'Demonstrative_Examples' in cwe{
+                    examples=[]
+                    for ex in cwe['Demonstrative_Examples']{
+                        if 'Body_Text' in ex{
+                            key='Body_Text'
+                        }elif 'Intro_Text' in ex{
+                            key='Intro_Text'
+                        }else{
+                           key='value'
+                        }
+                        for el in list(ex[key]){
+                            if type(el) is dict{
+                                ex[key].remove(el)
+                            }elif type(el) is list{
+                                examples.append('\n'.join(el))
+                                ex[key].remove(el)
+                            }
+                        }
+                        examples.append('\n'.join(ex[key]))
+                    }
+                    cwe['Demonstrative_Examples']=examples
+                }
+                if 'Observed_Examples' in cwe{
+                    cves=[]
+                    for ex in cwe['Observed_Examples']{
+                        if 'CVE' in ex['Reference']{
+                            cves.append(ex['Reference'])
+                        }
+                    }
+                    cwe.pop('Observed_Examples', None)
+                    if len(cves)>0{
+                        cwe['CVEs']=cves
+                    }
+                }
+                if 'References' in cwe{
+                    refs=[]
+                    if type(cwe['References']) is not list{
+                        cwe['References']=[cwe['References']]
+                    }
+                    for ref in cwe['References']{
+                        if 'URL' in ref{
+                            refs.append(ref['URL'])
+                        }else{
+                            refs.append(ref['Title'])
+                        }
+                    }
+                    cwe.pop('References', None)
+                    if len(refs)>0{
+                        cwe['References']=refs
+                    }
+                }
+                if 'Content_History' in cwe{
+                    if 'Submission' in cwe['Content_History']{
+                        cwe['submittedDate']=Utils.changeStrDateFormat(cwe['Content_History']['Submission']['Submission_Date'],'%Y-%m-%d','%d/%m/%Y')
+                    }
+                    if 'Modification' in cwe['Content_History']{
+                        if type(cwe['Content_History']['Modification']) is not list{
+                            cwe['Content_History']['Modification']=[cwe['Content_History']['Modification']]
+                        }
+                        cwe['modifiedDate']=Utils.changeStrDateFormat(cwe['Content_History']['Modification'][0]['Modification_Date'],'%Y-%m-%d','%d/%m/%Y')
+                        for entry in cwe['Content_History']['Modification']{
+                            date=Utils.changeStrDateFormat(entry['Modification_Date'],'%Y-%m-%d','%d/%m/%Y')
+                            if Utils.isFirstStrDateOldest(cwe['modifiedDate'],date,'%d/%m/%Y'){ # newest
+                                cwe['modifiedDate']=date
+                            }
+                        }
+                    }
+                    cwe.pop('Content_History', None)
+                }
+                if 'Extended_Description' in cwe{
+                    if type(cwe['Extended_Description']) is dict{
+                        cwe['Extended_Description']='\n'.join(cwe['Extended_Description']['value'])
+                    }
+                }
+                if 'Weakness_Ordinalities' in cwe{
+                    ords=[]
+                    if type(cwe['Weakness_Ordinalities']['Weakness_Ordinality']) is not list{
+                        cwe['Weakness_Ordinalities']=[cwe['Weakness_Ordinalities']['Weakness_Ordinality']]
+                    }
+                    if type(cwe['Weakness_Ordinalities']) is dict{
+                        cwe['Weakness_Ordinalities']=cwe['Weakness_Ordinalities']['Weakness_Ordinality']
+                    }
+                    for ordi in cwe['Weakness_Ordinalities']{
+                        ords.append(ordi['Ordinality'])
+                    }
+                    cwe['Weakness_Ordinalities']=ords
+                    if len(cwe['Weakness_Ordinalities'])==0{
+                        cwe.pop('Weakness_Ordinalities', None)
+                    }
+                }
+                if 'Alternate_Terms' in cwe{
+                    cwe.pop('Alternate_Terms', None)
+                }
+                if 'Detection_Methods' in cwe{
+                    cwe['Dectection']=[]
+                    cwe['Dectection_Effectiveness']=[]
+                    if type(cwe['Detection_Methods']['Detection_Method']) is not list{
+                        cwe['Detection_Methods']['Detection_Method']=[cwe['Detection_Methods']['Detection_Method']]
+                    }
+                    for detec in cwe['Detection_Methods']['Detection_Method']{
+                        if type(detec) is dict{
+                            cwe['Dectection'].append(detec['Method'])
+                            if 'Effectiveness' in detec{
+                                cwe['Dectection_Effectiveness'].append(detec['Effectiveness'])
+                            }else{
+                                cwe['Dectection_Effectiveness'].append('Unknown')
+                            }
+                        }else{
+                            cwe['Dectection'].append('\n'.join(detec))
+                            cwe['Dectection_Effectiveness'].append('Unknown')
+                        }
+                    }
+                    cwe.pop('Detection_Methods', None)
+                    if len(cwe['Dectection'])==0{
+                        cwe.pop('Dectection', None)
+                    }
+                    if len(cwe['Dectection_Effectiveness'])==0{
+                        cwe.pop('Dectection_Effectiveness', None)
+                    }
+                }
+                if 'Category' in cwe{
+                    cwe['Category']=cwe['Category']['Summary']
+                }
+                if 'Taxonomy_Mappings' in cwe{
+                    cwe['Taxonomy']=[]
+                    if type(cwe['Taxonomy_Mappings']) is not list{
+                        cwe['Taxonomy_Mappings']=[cwe['Taxonomy_Mappings']]
+                    }
+                    for tax in cwe['Taxonomy_Mappings']{
+                        if 'Entry_ID' in tax{
+                            cwe['Taxonomy'].append('{}-{}'.format(tax['Taxonomy_Name'],tax['Entry_ID']))
+                        }else{
+                            cwe['Taxonomy'].append(tax['Taxonomy_Name'])
+                        }
+                    }
+                    cwe.pop('Taxonomy_Mappings', None)
+                }
+                if 'Related_Attack_Patterns' in cwe{
+                    capecs=[]
+                    for rel in cwe['Related_Attack_Patterns']{
+                        capecs.append(rel['CAPEC_ID'])
+                    }
+                    cwe['Related_Attack_Patterns']=capecs
+                }
+                if 'Notes' in cwe{
+                    cwe.pop('Notes', None)
+                }
+                if 'View' in cwe{
+                    cwe['View']=cwe['View']['Name']
+                }
+                if 'Affected_Resources' in cwe{
+                    cwe['Affected_Resources']=cwe['Affected_Resources']['Affected_Resource']
+                }
+                if 'Functional_Areas' in cwe{
+                    cwe['Functional_Areas']=cwe['Functional_Areas']['Functional_Area']
+                }
+                if 'Background_Details' in cwe{
+                    cwe.pop('Background_Details', None)
+                }
+                
+
+                for k,v in cwe.items(){
+                    if type(v) not in (int,str,float) and k not in ('_id'){
+                        if type(v) is list{
+                            for el in v{
+                                if type(el) not in (int,str,float){
+                                    raise Exception('Non-flat field on {} inside list {}: type:{} v:{}'.format(cwe['cwe'],k,type(el),el))
+                                }
+                            }
+                        }else{
+                            raise Exception('Non-flat field on {}: type:{} k:{} v:{}'.format(cwe['cwe'],type(v),k,v))
+                        }
+                    }
+                }
+                if update_callback { update_callback() }
+                self.mongo.insertOneOnDB(self.mongo.getProcessedDB(),cwe,'flat_cwe','cwe',verbose=False,ignore_lock=True)
+                data_size+=Utils.sizeof(cwe)
+            }
+            iter_count+=1
+            if iter_count%verbose_frequency==0{
+                lock.refresh()
+                self.logger.verbose('Percentage done {:.2f}% - Total data size: {}'.format((float(iter_count)/total_iters*100),Utils.bytesToHumanReadable(data_size)))
+            }
+        }
+        self.logger.verbose('Percentage done {:.2f}% - Total data size: {}'.format((float(iter_count)/total_iters*100),Utils.bytesToHumanReadable(data_size)))
+        lock.release()
+        self.logger.info('Runned \"Flattern and Simplify\" on CWE Data...OK')
     }
 
     def filterExploits(self,update_callback=None){
