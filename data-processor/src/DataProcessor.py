@@ -412,11 +412,13 @@ class DataProcessor(object){
             }
 
             if 'vul. type' in cve{
-                vul=cve['vul. type'].split('-',1)
-                if len(vul)>1{
-                    cve['Type']=vul[1].strip()
-                }else{
-                    cve['Type']=vul[0].strip()
+                if cve['vul. type']{
+                    vul=cve['vul. type'].split('-',1)
+                    if len(vul)>1{
+                        cve['Type']=vul[1].strip()
+                    }else{
+                        cve['Type']=vul[0].strip()
+                    }
                 }
                 cve.pop('vul. type', None)
             }
@@ -453,7 +455,7 @@ class DataProcessor(object){
                 modules={}
                 for module in cve['metasploitable']{
                     for k,v in module.items(){
-                        result=re.match(r'Module type\s*:\s*([A-Za-z]*)', v, re.MULTILINE)
+                        result=re.match(r'.*Module type\s*:\s*([A-Za-z]*).*', v, re.MULTILINE)
                         mod_type='other'
                         if result{
                             mod_type=result.group(1)
@@ -1209,7 +1211,7 @@ class DataProcessor(object){
                     fields_and_values[k]=set()
                 }
                 if k not in ('_id','cve','publishedDate','lastModifiedDate','modifiedDate','References','Description','assignedDate','CWEs','interimDate','weaponized_modules_count','CPEs_vulnerable','products','proposedDate','Comments','CVSS_score','CVSS_impactScore','CPEs_non_vulnerable','AffectedVersionsCount','CVSS_exploitabilityScore'){ # non enums
-                    if k in ('References_class','vendors'){ # lists of enums
+                    if k in ('References_class','vendors','weaponized_modules_types'){ # lists of enums
                         for el in v{
                             if type(el) is list{
                                 for el2 in el{
@@ -1241,10 +1243,12 @@ class DataProcessor(object){
         }
         for k,v in fields_and_values.items(){
             self.logger.clean(k)
-            if k !='vendors' {# TODO remove
+            if k !='vendors'{
                 for v2 in v{
                     self.logger.clean('\t{}'.format(v2))
                 }
+            }else{
+                self.logger.clean('\t{}'.format(' | '.join(v)))
             }
         }
 
