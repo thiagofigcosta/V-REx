@@ -453,7 +453,7 @@ class DataProcessor(object){
                 modules={}
                 for module in cve['metasploitable']{
                     for k,v in module.items(){
-                        result=re.match(r'Module type\s*:\s*([A-Za-z]*)', v)
+                        result=re.match(r'Module type\s*:\s*([A-Za-z]*)', v, re.MULTILINE)
                         mod_type='other'
                         if result{
                             mod_type=result.group(1)
@@ -1191,7 +1191,72 @@ class DataProcessor(object){
     }   
 
     def transformCve(self,update_callback=None){
-        pass # TODO
+        self.logger.info('Running \"Transform\" on CVE Data...')
+        cve_data=self.mongo.findAllOnDB(self.mongo.getProcessedDB(),'flat_cve')
+        verbose_frequency=1333
+        iter_count=0
+        data_size=0
+        total_iters=cve_data.count()*2 # read fields and transform
+        lock=self.mongo.getLock(self.mongo.getProcessedDB(),'features_cve')
+        while self.mongo.checkIfCollectionIsLocked(lock=lock){
+            time.sleep(1)
+        }
+        # lock.acquire() # TODO uncomment
+        fields_and_values={}
+        for cve in cve_data{
+            for k,v in cve.items(){
+                if k not in fields_and_values{
+                    fields_and_values[k]=set()
+                }
+                if k not in ('_id','cve','publishedDate','lastModifiedDate','modifiedDate','References','Description','assignedDate','CWEs','interimDate','weaponized_modules_count','CPEs_vulnerable','products','proposedDate','Comments','CVSS_score','CVSS_impactScore','CPEs_non_vulnerable','AffectedVersionsCount','CVSS_exploitabilityScore'){ # non enums
+                    if k in ('References_class','vendors'){ # lists of enums
+                        for el in v{
+                            if type(el) is list{
+                                for el2 in el{
+                                    fields_and_values[k].add(el2)
+                                }
+                            }else{
+                                fields_and_values[k].add(el)
+                            }
+                        }
+                    }else{
+                        if type(v) is list{
+                            for i in range(len(v)){
+                                if type(v[i]) is list{
+                                    v[i]=tuple(v[i])
+                                }
+                            }
+                            v=tuple(v)
+                        }
+                        fields_and_values[k].add(v)
+                    }
+                }
+            }
+            if update_callback { update_callback() }
+            iter_count+=1
+            if iter_count%verbose_frequency==0{
+                lock.refresh()
+                self.logger.verbose('Percentage done {:.2f}%'.format((float(iter_count)/total_iters*100)))
+            }
+        }
+        for k,v in fields_and_values.items(){
+            self.logger.clean(k)
+            if k !='vendors' {# TODO remove
+                for v2 in v{
+                    self.logger.clean('\t{}'.format(v2))
+                }
+            }
+        }
+
+         # self.logger.verbose('Percentage done {:.2f}% - Total data size: {}'.format((float(iter_count)/total_iters*100),Utils.bytesToHumanReadable(data_size)))
+        # self.mongo.insertOneOnDB(self.mongo.getProcessedDB(),exploit,'features_cve','cve',verbose=False,ignore_lock=True)
+        # data_size+=Utils.sizeof(cve)
+
+
+
+        self.logger.verbose('Percentage done {:.2f}% - Total data size: {}'.format((float(iter_count)/total_iters*100),Utils.bytesToHumanReadable(data_size)))
+        lock.release()
+        self.logger.info('Runned \"Transform\" on CVE Data...OK')
     }
 
     def transformOval(self,update_callback=None){

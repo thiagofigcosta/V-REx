@@ -1,5 +1,4 @@
 #!/bin/python
-#!/bin/python
 
 from DataProcessor import DataProcessor
 from Utils import Utils
@@ -16,4 +15,4 @@ print(mongo.getQueueConsumerId())
 
 processor=DataProcessor(mongo,LOGGER)
 
-processor.flatternAndSimplifyCwe()
+processor.transformCve()
