@@ -849,7 +849,32 @@ class DataProcessor(object){
     }
 
     def filterExploits(self,update_callback=None){
-        pass # TODO
+        self.logger.info('Running \"Filter\" on Exploit Data...')
+        exploit_data=self.mongo.findAllOnDB(self.mongo.getRawDB(),'EXPLOIT_DB')
+        verbose_frequency=1333
+        iter_count=0
+        data_size=0
+        total_iters=exploit_data.count()
+        lock=self.mongo.getLock(self.mongo.getProcessedDB(),'exploits')
+        while self.mongo.checkIfCollectionIsLocked(lock=lock){
+            time.sleep(1)
+        }
+        lock.acquire()
+        for exploit in exploit_data{
+            if exploit['exploit']!='__metadata__' and 'cve' in exploit{
+                if update_callback { update_callback() }
+                self.mongo.insertOneOnDB(self.mongo.getProcessedDB(),exploit,'exploits','exploit',verbose=False,ignore_lock=True)
+                data_size+=Utils.sizeof(exploit)
+            }
+            iter_count+=1
+            if iter_count%verbose_frequency==0{
+                lock.refresh()
+                self.logger.verbose('Percentage done {:.2f}% - Total data size: {}'.format((float(iter_count)/total_iters*100),Utils.bytesToHumanReadable(data_size)))
+            }
+        }
+        self.logger.verbose('Percentage done {:.2f}% - Total data size: {}'.format((float(iter_count)/total_iters*100),Utils.bytesToHumanReadable(data_size)))
+        lock.release()
+        self.logger.info('Runned \"Filter\" on Exploit Data...OK')
     }   
 
     def transformCve(self,update_callback=None){
