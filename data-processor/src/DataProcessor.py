@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from Utils import Utils
+from FeatureGenerator import FeatureGenerator
 import re
 import time
 
@@ -494,8 +495,10 @@ class DataProcessor(object){
                 }
             }
             if update_callback { update_callback() }
-            self.mongo.insertOneOnDB(self.mongo.getProcessedDB(),cve,'flat_cve','cve',verbose=False,ignore_lock=True)
-            data_size+=Utils.sizeof(cve)
+            if cve['Status']!='RESERVED'{
+                self.mongo.insertOneOnDB(self.mongo.getProcessedDB(),cve,'flat_cve','cve',verbose=False,ignore_lock=True)
+                data_size+=Utils.sizeof(cve)
+            }
             iter_count+=1
             if iter_count%verbose_frequency==0{
                 lock.refresh()
@@ -1195,7 +1198,7 @@ class DataProcessor(object){
     def transformCve(self,update_callback=None){
         self.logger.info('Running \"Transform\" on CVE Data...')
         cve_data=self.mongo.findAllOnDB(self.mongo.getProcessedDB(),'flat_cve')
-        verbose_frequency=1333
+        verbose_frequency=5000
         iter_count=0
         data_size=0
         total_iters=cve_data.count()*2 # read fields and transform
@@ -1205,10 +1208,16 @@ class DataProcessor(object){
         }
         # lock.acquire() # TODO uncomment
         fields_and_values={}
+        bag_of_tags={}
+        extracted_tags={}
         for cve in cve_data{
             for k,v in cve.items(){
                 if k not in fields_and_values{
-                    fields_and_values[k]=set()
+                    if k!='Description'{
+                        fields_and_values[k]=set()
+                    }else{
+                        fields_and_values[k]=[]
+                    }
                 }
                 if k not in ('_id','cve','publishedDate','lastModifiedDate','modifiedDate','References','Description','assignedDate','CWEs','interimDate','weaponized_modules_count','CPEs_vulnerable','products','proposedDate','Comments','CVSS_score','CVSS_impactScore','CPEs_non_vulnerable','AffectedVersionsCount','CVSS_exploitabilityScore'){ # non enums
                     if k in ('References_class','vendors','weaponized_modules_types'){ # lists of enums
@@ -1232,6 +1241,29 @@ class DataProcessor(object){
                         }
                         fields_and_values[k].add(v)
                     }
+                }elif k=='Description'{
+                    fields_and_values[k].append(v)
+                    keys=FeatureGenerator.extractKeywords(v)
+                    filtered_keys=[]
+                    not_allowed_patterns=[r'^[0-9\s]*$',r'^\/[a-zA-Z]*$',r'^(reference )?[cC][vV][eE][\-0-9]+$',r'`',r'^\/\/$',r'^>$',r'^<$',r'^&lt$',r'^&gt$',r'^&amp$',r'^\-$',r'^\/\/cwe$',r'^[\-0-9]+$',r'^\*$',r'^subject&#039$',r'^>?cwe[0-9\-]*$',r'^cvss$',r'^cvss vector$',r'^&#039$',r'^]$',r'^cvss [0-9]*$']
+                    for key in keys{
+                        insert=True
+                        for pattern in not_allowed_patterns{
+                            if re.match(pattern, key){
+                                insert=False 
+                                break
+                            }
+                        }
+                        if insert{
+                            filtered_keys.append(key)
+                            if key not in bag_of_tags{
+                                bag_of_tags[key]=1
+                            }else{
+                                bag_of_tags[key]+=1
+                            }
+                        }
+                    }
+                    extracted_tags[cve['cve']]=filtered_keys
                 }
             }
             if update_callback { update_callback() }
@@ -1241,23 +1273,279 @@ class DataProcessor(object){
                 self.logger.verbose('Percentage done {:.2f}%'.format((float(iter_count)/total_iters*100)))
             }
         }
-        for k,v in fields_and_values.items(){
-            self.logger.clean(k)
-            if k !='vendors'{
-                for v2 in v{
-                    self.logger.clean('\t{}'.format(v2))
-                }
-            }else{
-                self.logger.clean('\t{}'.format(' | '.join(v)))
+        bag_of_tags_sorted=sorted(bag_of_tags.items(), key=lambda x: x[1], reverse=True)
+        bag_of_tags=[]
+        min_occurrences=200
+        for tag,amount in list(bag_of_tags_sorted){
+            if amount>=min_occurrences{
+                bag_of_tags.append(tag)
             }
         }
+        # just to visualize 
+        # for k,v in fields_and_values.items(){
+        #     self.logger.clean(k)
+        #     if k !='vendors'{
+        #         for v2 in v{
+        #             self.logger.clean('\t{}'.format(v2))
+        #         }
+        #     }elif k!='Description'{
+        #         self.logger.clean('\t{}'.format(' | '.join(v)))
+        #     }
+        # }
+        #  self.logger.clean('Len: {}'.format(len(bag_of_tags)))
+        # for tag in bag_of_tags{
+        #     self.logger.clean(tag)
+        # }
 
-         # self.logger.verbose('Percentage done {:.2f}% - Total data size: {}'.format((float(iter_count)/total_iters*100),Utils.bytesToHumanReadable(data_size)))
-        # self.mongo.insertOneOnDB(self.mongo.getProcessedDB(),exploit,'features_cve','cve',verbose=False,ignore_lock=True)
-        # data_size+=Utils.sizeof(cve)
+        for k,v in fields_and_values.items(){
+            fields_and_values[k]=list(v)
+        }
+        verbose_frequency=1333
+        cve_data=self.mongo.findAllOnDB(self.mongo.getProcessedDB(),'flat_cve')
+        for cve in cve_data{
+            # _id - OK
+            # cve - OK
+            # Status - OK
+            # Phase - OK
+            # publishedDate - OK
+            # lastModifiedDate - OK
+            # References - OK
+            # References_class - OK
+            # Description - OK
+            # assignedDate - OK
+            # CWEs - OK
+            # vendors - OK
+            # products - OK
+            # CPEs_vulnerable - OK
+            # AffectedVersionsCount - OK
+            # CVSS_version - OK
+            # CVSS_score - OK
+            # CVSS_AV - OK
+            # CVSS_AC - OK
+            # CVSS_AuPR - OK
+            # CVSS_C - OK
+            # CVSS_I - OK
+            # CVSS_A - OK
+            # CVSS_exploitabilityScore - OK
+            # CVSS_impactScore - OK
+            # CVSS_UI - OK
+            # CVSS_S - OK
+            # Type - OK
+            # CPEs_non_vulnerable - OK
+            # Comments - OK
+            # proposedDate - OK
+            # weaponized_modules_types - OK
+            # weaponized_modules_count - OK
+            # modifiedDate - OK
+            # interimDate - OK
+            featured_cve={}
 
+            # _id ignore
+            
+            # references
+            featured_cve['cve']=cve['cve']
+            if 'CWEs' in cve{
+                featured_cve['CWEs']=cve['CWEs']
+            }
+            # references
 
+            # enums
+            if 'Status' not in cve{
+                cve['Status']=FeatureGenerator.ABSENT_FIELD_FOR_ENUM
+            }
+            featured_cve=dict(featured_cve,**FeatureGenerator.buildFeaturesFromEnum('Status',cve['Status'],fields_and_values['Status']))
 
+            if 'Phase' not in cve{
+                cve['Phase']=FeatureGenerator.ABSENT_FIELD_FOR_ENUM
+            }
+            featured_cve=dict(featured_cve,**FeatureGenerator.buildFeaturesFromEnum('Phase',cve['Phase'],fields_and_values['Phase']))
+
+            if 'References_class' not in cve{
+                cve['References_class']=FeatureGenerator.ABSENT_FIELD_FOR_ENUM
+            }
+            featured_cve=dict(featured_cve,**FeatureGenerator.buildFeaturesFromEnum('Reference_type',FeatureGenerator.compressListOfLists(cve['References_class'],unique=True),fields_and_values['References_class']))
+
+            if 'vendors' not in cve{
+                cve['vendors']=FeatureGenerator.ABSENT_FIELD_FOR_ENUM
+            }
+            featured_cve=dict(featured_cve,**FeatureGenerator.buildFeaturesFromEnum('vendor',FeatureGenerator.compressListOfLists(cve['vendors'],unique=True),fields_and_values['vendors']))
+
+            if 'CVSS_version' not in cve{
+                cve['CVSS_version']=FeatureGenerator.ABSENT_FIELD_FOR_ENUM
+            }
+            featured_cve=dict(featured_cve,**FeatureGenerator.buildFeaturesFromEnum('CVSS_version',cve['CVSS_version'],fields_and_values['CVSS_version']))
+
+            if 'CVSS_AV' not in cve{
+                cve['CVSS_AV']=FeatureGenerator.ABSENT_FIELD_FOR_ENUM
+            }
+            featured_cve=dict(featured_cve,**FeatureGenerator.buildFeaturesFromEnum('CVSS_AV',cve['CVSS_AV'],fields_and_values['CVSS_AV']))
+
+            if 'CVSS_AC' not in cve or cve['CVSS_AC']=='???'{
+                cve['CVSS_AC']=FeatureGenerator.ABSENT_FIELD_FOR_ENUM
+            }
+            featured_cve=dict(featured_cve,**FeatureGenerator.buildFeaturesFromEnum('CVSS_AC',cve['CVSS_AC'],[FeatureGenerator.ABSENT_FIELD_FOR_ENUM if x=='???' else x for x in fields_and_values['CVSS_AC']]))
+
+            if 'CVSS_AuPR' not in cve or cve['CVSS_AuPR']=='???'{
+                cve['CVSS_AuPR']=FeatureGenerator.ABSENT_FIELD_FOR_ENUM
+            }
+            featured_cve=dict(featured_cve,**FeatureGenerator.buildFeaturesFromEnum('CVSS_AuPR',cve['CVSS_AuPR'],[FeatureGenerator.ABSENT_FIELD_FOR_ENUM if x=='???' else x for x in fields_and_values['CVSS_AuPR']]))
+
+            if 'CVSS_C' not in cve or cve['CVSS_C']=='???'{
+                cve['CVSS_C']=FeatureGenerator.ABSENT_FIELD_FOR_ENUM
+            }
+            featured_cve=dict(featured_cve,**FeatureGenerator.buildFeaturesFromEnum('CVSS_C',cve['CVSS_C'],[FeatureGenerator.ABSENT_FIELD_FOR_ENUM if x=='???' else x for x in fields_and_values['CVSS_C']]))
+
+            if 'CVSS_I' not in cve or cve['CVSS_I']=='???'{
+                cve['CVSS_I']=FeatureGenerator.ABSENT_FIELD_FOR_ENUM
+            }
+            featured_cve=dict(featured_cve,**FeatureGenerator.buildFeaturesFromEnum('CVSS_I',cve['CVSS_I'],[FeatureGenerator.ABSENT_FIELD_FOR_ENUM if x=='???' else x for x in fields_and_values['CVSS_I']]))
+
+            if 'CVSS_A' not in cve or cve['CVSS_A']=='???'{
+                cve['CVSS_A']=FeatureGenerator.ABSENT_FIELD_FOR_ENUM
+            }
+            featured_cve=dict(featured_cve,**FeatureGenerator.buildFeaturesFromEnum('CVSS_A',cve['CVSS_A'],[FeatureGenerator.ABSENT_FIELD_FOR_ENUM if x=='???' else x for x in fields_and_values['CVSS_A']]))
+
+            if 'CVSS_UI' not in cve{
+                cve['CVSS_UI']=FeatureGenerator.ABSENT_FIELD_FOR_ENUM
+            }
+            featured_cve=dict(featured_cve,**FeatureGenerator.buildFeaturesFromEnum('CVSS_UI',cve['CVSS_UI'],fields_and_values['CVSS_UI']))
+
+            if 'CVSS_S' not in cve{
+                cve['CVSS_S']=FeatureGenerator.ABSENT_FIELD_FOR_ENUM
+            }
+            featured_cve=dict(featured_cve,**FeatureGenerator.buildFeaturesFromEnum('CVSS_S',cve['CVSS_S'],fields_and_values['CVSS_S']))
+
+            if 'Type' not in cve{
+                cve['Type']=FeatureGenerator.ABSENT_FIELD_FOR_ENUM
+            }
+            featured_cve=dict(featured_cve,**FeatureGenerator.buildFeaturesFromEnum('Type',cve['Type'],fields_and_values['Type']))
+
+            if 'weaponized_modules_types' not in cve{
+                cve['weaponized_modules_types']=[FeatureGenerator.ABSENT_FIELD_FOR_ENUM]
+            }
+            if 'weaponized_modules_count' not in cve{
+                cve['weaponized_modules_count']=[0]
+            }
+            weapon_exp=FeatureGenerator.buildFeaturesFromEnum('exploits_weaponized_type',cve['weaponized_modules_types'],fields_and_values['weaponized_modules_types'])
+            for i in range(len(cve['weaponized_modules_types'])){
+                for k,v in weapon_exp.items(){
+                    if cve['weaponized_modules_types'][i].lower() in k and v==1{
+                        count=int(cve['weaponized_modules_count'][i])
+                        if count>0{
+                            weapon_exp[k]=count
+                        }
+                    }
+                }
+            }
+            featured_cve=dict(featured_cve,**weapon_exp) # weighted enum
+            # enums
+
+            # numbers
+            featured_cve['exploits_weaponized_count']=sum(cve['weaponized_modules_count'])
+
+            if 'References' not in cve{
+                cve['References']=[]
+            }
+            featured_cve['references_count']=len(cve['References'])
+
+            if 'products' not in cve{
+                cve['products']=[]
+            }
+            featured_cve['products']=len(cve['products'])
+
+            if 'AffectedVersionsCount' not in cve{
+                cve['AffectedVersionsCount']=0
+            }
+            if featured_cve['products'] > cve['AffectedVersionsCount']{
+                cve['AffectedVersionsCount']=featured_cve['products']
+            }
+            featured_cve['versions']=cve['AffectedVersionsCount']
+
+            if 'CVSS_score' not in cve{
+                cve['CVSS_score']=0
+            }
+            featured_cve['cvss_score']=cve['CVSS_score']
+
+            if 'CVSS_exploitabilityScore' not in cve{
+                cve['CVSS_exploitabilityScore']=0
+                featured_cve['cvss_has_exploitability_score']=0
+            }else{
+                featured_cve['cvss_has_exploitability_score']=1
+            }
+            featured_cve['cvss_exploitability_score']=cve['CVSS_exploitabilityScore']
+
+            if 'CVSS_impactScore' not in cve{
+                cve['CVSS_impactScore']=0
+                featured_cve['cvss_has_impact_score']=0
+            }else{
+                featured_cve['cvss_has_impact_score']=1
+            }
+            featured_cve['cvss_impact_score']=cve['CVSS_impactScore']
+
+            if 'Comments' not in cve{
+                cve['Comments']=0
+            }
+            featured_cve['comments']=cve['Comments']
+
+            # ignore CPEs_vulnerable, already present on other fields
+
+            if 'CPEs_non_vulnerable' not in cve{
+                cve['CPEs_non_vulnerable']=[]
+            }
+            featured_cve['cpes_non_vulnerable_count']=len(cve['CPEs_non_vulnerable'])
+            # numbers
+
+            # Dates - extract features on enrich
+            if 'lastModifiedDate' in cve or 'modifiedDate' in cve{
+                if 'lastModifiedDate' in cve{
+                    featured_cve['lastModifiedDate']=cve['lastModifiedDate']
+                }
+                if 'modifiedDate' in cve{
+                    if 'lastModifiedDate' not in featured_cve{
+                        featured_cve['lastModifiedDate']=cve['modifiedDate']
+                    }else{
+                        if Utils.isFirstStrDateOldest(featured_cve['lastModifiedDate'],cve['modifiedDate'],'%d/%m/%Y'){ # newest
+                            featured_cve['lastModifiedDate']=cve['modifiedDate']
+                        }
+                    }
+                }
+            }
+
+            if 'interimDate' in cve{
+                featured_cve['interimDate']=cve['interimDate']
+            }
+
+            if 'proposedDate' in cve{
+                featured_cve['proposedDate']=cve['proposedDate']
+            }
+
+            if 'assignedDate' in cve{
+                featured_cve['assignedDate']=cve['assignedDate']
+            }
+
+            if 'publishedDate' in cve{
+                featured_cve['publishedDate']=cve['publishedDate']
+            }
+            # Dates - extract features on enrich
+
+            if 'Description' in cve{
+                featured_cve=dict(featured_cve,**FeatureGenerator.buildFeaturesFromEnum('Description',extracted_tags[cve['cve']],bag_of_tags,has_absent=False))
+            }else{
+                featured_cve=dict(featured_cve,**FeatureGenerator.buildFeaturesFromEnum('Description','',bag_of_tags,has_absent=False))
+            }
+
+            print(featured_cve)
+            exit()
+            
+            if update_callback { update_callback() }
+            self.mongo.insertOneOnDB(self.mongo.getProcessedDB(),featured_cve,'features_cve','cve',verbose=False,ignore_lock=True)
+            data_size+=Utils.sizeof(featured_cve)
+            iter_count+=1
+            if iter_count%verbose_frequency==0{
+                lock.refresh()
+                self.logger.verbose('Percentage done {:.2f}% - Total data size: {}'.format((float(iter_count)/total_iters*100),Utils.bytesToHumanReadable(data_size)))
+            }
+        }
         self.logger.verbose('Percentage done {:.2f}% - Total data size: {}'.format((float(iter_count)/total_iters*100),Utils.bytesToHumanReadable(data_size)))
         lock.release()
         self.logger.info('Runned \"Transform\" on CVE Data...OK')
