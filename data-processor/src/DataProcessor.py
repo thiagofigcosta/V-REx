@@ -1587,14 +1587,51 @@ class DataProcessor(object){
                 self.logger.verbose('Percentage done {:.2f}% - Total data size: {}'.format((float(iter_count)/total_iters*100),Utils.bytesToHumanReadable(data_size)))
             }
         }
-        cve_data.close()
         self.logger.verbose('Percentage done {:.2f}% - Total data size: {}'.format((float(iter_count)/total_iters*100),Utils.bytesToHumanReadable(data_size)))
         lock.release()
         self.logger.info('Runned \"Transform\" on CVE Data...OK')
     }
 
     def transformOval(self,update_callback=None){
-        pass # TODO
+        self.logger.info('Running \"Transform\" on OVAL Data...')
+        oval_data=self.mongo.findAllOnDB(self.mongo.getProcessedDB(),'flat_oval')
+        verbose_frequency=1333
+        iter_count=0
+        data_size=0
+        total_iters=oval_data.count()
+        lock=self.mongo.getLock(self.mongo.getProcessedDB(),'features_oval')
+        while self.mongo.checkIfCollectionIsLocked(lock=lock){
+            time.sleep(1)
+        }
+        lock.acquire()
+        for oval in oval_data{
+            featured_oval={}
+            # _id ignore
+            # references
+            featured_oval['cve']=oval['CVE']
+            if oval['type'].lower()=='patch'{
+                featured_oval['has_patch']=1
+                featured_oval['has_vuln_oval']=0
+                featured_oval['patchDate']=oval['submittedDate']
+            }elif oval['type'].lower()=='vulnerability'{
+                featured_oval['has_patch']=0
+                featured_oval['has_vuln_oval']=1
+                featured_oval['ovalDate']=oval['submittedDate'] # useless?
+            }else{
+                raise Exception('Invalid oval type ({}) on oval {}'.format(oval['type'],oval['oval']))
+            }
+            if update_callback { update_callback() }
+            self.mongo.insertOneOnDB(self.mongo.getProcessedDB(),featured_oval,'features_oval',verbose=False,ignore_lock=True)
+            data_size+=Utils.sizeof(featured_oval)
+            iter_count+=1
+            if iter_count%verbose_frequency==0{
+                lock.refresh()
+                self.logger.verbose('Percentage done {:.2f}% - Total data size: {}'.format((float(iter_count)/total_iters*100),Utils.bytesToHumanReadable(data_size)))
+            }
+        }
+        self.logger.verbose('Percentage done {:.2f}% - Total data size: {}'.format((float(iter_count)/total_iters*100),Utils.bytesToHumanReadable(data_size)))
+        lock.release()
+        self.logger.info('Runned \"Transform\" on OVAL Data...OK')
     }
 
     def transformCapec(self,update_callback=None){
