@@ -2201,8 +2201,44 @@ class DataProcessor(object){
         self.logger.info('Runned \"Transform\" on CWE Data...OK')
     }
 
-    def transformExploits(self,update_callback=None){
-        pass # TODO
+    def transformExploits(self,update_callback=None){ # TODO finish
+        self.logger.info('Running \"Transform\" on EXPLOIT Data...')
+        exploit_data=self.mongo.findAllOnDB(self.mongo.getProcessedDB(),'exploits')
+        verbose_frequency=1333
+        iter_count=0
+        data_size=0
+        total_iters=exploit_data.count()
+        lock=self.mongo.getLock(self.mongo.getProcessedDB(),'features_exploit')
+        while self.mongo.checkIfCollectionIsLocked(lock=lock){
+            time.sleep(1)
+        }
+        lock.acquire()
+        for exploit in exploit_data{
+            featured_exploit={}
+            # _id ignore
+            # references
+            featured_exploit['cve']=exploit['cve']
+            featured_exploit['exploitDate']=exploit['date']
+
+            if exploit['verified'].lower()=='true'{
+                featured_exploit['exploit_was_verified']=1
+            }else{
+                featured_exploit['exploit_was_verified']=0
+            }
+            featured_exploit['has_exploit']=1
+
+            if update_callback { update_callback() }
+            self.mongo.insertOneOnDB(self.mongo.getProcessedDB(),featured_exploit,'features_exploit',verbose=False,ignore_lock=True)
+            data_size+=Utils.sizeof(featured_exploit)
+            iter_count+=1
+            if iter_count%verbose_frequency==0{
+                lock.refresh()
+                self.logger.verbose('Percentage done {:.2f}% - Total data size: {}'.format((float(iter_count)/total_iters*100),Utils.bytesToHumanReadable(data_size)))
+            }
+        }
+        self.logger.verbose('Percentage done {:.2f}% - Total data size: {}'.format((float(iter_count)/total_iters*100),Utils.bytesToHumanReadable(data_size)))
+        lock.release()
+        self.logger.info('Runned \"Transform\" on EXPLOIT Data...OK')
     }
     
     def enrichData(self,update_callback=None){
