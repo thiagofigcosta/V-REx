@@ -1212,11 +1212,12 @@ class DataProcessor(object){
         while self.mongo.checkIfCollectionIsLocked(lock=lock){
             time.sleep(1)
         }
-        # lock.acquire() # TODO uncomment
+        lock.acquire()
         fields_and_values={}
         bag_of_tags={}
         extracted_tags={}
-        lemmatizer = WordNetLemmatizer()
+        occurences_in_doc={}
+        lemmatizer=WordNetLemmatizer()
         for cve in cve_data{
             for k,v in cve.items(){
                 if k not in fields_and_values{
@@ -1258,6 +1259,7 @@ class DataProcessor(object){
                     keys=FeatureGenerator.extractKeywords(v)
                     filtered_keys=[]
                     not_allowed_patterns=[r'^[0-9\s]*$',r'^\/[a-zA-Z]*$',r'^(reference )?[cC][vV][eE][\-0-9]+$',r'`',r'^\/\/$',r'^>$',r'^<$',r'^&lt$',r'^&gt$',r'^&amp$',r'^\-$',r'^\/\/cwe$',r'^[\-0-9]+$',r'^\*$',r'^subject&#039$',r'^>?cwe[0-9\-]*$',r'^cvss$',r'^cvss vector$',r'^&#039$',r'^]$',r'^cvss [0-9]*$',r'^\*\* reject \*\*$',r'^0\/av$',r'^\/\/www$',r'^lead$',r'^result$',r'^wa$',r'^possibly$',r'^ac $',r'^pr$',r'^impact$',r'^created$',r'^covered$',r'^viewed$',r'^claim$',r'^cwe 426 untrusted search path$',r'^high$',r'^r2 sp1$',r'^sp2$',r'^unknown attack vector$',r'^commented$',r'^r2$',r'^sp1$',r'^present$',r'^cve$',r'^potentially$',r'^number$',r'^view$',r'^http www oracle$',r'^long$',r'^existence$',r'^unknown impact$',r'^[0-9]+ notes$',r'^determine$',r'^ha$']
+                    occurences_in_doc[cve['cve']]={}
                     for key in keys{
                         insert=True
                         for pattern in not_allowed_patterns{
@@ -1268,6 +1270,8 @@ class DataProcessor(object){
                         }
                         if insert{
                             filtered_keys.append(key)
+                            occurences_in_doc[cve['cve']][key]=v.count(key)
+                            occurences_in_doc[cve['cve']][key]=occurences_in_doc[cve['cve']][key] if occurences_in_doc[cve['cve']][key]>0 else 1
                             if key not in bag_of_tags{
                                 bag_of_tags[key]=1
                             }else{
@@ -1285,12 +1289,15 @@ class DataProcessor(object){
                 self.logger.verbose('Percentage done {:.2f}%'.format((float(iter_count)/total_iters*100)))
             }
         }
+        cve_data=None
         bag_of_tags_sorted=sorted(bag_of_tags.items(), key=lambda x: x[1], reverse=True)
         bag_of_tags=[]
+        bag_of_tags_and_occurences={}
         min_occurrences=200
         for tag,amount in list(bag_of_tags_sorted){
             if amount>=min_occurrences{
                 bag_of_tags.append(tag)
+                bag_of_tags_and_occurences[tag]=amount
             }
         }
         bag_of_tags_sorted=None
@@ -1309,12 +1316,23 @@ class DataProcessor(object){
         # for tag in bag_of_tags{
         #     self.logger.clean(tag)
         # }
+        # just to visualize 
 
         for k,v in fields_and_values.items(){
             if k!='Description'{
                 fields_and_values[k]=list(v)
             }
         }
+        total_docs=len(fields_and_values['Description'])
+        # the correct is number of documents containing, not occurences in documents (as below)
+        # occurences_in_docs={}
+        # for tag in bag_of_tags{
+        #     occurences_in_docs[tag]=0
+        #     for _,doc in fields_and_values['Description'].items(){
+        #         occurences_in_docs[tag]+=doc.count(tag)
+        #     }
+        #     occurences_in_docs[tag]=occurences_in_docs[tag] if occurences_in_docs[tag] > 0 else 1
+        # }
         verbose_frequency=1333
         for cve_ref in self.references['cve']{
             cve=self.mongo.findOneOnDBFromIndex(self.mongo.getProcessedDB(),'flat_cve','cve','CVE-{}'.format(cve_ref))
@@ -1545,24 +1563,20 @@ class DataProcessor(object){
 
             if 'Description' in cve{
                 description_features=FeatureGenerator.buildFeaturesFromEnum('Description',extracted_tags[cve['cve']],bag_of_tags,has_absent=False)
-                total_docs=len(fields_and_values['Description'])
                 for tag in extracted_tags[cve['cve']]{
-                    occurences_in_doc=fields_and_values['Description'][cve['cve']].count(tag)
-                    occurences_in_docs=0
-                    for _,doc in fields_and_values['Description'].items(){
-                        occurences_in_docs+=doc.count(tag)
-                    }
-                    occurences_in_docs=occurences_in_docs if occurences_in_docs > 0 else 1
-                    tag_feature_name='{}_ENUM_{}'.format('Description'.lower(),tag.lower())
-                    if tag_feature_name in description_features and description_features[tag_feature_name]==1{
-                        description_features[tag_feature_name]=occurences_in_doc*math.log(float(total_docs)/float(occurences_in_docs))
+                    if tag in bag_of_tags{
+                        tag_feature_name='{}_ENUM_{}'.format('Description'.lower(),tag.lower())
+                        if tag_feature_name in description_features and description_features[tag_feature_name]==1{
+                            # description_features[tag_feature_name]=occurences_in_doc[cve['cve']][tag]*math.log(float(total_docs)/float(occurences_in_docs[tag]))
+                            description_features[tag_feature_name]=occurences_in_doc[cve['cve']][tag]*math.log(float(total_docs)/float(bag_of_tags_and_occurences[tag]))
+                        }
                     }
                 }
                 featured_cve=dict(featured_cve,**description_features)
             }else{
                 featured_cve=dict(featured_cve,**FeatureGenerator.buildFeaturesFromEnum('Description','',bag_of_tags,has_absent=False))
             }
-            
+
             if update_callback { update_callback() }
             self.mongo.insertOneOnDB(self.mongo.getProcessedDB(),featured_cve,'features_cve','cve',verbose=False,ignore_lock=True)
             data_size+=Utils.sizeof(featured_cve)
