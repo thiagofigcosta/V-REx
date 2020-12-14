@@ -1661,7 +1661,7 @@ class DataProcessor(object){
         lemmatizer=WordNetLemmatizer()
         for capec in capec_data{
             capecs_refs.append(capec['capec'])
-            for k,v in cve.items(){
+            for k,v in capec.items(){
                 if k not in fields_and_values{
                     fields_and_values[k]=set()
                 }
