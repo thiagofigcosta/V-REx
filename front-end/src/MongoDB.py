@@ -158,7 +158,7 @@ class MongoDB(object){
                                 }
                             }else{
                                 result=collection.insert_one(doc)
-                                if result.upserted_id{
+                                if result.inserted_id{
                                     mod_count+=1
                                 }
                             }
@@ -173,6 +173,9 @@ class MongoDB(object){
                         raise Exception('Cannot insert on collection {} of db {}, collection is locked!'.format(collection_str,db.name))
                     }
                 }except Exception as e{
+                    if 'Cannot insert on collection' not in str(e){
+                        raise e
+                    }
                     tries+=1
                     if tries <= MAX_TRIES {
                         self.logger.warn('Collection {} of db {}, collection is locked, trying again later! {} of {}'.format(collection_str,db.name,tries,MAX_TRIES))
