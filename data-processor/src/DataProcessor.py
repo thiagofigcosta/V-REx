@@ -1207,7 +1207,8 @@ class DataProcessor(object){
         iter_count=0
         data_size=0
         cves_refs=[]
-        total_iters=cve_data.count()*2 # read fields and transform
+        data_count=cve_data.count()
+        total_iters=data_count*2 # read fields and transform
         lock=self.mongo.getLock(self.mongo.getProcessedDB(),'features_cve')
         while self.mongo.checkIfCollectionIsLocked(lock=lock){
             time.sleep(1)
@@ -1219,68 +1220,70 @@ class DataProcessor(object){
         occurences_in_doc={}
         lemmatizer=WordNetLemmatizer()
         for cve in cve_data{
-            cves_refs.append(cve['cve'])
-            for k,v in cve.items(){
-                if k not in fields_and_values{
-                    if k!='Description'{
-                        fields_and_values[k]=set()
-                    }else{
-                        fields_and_values[k]={}
-                    }
-                }
-                if k not in ('_id','cve','publishedDate','lastModifiedDate','modifiedDate','References','Description','assignedDate','CWEs','interimDate','weaponized_modules_count','CPEs_vulnerable','products','proposedDate','Comments','CVSS_score','CVSS_impactScore','CPEs_non_vulnerable','AffectedVersionsCount','CVSS_exploitabilityScore'){ # non enums
-                    if k in ('References_class','vendors','weaponized_modules_types'){ # lists of enums
-                        for el in v{
-                            if type(el) is list{
-                                for el2 in el{
-                                    fields_and_values[k].add(el2)
-                                }
-                            }else{
-                                fields_and_values[k].add(el)
-                            }
+            if 'Status' not in cve or cve['Status']!='RESERVED'{
+                cves_refs.append(cve['cve'])
+                for k,v in cve.items(){
+                    if k not in fields_and_values{
+                        if k!='Description'{
+                            fields_and_values[k]=set()
+                        }else{
+                            fields_and_values[k]={}
                         }
-                    }else{
-                        if type(v) is list{
-                            for i in range(len(v)){
-                                if type(v[i]) is list{
-                                    v[i]=tuple(v[i])
+                    }
+                    if k not in ('_id','cve','publishedDate','lastModifiedDate','modifiedDate','References','Description','assignedDate','CWEs','interimDate','weaponized_modules_count','CPEs_vulnerable','products','proposedDate','Comments','CVSS_score','CVSS_impactScore','CPEs_non_vulnerable','AffectedVersionsCount','CVSS_exploitabilityScore'){ # non enums
+                        if k in ('References_class','vendors','weaponized_modules_types'){ # lists of enums
+                            for el in v{
+                                if type(el) is list{
+                                    for el2 in el{
+                                        fields_and_values[k].add(el2)
+                                    }
+                                }else{
+                                    fields_and_values[k].add(el)
                                 }
                             }
-                            v=tuple(v)
+                        }else{
+                            if type(v) is list{
+                                for i in range(len(v)){
+                                    if type(v[i]) is list{
+                                        v[i]=tuple(v[i])
+                                    }
+                                }
+                                v=tuple(v)
+                            }
+                            fields_and_values[k].add(v)
                         }
-                        fields_and_values[k].add(v)
-                    }
-                }elif k=='Description'{
-                    v=re.findall(r"[\w']+", v) # split text into words
-                    for i in range(len(v)){
-                        v[i]=lemmatizer.lemmatize(v[i])
-                    }
-                    v=' '.join(v) # join words into text
-                    fields_and_values[k][cve['cve']]=v
-                    keys=FeatureGenerator.extractKeywords(v)
-                    filtered_keys=[]
-                    not_allowed_patterns=[r'^[0-9\s]*$',r'^\/[a-zA-Z]*$',r'^(reference )?[cC][vV][eE][\-0-9]+$',r'`',r'^\/\/$',r'^>$',r'^<$',r'^&lt$',r'^&gt$',r'^&amp$',r'^\-$',r'^\/\/cwe$',r'^[\-0-9]+$',r'^\*$',r'^subject&#039$',r'^>?cwe[0-9\-]*$',r'^cvss$',r'^cvss vector$',r'^&#039$',r'^]$',r'^cvss [0-9]*$',r'^\*\* reject \*\*$',r'^0\/av$',r'^\/\/www$',r'^lead$',r'^result$',r'^wa$',r'^possibly$',r'^ac $',r'^pr$',r'^impact$',r'^created$',r'^covered$',r'^viewed$',r'^claim$',r'^cwe 426 untrusted search path$',r'^high$',r'^r2 sp1$',r'^sp2$',r'^unknown attack vector$',r'^commented$',r'^r2$',r'^sp1$',r'^present$',r'^cve$',r'^potentially$',r'^number$',r'^view$',r'^http www oracle$',r'^long$',r'^existence$',r'^unknown impact$',r'^[0-9]+ notes$',r'^determine$',r'^ha$']
-                    occurences_in_doc[cve['cve']]={}
-                    for key in keys{
-                        insert=True
-                        for pattern in not_allowed_patterns{
-                            if re.match(pattern, key){
-                                insert=False 
-                                break
+                    }elif k=='Description'{
+                        v=re.findall(r"[\w']+", v) # split text into words
+                        for i in range(len(v)){
+                            v[i]=lemmatizer.lemmatize(v[i])
+                        }
+                        v=' '.join(v) # join words into text
+                        fields_and_values[k][cve['cve']]=v
+                        keys=FeatureGenerator.extractKeywords(v)
+                        filtered_keys=[]
+                        not_allowed_patterns=[r'^[0-9\s]*$',r'^\/[a-zA-Z]*$',r'^(reference )?[cC][vV][eE][\-0-9]+$',r'`',r'^\/\/$',r'^>$',r'^<$',r'^&lt$',r'^&gt$',r'^&amp$',r'^\-$',r'^\/\/cwe$',r'^[\-0-9]+$',r'^\*$',r'^subject&#039$',r'^>?cwe[0-9\-]*$',r'^cvss$',r'^cvss vector$',r'^&#039$',r'^]$',r'^cvss [0-9]*$',r'^\*\* reject \*\*$',r'^0\/av$',r'^\/\/www$',r'^lead$',r'^result$',r'^wa$',r'^possibly$',r'^ac $',r'^pr$',r'^impact$',r'^created$',r'^covered$',r'^viewed$',r'^claim$',r'^cwe 426 untrusted search path$',r'^high$',r'^r2 sp1$',r'^sp2$',r'^unknown attack vector$',r'^commented$',r'^r2$',r'^sp1$',r'^present$',r'^cve$',r'^potentially$',r'^number$',r'^view$',r'^http www oracle$',r'^long$',r'^existence$',r'^unknown impact$',r'^[0-9]+ notes$',r'^determine$',r'^ha$']
+                        occurences_in_doc[cve['cve']]={}
+                        for key in keys{
+                            insert=True
+                            for pattern in not_allowed_patterns{
+                                if re.match(pattern, key){
+                                    insert=False 
+                                    break
+                                }
+                            }
+                            if insert{
+                                filtered_keys.append(key)
+                                occurences_in_doc[cve['cve']][key]=v.count(key)
+                                occurences_in_doc[cve['cve']][key]=occurences_in_doc[cve['cve']][key] if occurences_in_doc[cve['cve']][key]>0 else 1
+                                if key not in bag_of_tags{
+                                    bag_of_tags[key]=1
+                                }else{
+                                    bag_of_tags[key]+=1
+                                }
                             }
                         }
-                        if insert{
-                            filtered_keys.append(key)
-                            occurences_in_doc[cve['cve']][key]=v.count(key)
-                            occurences_in_doc[cve['cve']][key]=occurences_in_doc[cve['cve']][key] if occurences_in_doc[cve['cve']][key]>0 else 1
-                            if key not in bag_of_tags{
-                                bag_of_tags[key]=1
-                            }else{
-                                bag_of_tags[key]+=1
-                            }
-                        }
+                        extracted_tags[cve['cve']]=filtered_keys
                     }
-                    extracted_tags[cve['cve']]=filtered_keys
                 }
             }
             if update_callback { update_callback() }
@@ -1290,6 +1293,8 @@ class DataProcessor(object){
                 self.logger.verbose('Percentage done {:.2f}%'.format((float(iter_count)/total_iters*100)))
             }
         }
+        self.logger.info('Optimizing and caching data...')
+        total_iters=data_count+len(cves_refs)
         cve_data=None
         bag_of_tags_sorted=sorted(bag_of_tags.items(), key=lambda x: x[1], reverse=True)
         bag_of_tags=[]
@@ -1334,6 +1339,7 @@ class DataProcessor(object){
         #     }
         #     occurences_in_docs[tag]=occurences_in_docs[tag] if occurences_in_docs[tag] > 0 else 1
         # }
+        self.logger.info('Optimized and cached data...OK')
         verbose_frequency=1333
         for cve_ref in cves_refs{
             cve=self.mongo.findOneOnDBFromIndex(self.mongo.getProcessedDB(),'flat_cve','cve',cve_ref)
@@ -1635,7 +1641,271 @@ class DataProcessor(object){
     }
 
     def transformCapec(self,update_callback=None){
-        pass # TODO
+        self.logger.info('Running \"Transform\" on CAPEC Data...')
+        capec_data=self.mongo.findAllOnDB(self.mongo.getProcessedDB(),'flat_capec')
+        verbose_frequency=50
+        iter_count=0
+        data_size=0
+        capecs_refs=[]
+        data_count=capec_data.count()
+        total_iters=data_count*2 # read fields and transform
+        lock=self.mongo.getLock(self.mongo.getProcessedDB(),'features_capec')
+        while self.mongo.checkIfCollectionIsLocked(lock=lock){
+            time.sleep(1)
+        }
+        lock.acquire()
+        fields_and_values={}
+        bag_of_tags={}
+        extracted_tags={}
+        occurences_in_doc={}
+        lemmatizer=WordNetLemmatizer()
+        for capec in capec_data{
+            capecs_refs.append(capec['capec'])
+            for k,v in cve.items(){
+                if k not in fields_and_values{
+                    fields_and_values[k]=set()
+                }
+                if k not in ('_id','capec','submittedDate','modifiedDate','CWEs','Examples','Skill','Mitigations','Prerequisites','Description','Name'){ # non enums
+                    if k in ('Steps','Affected_Scopes','Damage'){ # lists of enums
+                        for el in v{
+                            if type(el) is list{
+                                for el2 in el{
+                                    fields_and_values[k].add(el2)
+                                }
+                            }else{
+                                fields_and_values[k].add(el)
+                            }
+                        }
+                    }else{
+                        if type(v) is list{
+                            for i in range(len(v)){
+                                if type(v[i]) is list{
+                                    v[i]=tuple(v[i])
+                                }
+                            }
+                            v=tuple(v)
+                        }
+                        fields_and_values[k].add(v)
+                    }
+                }elif k=='Description'{
+                    v=re.findall(r"[\w']+", v) # split text into words
+                    for i in range(len(v)){
+                        v[i]=lemmatizer.lemmatize(v[i])
+                    }
+                    v=' '.join(v) # join words into text
+                    fields_and_values[k][capec['capec']]=v
+                    keys=FeatureGenerator.extractKeywords(v)
+                    filtered_keys=[]
+                    not_allowed_patterns=[] # TODO
+                    occurences_in_doc[capec['capec']]={}
+                    for key in keys{
+                        insert=True
+                        for pattern in not_allowed_patterns{
+                            if re.match(pattern, key){
+                                insert=False 
+                                break
+                            }
+                        }
+                        if insert{
+                            filtered_keys.append(key)
+                            occurences_in_doc[capec['capec']][key]=v.count(key)
+                            occurences_in_doc[capec['capec']][key]=occurences_in_doc[capec['capec']][key] if occurences_in_doc[capec['capec']][key]>0 else 1
+                            if key not in bag_of_tags{
+                                bag_of_tags[key]=1
+                            }else{
+                                bag_of_tags[key]+=1
+                            }
+                        }
+                    }
+                    extracted_tags[capec['capec']]=filtered_keys
+                }
+            }
+            if update_callback { update_callback() }
+            iter_count+=1
+            if iter_count%verbose_frequency==0{
+                lock.refresh()
+                self.logger.verbose('Percentage done {:.2f}%'.format((float(iter_count)/total_iters*100)))
+            }
+        }
+        self.logger.info('Optimizing and caching data...')
+        total_iters=data_count+len(capecs_refs)
+        capec_data=None
+        bag_of_tags_sorted=sorted(bag_of_tags.items(), key=lambda x: x[1], reverse=True)
+        bag_of_tags=[]
+        bag_of_tags_and_occurences={}
+        min_occurrences=10
+        for tag,amount in list(bag_of_tags_sorted){
+            if amount>=min_occurrences{
+                bag_of_tags.append(tag)
+                bag_of_tags_and_occurences[tag]=amount
+            }
+        }
+        bag_of_tags_sorted=None
+        # just to visualize 
+        # for k,v in fields_and_values.items(){
+        #     self.logger.clean(k)
+        #     if k !='vendors'{
+        #         for v2 in v{
+        #             self.logger.clean('\t{}'.format(v2))
+        #         }
+        #     }elif k!='Description'{
+        #         self.logger.clean('\t{}'.format(' | '.join(v)))
+        #     }
+        # }
+        # just to visualize 
+        for k,v in fields_and_values.items(){
+            fields_and_values[k]=list(v)
+        }
+        total_docs=len(fields_and_values['Description'])
+        self.logger.info('Optimized and cached data...OK')
+        for capec_ref in capecs_refs{
+            capec=self.mongo.findOneOnDBFromIndex(self.mongo.getProcessedDB(),'flat_capec','capec',capec_ref)
+            # _id - OK
+            # capec - OK
+            # Description - OK
+            # CWEs - OK
+            # Abstraction - OK
+            # Status - OK
+            # Likelihood_Of_Attack - OK
+            # Typical_Severity - OK
+            # Steps - OK
+            # Skill_level - OK
+            # Affected_Scopes - OK
+            # Damage - OK
+            # submittedDate - OK
+            # modifiedDate - OK
+            # Prerequisites - OK
+            # Prerequisites - OK
+            # Mitigations - OK
+            # Skill - OK
+            # Examples - OK
+            featured_capec={}
+
+            # _id ignore
+            
+            # references
+            featured_capec['capec']=capec['capec']
+            if 'CWEs' in capec{
+                featured_capec['CWEs']=capec['CWEs']
+            }
+            # references
+
+            # enums
+            if 'Abstraction' not in capec{
+                capec['Abstraction']=FeatureGenerator.ABSENT_FIELD_FOR_ENUM
+            }
+            featured_capec=dict(featured_capec,**FeatureGenerator.buildFeaturesFromEnum('Abstraction',capec['Abstraction'],fields_and_values['Abstraction']))
+
+            if 'Status' not in capec{
+                capec['Status']=FeatureGenerator.ABSENT_FIELD_FOR_ENUM
+            }
+            featured_capec=dict(featured_capec,**FeatureGenerator.buildFeaturesFromEnum('Status',capec['Status'],fields_and_values['Status']))
+
+            if 'Likelihood_Of_Attack' not in capec{
+                capec['Likelihood_Of_Attack']=FeatureGenerator.ABSENT_FIELD_FOR_ENUM
+            }
+            featured_capec=dict(featured_capec,**FeatureGenerator.buildFeaturesFromEnum('Likelihood_Of_Attack',capec['Likelihood_Of_Attack'],fields_and_values['Likelihood_Of_Attack']))
+
+            if 'Typical_Severity' not in capec{
+                capec['Typical_Severity']=FeatureGenerator.ABSENT_FIELD_FOR_ENUM
+            }
+            featured_capec=dict(featured_capec,**FeatureGenerator.buildFeaturesFromEnum('Typical_Severity',capec['Typical_Severity'],fields_and_values['Typical_Severity']))
+
+            if 'Steps' not in capec{
+                capec['Steps']=FeatureGenerator.ABSENT_FIELD_FOR_ENUM
+            }
+            featured_capec=dict(featured_capec,**FeatureGenerator.buildFeaturesFromEnum('Steps',capec['Steps'],fields_and_values['Steps']))
+
+            if 'Skill_level' not in capec{
+                capec['Skill_level']=FeatureGenerator.ABSENT_FIELD_FOR_ENUM
+            }
+            featured_capec=dict(featured_capec,**FeatureGenerator.buildFeaturesFromEnum('Skill_level',capec['Skill_level'],fields_and_values['Skill_level']))
+
+            if 'Affected_Scopes' not in capec{
+                capec['Affected_Scopes']=FeatureGenerator.ABSENT_FIELD_FOR_ENUM
+            }
+            featured_capec=dict(featured_capec,**FeatureGenerator.buildFeaturesFromEnum('Affected_Scopes',capec['Affected_Scopes'],fields_and_values['Affected_Scopes']))
+
+            if 'Damage' not in capec{
+                capec['Damage']=FeatureGenerator.ABSENT_FIELD_FOR_ENUM
+            }
+            featured_capec=dict(featured_capec,**FeatureGenerator.buildFeaturesFromEnum('Damage',capec['Damage'],fields_and_values['Damage']))
+            # enums
+
+            # Dates - extract features on enrich
+            if 'submittedDate' in capec{
+                featured_capec['capecDate']=capec['submittedDate']
+            }
+            # modifiedDate ignore        
+            # Dates - extract features on enrich
+
+
+            # numbers
+            if 'Prerequisites' not in capec{
+                capec['Prerequisites']=''
+            }else{
+                if type(capec['Prerequisites']) is list{
+                     capec['Prerequisites']=' '.join(capec['Prerequisites']='')
+                }
+            }
+            featured_capec['prerequisites_wc_log']=math.log(1+len(re.findall(r"[\w']+", capec['Prerequisites'])))
+
+            if 'Mitigations' not in capec{
+                capec['Mitigations']=''
+            }else{
+                if type(capec['Mitigations']) is list{
+                     capec['Mitigations']=' '.join( capec['Mitigations']='')
+                }
+            }
+            featured_capec['mitigations_wc_log']=math.log(1+len(re.findall(r"[\w']+", capec['Mitigations'])))
+
+            if 'Skill' not in capec{
+                capec['Skill']=''
+            }else{
+                if type(capec['Skill']) is list{
+                     capec['Skill']=' '.join( capec['Skill']='')
+                }
+            }
+            featured_capec['skill_wc_log']=math.log(1+len(re.findall(r"[\w']+", capec['Skill'])))
+
+            if 'Examples' not in capec{
+                capec['Examples']=''
+            }else{
+                if type(capec['Examples']) is list{
+                     capec['Examples']=' '.join( capec['Examples']='')
+                }
+            }
+            featured_capec['examples_wc_log']=math.log(1+len(re.findall(r"[\w']+", capec['Examples'])))
+            # numbers
+
+
+            if 'Description' in capec{
+                description_features=FeatureGenerator.buildFeaturesFromEnum('Description',extracted_tags[capec['capec']],bag_of_tags,has_absent=False)
+                for tag in extracted_tags[capec['capec']]{
+                    if tag in bag_of_tags{
+                        tag_feature_name='{}_ENUM_{}'.format('Description'.lower(),tag.lower())
+                        if tag_feature_name in description_features and description_features[tag_feature_name]==1{
+                            description_features[tag_feature_name]=occurences_in_doc[capec['capec']][tag]*math.log(float(total_docs)/float(bag_of_tags_and_occurences[tag]))
+                        }
+                    }
+                }
+                featured_capec=dict(featured_capec,**description_features)
+            }else{
+                featured_capec=dict(featured_capec,**FeatureGenerator.buildFeaturesFromEnum('Description','',bag_of_tags,has_absent=False))
+            }
+
+            if update_callback { update_callback() }
+            self.mongo.insertOneOnDB(self.mongo.getProcessedDB(),featured_capec,'features_capec',verbose=False,ignore_lock=True)
+            data_size+=Utils.sizeof(featured_capec)
+            iter_count+=1
+            if iter_count%verbose_frequency==0{
+                lock.refresh()
+                self.logger.verbose('Percentage done {:.2f}% - Total data size: {}'.format((float(iter_count)/total_iters*100),Utils.bytesToHumanReadable(data_size)))
+            }
+        }
+        self.logger.verbose('Percentage done {:.2f}% - Total data size: {}'.format((float(iter_count)/total_iters*100),Utils.bytesToHumanReadable(data_size)))
+        lock.release()
+        self.logger.info('Runned \"Transform\" on CAPEC Data...OK')
     }
 
     def transformCwe(self,update_callback=None){
@@ -1660,7 +1930,7 @@ class DataProcessor(object){
     }
 
     def filterAndNormalizeFullDataset(self,update_callback=None){
-        # TODO filter bad features
+        # TODO filter bad features (remove FeatureGenerator.ABSENT_FIELD_FOR_ENUM an other not used features)
         pass
     }
 

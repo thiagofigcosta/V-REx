@@ -15,5 +15,4 @@ print(mongo.getQueueConsumerId())
 
 processor=DataProcessor(mongo,LOGGER)
 
-processor.transformOval()
-# processor.transformCve()
+processor.transformCve()
