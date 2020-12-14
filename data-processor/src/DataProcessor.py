@@ -1640,7 +1640,7 @@ class DataProcessor(object){
         self.logger.info('Runned \"Transform\" on OVAL Data...OK')
     }
 
-    def transformCapec(self,update_callback=None){
+    def transformCapec(self,update_callback=None){  # TODO finish
         self.logger.info('Running \"Transform\" on CAPEC Data...')
         capec_data=self.mongo.findAllOnDB(self.mongo.getProcessedDB(),'flat_capec')
         verbose_frequency=50
@@ -1696,7 +1696,7 @@ class DataProcessor(object){
                     fields_and_values[k][capec['capec']]=v
                     keys=FeatureGenerator.extractKeywords(v)
                     filtered_keys=[]
-                    not_allowed_patterns=[] # TODO
+                    not_allowed_patterns=[] # TODO fill
                     occurences_in_doc[capec['capec']]={}
                     for key in keys{
                         insert=True
@@ -1733,7 +1733,7 @@ class DataProcessor(object){
         bag_of_tags_sorted=sorted(bag_of_tags.items(), key=lambda x: x[1], reverse=True)
         bag_of_tags=[]
         bag_of_tags_and_occurences={}
-        min_occurrences=10
+        min_occurrences=10 # TODO adjust
         for tag,amount in list(bag_of_tags_sorted){
             if amount>=min_occurrences{
                 bag_of_tags.append(tag)
@@ -1741,7 +1741,7 @@ class DataProcessor(object){
             }
         }
         bag_of_tags_sorted=None
-        # just to visualize 
+        # just to visualize  # TODO visualize
         # for k,v in fields_and_values.items(){
         #     self.logger.clean(k)
         #     if k !='vendors'{
@@ -1894,6 +1894,9 @@ class DataProcessor(object){
                 featured_capec=dict(featured_capec,**FeatureGenerator.buildFeaturesFromEnum('Description','',bag_of_tags,has_absent=False))
             }
 
+            print(featured_capec) # TODO check and remove
+            exit()
+
             if update_callback { update_callback() }
             self.mongo.insertOneOnDB(self.mongo.getProcessedDB(),featured_capec,'features_capec',verbose=False,ignore_lock=True)
             data_size+=Utils.sizeof(featured_capec)
@@ -1909,7 +1912,7 @@ class DataProcessor(object){
     }
 
     def transformCwe(self,update_callback=None){
-        pass # TODO
+        pass # TODO finish
     }
 
     def transformExploits(self,update_callback=None){
