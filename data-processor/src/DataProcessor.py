@@ -1206,7 +1206,7 @@ class DataProcessor(object){
         verbose_frequency=5000
         iter_count=0
         data_size=0
-        self.references=self.mongo.loadReferences()
+        cves_refs=[]
         total_iters=cve_data.count()*2 # read fields and transform
         lock=self.mongo.getLock(self.mongo.getProcessedDB(),'features_cve')
         while self.mongo.checkIfCollectionIsLocked(lock=lock){
@@ -1219,6 +1219,7 @@ class DataProcessor(object){
         occurences_in_doc={}
         lemmatizer=WordNetLemmatizer()
         for cve in cve_data{
+            cves_refs.append(cve['cve'])
             for k,v in cve.items(){
                 if k not in fields_and_values{
                     if k!='Description'{
@@ -1334,8 +1335,8 @@ class DataProcessor(object){
         #     occurences_in_docs[tag]=occurences_in_docs[tag] if occurences_in_docs[tag] > 0 else 1
         # }
         verbose_frequency=1333
-        for cve_ref in self.references['cve']{
-            cve=self.mongo.findOneOnDBFromIndex(self.mongo.getProcessedDB(),'flat_cve','cve','CVE-{}'.format(cve_ref))
+        for cve_ref in cves_refs{
+            cve=self.mongo.findOneOnDBFromIndex(self.mongo.getProcessedDB(),'flat_cve','cve',cve_ref)
             # _id - OK
             # cve - OK
             # Status - OK
