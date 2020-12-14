@@ -1665,8 +1665,8 @@ class DataProcessor(object){
                 if k not in fields_and_values{
                     fields_and_values[k]=set()
                 }
-                if k not in ('_id','capec','submittedDate','modifiedDate','CWEs','Examples','Skill','Mitigations','Prerequisites','Description','Name'){ # non enums
-                    if k in ('Steps','Affected_Scopes','Damage'){ # lists of enums
+                if k not in ('_id','capec','submittedDate','modifiedDate','CWEs','Examples','Skill','Mitigations','Prerequisites','Description','Name'){ # non enums # TODO check
+                    if k in ('Steps','Affected_Scopes','Damage'){ # lists of enums # TODO check
                         for el in v{
                             if type(el) is list{
                                 for el2 in el{
