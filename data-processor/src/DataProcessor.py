@@ -1640,7 +1640,7 @@ class DataProcessor(object){
         self.logger.info('Runned \"Transform\" on OVAL Data...OK')
     }
 
-    def transformCapec(self,update_callback=None){  # TODO finish
+    def transformCapec(self,update_callback=None){ 
         self.logger.info('Running \"Transform\" on CAPEC Data...')
         capec_data=self.mongo.findAllOnDB(self.mongo.getProcessedDB(),'flat_capec')
         verbose_frequency=50
@@ -1663,10 +1663,14 @@ class DataProcessor(object){
             capecs_refs.append(capec['capec'])
             for k,v in capec.items(){
                 if k not in fields_and_values{
-                    fields_and_values[k]=set()
+                    if k!='Description'{
+                        fields_and_values[k]=set()
+                    }else{
+                        fields_and_values[k]={}
+                    }
                 }
-                if k not in ('_id','capec','submittedDate','modifiedDate','CWEs','Examples','Skill','Mitigations','Prerequisites','Description','Name'){ # non enums # TODO check
-                    if k in ('Steps','Affected_Scopes','Damage'){ # lists of enums # TODO check
+                if k not in ('_id','capec','submittedDate','modifiedDate','CWEs','Examples','Skill','Mitigations','Prerequisites','Description','Name','Taxonomy','Indicators','Reference','Resources_req'){ # non enums 
+                    if k in ('Steps','Affected_Scopes','Damage','Skill_level'){ # lists of enums 
                         for el in v{
                             if type(el) is list{
                                 for el2 in el{
@@ -1696,7 +1700,7 @@ class DataProcessor(object){
                     fields_and_values[k][capec['capec']]=v
                     keys=FeatureGenerator.extractKeywords(v)
                     filtered_keys=[]
-                    not_allowed_patterns=[] # TODO fill
+                    not_allowed_patterns=[r'^type$',r'^order$',r'^result$',r'^victim$',r'^attempt$',r'^goal$',r'^determine$',r'^advantage$',r'^part$',r'^case$',r'^doe$',r'^number$',r'^time$',r'^lead$',r'^accomplished$',r'^intended$',r'^fact$',r'^manner$',r'^similar$',r'^target software$',r'^target application$',r'^intent$',r'^interacting$',r'^ha$',r'^identify$',r'^configuration$',r'^behavior$',r'^provide$',r'^implementation$',r'^presence$',r'^point$',r'^variety$',r'^interpreted$',r'^man$',r'^configured$',r'^expected$',r'^achieve$',r'^product$'] # TODO fill
                     occurences_in_doc[capec['capec']]={}
                     for key in keys{
                         insert=True
@@ -1733,7 +1737,7 @@ class DataProcessor(object){
         bag_of_tags_sorted=sorted(bag_of_tags.items(), key=lambda x: x[1], reverse=True)
         bag_of_tags=[]
         bag_of_tags_and_occurences={}
-        min_occurrences=10 # TODO adjust
+        min_occurrences=10
         for tag,amount in list(bag_of_tags_sorted){
             if amount>=min_occurrences{
                 bag_of_tags.append(tag)
@@ -1741,7 +1745,7 @@ class DataProcessor(object){
             }
         }
         bag_of_tags_sorted=None
-        # just to visualize  # TODO visualize
+        # just to visualize
         # for k,v in fields_and_values.items(){
         #     self.logger.clean(k)
         #     if k !='vendors'{
@@ -1776,14 +1780,18 @@ class DataProcessor(object){
             # submittedDate - OK
             # modifiedDate - OK
             # Prerequisites - OK
-            # Prerequisites - OK
             # Mitigations - OK
             # Skill - OK
             # Examples - OK
+            # Taxonomy - OK
+            # Indicators - OK
+            # Reference - OK
+            # Resources_req - OK
             featured_capec={}
 
             # _id ignore
             # Name ignore
+            # Taxonomy ignore
             
             # references
             featured_capec['capec']=capec['capec']
@@ -1823,12 +1831,12 @@ class DataProcessor(object){
             }
             featured_capec=dict(featured_capec,**FeatureGenerator.buildFeaturesFromEnum('Skill_level',capec['Skill_level'],fields_and_values['Skill_level']))
 
-            if 'Affected_Scopes' not in capec{
+            if 'Affected_Scopes' not in capec or capec['Affected_Scopes']=='Other'{
                 capec['Affected_Scopes']=FeatureGenerator.ABSENT_FIELD_FOR_ENUM
             }
             featured_capec=dict(featured_capec,**FeatureGenerator.buildFeaturesFromEnum('Affected_Scopes',capec['Affected_Scopes'],fields_and_values['Affected_Scopes']))
 
-            if 'Damage' not in capec{
+            if 'Damage' not in capec or capec['Damage']=='Other'{
                 capec['Damage']=FeatureGenerator.ABSENT_FIELD_FOR_ENUM
             }
             featured_capec=dict(featured_capec,**FeatureGenerator.buildFeaturesFromEnum('Damage',capec['Damage'],fields_and_values['Damage']))
@@ -1840,7 +1848,6 @@ class DataProcessor(object){
             }
             # modifiedDate ignore        
             # Dates - extract features on enrich
-
 
             # numbers
             if 'Prerequisites' not in capec{
@@ -1878,6 +1885,29 @@ class DataProcessor(object){
                 }
             }
             featured_capec['examples_wc_log']=math.log(1+len(re.findall(r"[\w']+", capec['Examples'])))
+
+            if 'Indicators' not in capec{
+                capec['Indicators']=''
+            }else{
+                if type(capec['Indicators']) is list{
+                     capec['Indicators']=' '.join( capec['Indicators'])
+                }
+            }
+            featured_capec['indicators_wc_log']=math.log(1+len(re.findall(r"[\w']+", capec['Indicators'])))
+
+             if 'Resources_req' not in capec{
+                capec['Resources_req']=''
+            }else{
+                if type(capec['Resources_req']) is list{
+                     capec['Resources_req']=' '.join( capec['Resources_req'])
+                }
+            }
+            featured_capec['required_res_wc_log']=math.log(1+len(re.findall(r"[\w']+", capec['Resources_req'])))
+
+             if 'Reference' not in capec{
+                capec['Reference']=[]
+            }
+            featured_capec['references_count']=len(capec['Reference'])
             # numbers
 
 
@@ -1895,9 +1925,6 @@ class DataProcessor(object){
             }else{
                 featured_capec=dict(featured_capec,**FeatureGenerator.buildFeaturesFromEnum('Description','',bag_of_tags,has_absent=False))
             }
-
-            print(featured_capec) # TODO check and remove
-            exit()
 
             if update_callback { update_callback() }
             self.mongo.insertOneOnDB(self.mongo.getProcessedDB(),featured_capec,'features_capec',verbose=False,ignore_lock=True)
