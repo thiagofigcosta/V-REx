@@ -10,11 +10,15 @@ WORKDIR /code
 COPY --from=builder /root/.local /root/.local
 COPY Pytho{N}.py .
 COPY entrypoint.sh .
+COPY frontstarter.sh .
 COPY src/ .
 
 RUN chmod +x entrypoint.sh
+RUN chmod +x frontstarter.sh
 
-RUN ln -s entrypoint.sh /bin/front-end
+RUN ln -s frontstarter.sh /bin/front-end
+RUN ln -s frontstarter.sh /bin/frontend
+RUN ln -s frontstarter.sh /bin/front
 
 ENV PATH=/root/.local/bin:$PATH
 
