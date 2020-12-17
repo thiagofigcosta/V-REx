@@ -2316,10 +2316,10 @@ class DataProcessor(object){
         self.logger.info('Runned \"Transform\" on CWE Data...OK')
     }
 
-    def transformExploits(self,update_callback=None){ # TODO finish
+    def transformExploits(self,update_callback=None){ 
         self.logger.info('Running \"Transform\" on EXPLOIT Data...')
         exploit_data=self.mongo.findAllOnDB(self.mongo.getProcessedDB(),'exploits')
-        verbose_frequency=1333
+        verbose_frequency=666
         iter_count=0
         data_size=0
         total_iters=exploit_data.count()
