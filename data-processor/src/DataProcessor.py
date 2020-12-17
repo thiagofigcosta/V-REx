@@ -1719,7 +1719,7 @@ class DataProcessor(object){
                     fields_and_values[k][capec['capec']]=v
                     keys=FeatureGenerator.extractKeywords(v)
                     filtered_keys=[]
-                    not_allowed_patterns=[r'^type$',r'^order$',r'^result$',r'^victim$',r'^attempt$',r'^goal$',r'^determine$',r'^advantage$',r'^part$',r'^case$',r'^doe$',r'^number$',r'^time$',r'^lead$',r'^accomplished$',r'^intended$',r'^fact$',r'^manner$',r'^similar$',r'^target software$',r'^target application$',r'^intent$',r'^interacting$',r'^ha$',r'^identify$',r'^configuration$',r'^behavior$',r'^provide$',r'^implementation$',r'^presence$',r'^point$',r'^variety$',r'^interpreted$',r'^man$',r'^configured$',r'^expected$',r'^achieve$',r'^product$'] # TODO fill
+                    not_allowed_patterns=[r'^type$',r'^order$',r'^result$',r'^victim$',r'^attempt$',r'^goal$',r'^determine$',r'^advantage$',r'^part$',r'^case$',r'^doe$',r'^number$',r'^time$',r'^lead$',r'^accomplished$',r'^intended$',r'^fact$',r'^manner$',r'^similar$',r'^target software$',r'^target application$',r'^intent$',r'^interacting$',r'^ha$',r'^identify$',r'^configuration$',r'^behavior$',r'^provide$',r'^implementation$',r'^presence$',r'^point$',r'^variety$',r'^interpreted$',r'^man$',r'^configured$',r'^expected$',r'^achieve$',r'^product$']
                     occurences_in_doc[capec['capec']]={}
                     for key in keys{
                         insert=True
