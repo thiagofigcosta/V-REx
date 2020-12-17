@@ -964,11 +964,30 @@ class DataProcessor(object){
                     mitigations=[]
                     cwe['MitigationsEffectiveness']=[]
                     for mit in cwe['Potential_Mitigations']{
-                        if type is dict{
+                        if type(mit) is dict{
                             if 'Description' in mit {
-                                mitigations.append(mit['Description'])
+                                desc=mit['Description']
+                                if desc {
+                                    if type(desc) is dict and 'value' in desc{ 
+                                        desc=desc['value']
+                                    }
+                                    if type(desc) is list{ 
+                                        for dec in desc{
+                                            mitigations.append(dec)
+                                        }
+                                    }else{
+                                        mitigations.append(desc)
+                                    }
+                                }
                             }else{
-                                mitigations.append(mit['Phase'])
+                                phse=mit['Phase']
+                                if type(phse) is list{ 
+                                    for phe in phse{
+                                        mitigations.append(phe)
+                                    }
+                                }else{
+                                    mitigations.append(phse)
+                                }
                             }
                             if 'Effectiveness' in mit {
                                 cwe['MitigationsEffectiveness'].append(mit['Effectiveness'])
@@ -1572,7 +1591,7 @@ class DataProcessor(object){
                 description_features=FeatureGenerator.buildFeaturesFromEnum('Description',extracted_tags[cve['cve']],bag_of_tags,has_absent=False)
                 for tag in extracted_tags[cve['cve']]{
                     if tag in bag_of_tags{
-                        tag_feature_name='{}_ENUM_{}'.format('Description'.lower(),tag.lower())
+                        tag_feature_name=FeatureGenerator.buildEnumKeyName('Description',tag)
                         if tag_feature_name in description_features and description_features[tag_feature_name]==1{
                             # description_features[tag_feature_name]=occurences_in_doc[cve['cve']][tag]*math.log(float(total_docs)/float(occurences_in_docs[tag]))
                             description_features[tag_feature_name]=occurences_in_doc[cve['cve']][tag]*math.log(float(total_docs)/float(bag_of_tags_and_occurences[tag]))
@@ -1915,7 +1934,7 @@ class DataProcessor(object){
                 description_features=FeatureGenerator.buildFeaturesFromEnum('Description',extracted_tags[capec['capec']],bag_of_tags,has_absent=False)
                 for tag in extracted_tags[capec['capec']]{
                     if tag in bag_of_tags{
-                        tag_feature_name='{}_ENUM_{}'.format('Description'.lower(),tag.lower())
+                        tag_feature_name=FeatureGenerator.buildEnumKeyName('Description',tag)
                         if tag_feature_name in description_features and description_features[tag_feature_name]==1{
                             description_features[tag_feature_name]=occurences_in_doc[capec['capec']][tag]*math.log(float(total_docs)/float(bag_of_tags_and_occurences[tag]))
                         }
@@ -1940,7 +1959,7 @@ class DataProcessor(object){
         self.logger.info('Runned \"Transform\" on CAPEC Data...OK')
     }
 
-    def transformCwe(self,update_callback=None){ # TODO finish
+    def transformCwe(self,update_callback=None){ 
         self.logger.info('Running \"Transform\" on CWE Data...')
         cwe_data=self.mongo.findAllOnDB(self.mongo.getProcessedDB(),'flat_cwe')
         verbose_frequency=50
@@ -1983,17 +2002,31 @@ class DataProcessor(object){
             }
             for k,v in cwe.items(){
                 if k not in fields_and_values{
-                    fields_and_values[k]=set()
+                    if k!='Description'{
+                        fields_and_values[k]=set()
+                    }else{
+                        fields_and_values[k]={}
+                    }
                 }
-                if k not in ('_id','cwe','Name','Description','Extended_Description','CVEs','References','submittedDate','modifiedDate'){ # non enums # TODO check
-                    if k in ('Modes_Of_Introduction','Potential_Mitigations','Technology','Affected_Scopes','Damage'){ # lists of enums # TODO check
-                        for el in v{
-                            if type(el) is list{
-                                for el2 in el{
-                                    fields_and_values[k].add(el2)
+                if k not in ('_id','cwe','Name','Description','Extended_Description','CVEs','References','submittedDate','modifiedDate','Potential_Mitigations','Demonstrative_Examples','Category','Taxonomy','Related_Attack_Patterns','value','View','Dectection'){ # non enums
+                    if k in ('Modes_Of_Introduction','Technology','Affected_Scopes','Damage','MitigationsEffectiveness','Weakness_Ordinalities','Dectection','Dectection_Effectiveness','Affected_Resources','Functional_Areas'){ # lists of enums 
+                        if type(v) is list{
+                            for el in v{
+                                if type(el) is list{
+                                    for el2 in el{
+                                        if 'REALIZATION: ' not in el2 and 'OMISSION: ' not in el2{
+                                            fields_and_values[k].add(el2)
+                                        }
+                                    }
+                                }else{
+                                    if 'REALIZATION: ' not in el and 'OMISSION: ' not in el{
+                                        fields_and_values[k].add(el)
+                                    }
                                 }
-                            }else{
-                                fields_and_values[k].add(el)
+                            }
+                        }else{
+                            if 'REALIZATION: ' not in v and 'OMISSION: ' not in v{
+                                fields_and_values[k].add(v)
                             }
                         }
                     }else{
@@ -2016,7 +2049,7 @@ class DataProcessor(object){
                     fields_and_values[k][cwe['cwe']]=v
                     keys=FeatureGenerator.extractKeywords(v)
                     filtered_keys=[]
-                    not_allowed_patterns=[] # TODO fill
+                    not_allowed_patterns=[r'^doe$',r'^software doe$',r'^product$',r'^order$',r'^lead$',r'^result$',r'^make$',r'^weakness$',r'^ha$',r'^actor$',r'^product doe$',r'^expected$',r'^occur$',r'^ensure$',r'^issue$',r'^intended$',r'^easier$',r'^reference$',r'^making$',r'^modified$',r'^introduce$']
                     occurences_in_doc[cwe['cwe']]={}
                     for key in keys{
                         insert=True
@@ -2053,7 +2086,7 @@ class DataProcessor(object){
         bag_of_tags_sorted=sorted(bag_of_tags.items(), key=lambda x: x[1], reverse=True)
         bag_of_tags=[]
         bag_of_tags_and_occurences={}
-        min_occurrences=10 # TODO adjust
+        min_occurrences=22
         for tag,amount in list(bag_of_tags_sorted){
             if amount>=min_occurrences{
                 bag_of_tags.append(tag)
@@ -2061,15 +2094,15 @@ class DataProcessor(object){
             }
         }
         bag_of_tags_sorted=None
-        # just to visualize  # TODO visualize
+        # just to visualize 
         # for k,v in fields_and_values.items(){
         #     self.logger.clean(k)
-        #     if k !='vendors'{
+        #     if k !='Description'{
         #         for v2 in v{
         #             self.logger.clean('\t{}'.format(v2))
         #         }
-        #     }elif k!='Description'{
-        #         self.logger.clean('\t{}'.format(' | '.join(v)))
+        #     }else{
+        #         self.logger.clean('\t{}'.format(' | '.join(bag_of_tags)))
         #     }
         # }
         # just to visualize 
@@ -2090,7 +2123,6 @@ class DataProcessor(object){
             # Status - OK
             # Modes_Of_Introduction - OK
             # Likelihood_Of_Exploit - OK
-            # Potential_Mitigations - OK
             # Language - OK
             # Technology - OK
             # Affected_Scopes - OK
@@ -2101,16 +2133,33 @@ class DataProcessor(object){
             # Demonstrative_Examples - OK
             # References - OK
             # Description - OK
+            # Taxonomy - OK
+            # Related_Attack_Patterns - OK
+            # value - OK
+            # Weakness_Ordinalities - OK
+            # Dectection_Effectiveness - OK
+            # Affected_Resources - OK
+            # Functional_Areas - OK
+            # View - OK
+            # Dectection - OK
+            # Potential_Mitigations - OK
+            # Category - OK
             
             featured_cwe={}
 
             # _id ignore
             # Name ignore
+            # Taxonomy ignore
+            # value ignore
+            # View ignore
             
             # references
             featured_cwe['cwe']=cwe['cwe']
             if 'CVEs' in cwe{
                 featured_cwe['CVEs']=cwe['CVEs']
+            }
+            if 'Related_Attack_Patterns' in cwe{
+                featured_cwe['Related_Attack_Patterns']=cwe['Related_Attack_Patterns']
             }
             # references
 
@@ -2140,11 +2189,6 @@ class DataProcessor(object){
             }
             featured_cwe=dict(featured_cwe,**FeatureGenerator.buildFeaturesFromEnum('Likelihood_Of_Exploit',cwe['Likelihood_Of_Exploit'],fields_and_values['Likelihood_Of_Exploit']))
 
-            if 'Potential_Mitigations' not in cwe{
-                cwe['Potential_Mitigations']=FeatureGenerator.ABSENT_FIELD_FOR_ENUM
-            }
-            featured_cwe=dict(featured_cwe,**FeatureGenerator.buildFeaturesFromEnum('Potential_Mitigations',cwe['Potential_Mitigations'],fields_and_values['Potential_Mitigations']))
-
             if 'Language' not in cwe{
                 cwe['Language']=FeatureGenerator.ABSENT_FIELD_FOR_ENUM
             }
@@ -2165,10 +2209,30 @@ class DataProcessor(object){
             }
             featured_cwe=dict(featured_cwe,**FeatureGenerator.buildFeaturesFromEnum('Damage',cwe['Damage'],fields_and_values['Damage']))
 
-            if 'MitigationsEffectiveness' not in cwe{
+            if 'MitigationsEffectiveness' not in cwe or cwe['MitigationsEffectiveness']=='UNKNOWN'{
                 cwe['MitigationsEffectiveness']=FeatureGenerator.ABSENT_FIELD_FOR_ENUM
             }
             featured_cwe=dict(featured_cwe,**FeatureGenerator.buildFeaturesFromEnum('Mitigations_Effectiveness',cwe['MitigationsEffectiveness'],fields_and_values['MitigationsEffectiveness']))
+
+            if 'Dectection_Effectiveness' not in cwe or cwe['Dectection_Effectiveness']=='Unknown'{
+                cwe['Dectection_Effectiveness']=FeatureGenerator.ABSENT_FIELD_FOR_ENUM
+            }
+            featured_cwe=dict(featured_cwe,**FeatureGenerator.buildFeaturesFromEnum('Dectection_Effectiveness',cwe['Dectection_Effectiveness'],fields_and_values['Dectection_Effectiveness']))
+
+            if 'Weakness_Ordinalities' not in cwe {
+                cwe['Weakness_Ordinalities']=FeatureGenerator.ABSENT_FIELD_FOR_ENUM
+            }
+            featured_cwe=dict(featured_cwe,**FeatureGenerator.buildFeaturesFromEnum('Weakness_Ordinalities',cwe['Weakness_Ordinalities'],fields_and_values['Weakness_Ordinalities']))
+
+            if 'Affected_Resources' not in cwe {
+                cwe['Affected_Resources']=FeatureGenerator.ABSENT_FIELD_FOR_ENUM
+            }
+            featured_cwe=dict(featured_cwe,**FeatureGenerator.buildFeaturesFromEnum('Affected_Resources',cwe['Affected_Resources'],fields_and_values['Affected_Resources']))
+
+            if 'Functional_Areas' not in cwe {
+                cwe['Functional_Areas']=FeatureGenerator.ABSENT_FIELD_FOR_ENUM
+            }
+            featured_cwe=dict(featured_cwe,**FeatureGenerator.buildFeaturesFromEnum('Functional_Areas',cwe['Functional_Areas'],fields_and_values['Functional_Areas']))
             # enums
 
             # Dates - extract features on enrich
@@ -2189,6 +2253,33 @@ class DataProcessor(object){
             }
             featured_cwe['demo_examples_wc_log']=math.log(1+len(re.findall(r"[\w']+", cwe['Demonstrative_Examples'])))
 
+            if 'Dectection' not in cwe{
+                cwe['Dectection']=''
+            }else{
+                if type(cwe['Dectection']) is list{
+                     cwe['Dectection']=' '.join(cwe['Dectection'])
+                }
+            }
+            featured_cwe['dectection_wc_log']=math.log(1+len(re.findall(r"[\w']+", cwe['Dectection'])))
+
+            if 'Potential_Mitigations' not in cwe{
+                cwe['Potential_Mitigations']=''
+            }else{
+                if type(cwe['Potential_Mitigations']) is list{
+                     cwe['Potential_Mitigations']=' '.join(cwe['Potential_Mitigations'])
+                }
+            }
+            featured_cwe['pot_mitigations_wc_log']=math.log(1+len(re.findall(r"[\w']+", cwe['Potential_Mitigations'])))
+
+            if 'Category' not in cwe{
+                cwe['Category']=''
+            }else{
+                if type(cwe['Category']) is list{
+                     cwe['Category']=' '.join(cwe['Category'])
+                }
+            }
+            featured_cwe['category_wc_log']=math.log(1+len(re.findall(r"[\w']+", cwe['Category'])))
+
             if 'References' not in cwe{
                 cwe['References']=[]
             }
@@ -2200,7 +2291,7 @@ class DataProcessor(object){
                 description_features=FeatureGenerator.buildFeaturesFromEnum('Description',extracted_tags[cwe['cwe']],bag_of_tags,has_absent=False)
                 for tag in extracted_tags[cwe['cwe']]{
                     if tag in bag_of_tags{
-                        tag_feature_name='{}_ENUM_{}'.format('Description'.lower(),tag.lower())
+                        tag_feature_name=FeatureGenerator.buildEnumKeyName('Description',tag)
                         if tag_feature_name in description_features and description_features[tag_feature_name]==1{
                             description_features[tag_feature_name]=occurences_in_doc[cwe['cwe']][tag]*math.log(float(total_docs)/float(bag_of_tags_and_occurences[tag]))
                         }
@@ -2210,9 +2301,6 @@ class DataProcessor(object){
             }else{
                 featured_cwe=dict(featured_cwe,**FeatureGenerator.buildFeaturesFromEnum('Description','',bag_of_tags,has_absent=False))
             }
-
-            print(featured_cwe) # TODO check and remove
-            exit()
 
             if update_callback { update_callback() }
             self.mongo.insertOneOnDB(self.mongo.getProcessedDB(),featured_cwe,'features_cwe',verbose=False,ignore_lock=True)

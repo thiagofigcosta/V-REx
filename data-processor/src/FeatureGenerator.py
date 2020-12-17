@@ -23,9 +23,14 @@ class FeatureGenerator(object){
         }
         for enum in every_value{
             presence=1 if enum in value else 0
-            output['{}_ENUM_{}'.format(field_name.lower(),enum.lower())]=presence
+            output[FeatureGenerator.buildEnumKeyName(field_name,enum)]=presence
         }
         return output
+    }
+
+    @staticmethod
+    def buildEnumKeyName(field_name,value){
+        return '{}_ENUM_{}'.format(field_name.lower(),value.lower().replace('.','_'))
     }
 
     @staticmethod
