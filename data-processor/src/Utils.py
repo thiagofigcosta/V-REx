@@ -16,6 +16,8 @@ from bson.json_util import dumps as bdumps
 from bson.json_util import loads as bloads
 
 class Utils(object){
+    # 'Just':'to fix vscode coloring':'when using pytho{\}'
+
     if os.name == 'nt'{
         FILE_SEPARATOR='\\'
     }else{
@@ -281,5 +283,13 @@ class Utils(object){
         date1=datetime.strptime(date1, date_format)
         date2=datetime.strptime(date2, date_format)
         return date1<date2
+    }
+
+    @staticmethod
+    def daysBetweenStrDate(date1,date2,input_format){
+        date1=datetime.strptime(date1, input_format)
+        date2=datetime.strptime(date2, input_format)
+        delta=date2-date1
+        return delta.days
     }
 }

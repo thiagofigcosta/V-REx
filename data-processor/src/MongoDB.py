@@ -419,7 +419,7 @@ class MongoDB(object){
         self.logger.info('Restored database {} from file {}...OK'.format(db_name,compressed_db_dump))
     }
 
-    def findAllOnDB(self,db,collection,wait_unlock=True){
+    def findAllOnDB(self,db,collection,wait_unlock=True,query=dict(),projection=None){
         if self.dummy{
             raise Exception('Find all is not supported on DummyMode')
         }
@@ -428,6 +428,10 @@ class MongoDB(object){
                 time.sleep(1)
             }
         }
-        return db[collection].find()
+        if projection {
+            return db[collection].find(query,projection)
+        }else{
+            return db[collection].find(query)
+        }
     }
 }

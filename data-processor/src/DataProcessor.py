@@ -10,6 +10,8 @@ from nltk.stem import WordNetLemmatizer
 import time
 
 class DataProcessor(object){
+    # 'Just':'to fix vscode coloring':'when using pytho{\}'
+
     TMP_FOLDER='tmp/processor/'
 
     def __init__(self, mongo, logger){
@@ -1645,8 +1647,9 @@ class DataProcessor(object){
             }else{
                 raise Exception('Invalid oval type ({}) on oval {}'.format(oval['type'],oval['oval']))
             }
+            featured_oval['oval']=oval['oval']
             if update_callback { update_callback() }
-            self.mongo.insertOneOnDB(self.mongo.getProcessedDB(),featured_oval,'features_oval',verbose=False,ignore_lock=True)
+            self.mongo.insertOneOnDB(self.mongo.getProcessedDB(),featured_oval,'features_oval','oval',verbose=False,ignore_lock=True)
             data_size+=Utils.sizeof(featured_oval)
             iter_count+=1
             if iter_count%verbose_frequency==0{
@@ -1944,9 +1947,11 @@ class DataProcessor(object){
             }else{
                 featured_capec=dict(featured_capec,**FeatureGenerator.buildFeaturesFromEnum('Description','',bag_of_tags,has_absent=False))
             }
+            featured_capec['capec']=capec['capec']
+
 
             if update_callback { update_callback() }
-            self.mongo.insertOneOnDB(self.mongo.getProcessedDB(),featured_capec,'features_capec',verbose=False,ignore_lock=True)
+            self.mongo.insertOneOnDB(self.mongo.getProcessedDB(),featured_capec,'features_capec','capec',verbose=False,ignore_lock=True)
             data_size+=Utils.sizeof(featured_capec)
             iter_count+=1
             if iter_count%verbose_frequency==0{
@@ -2303,7 +2308,7 @@ class DataProcessor(object){
             }
 
             if update_callback { update_callback() }
-            self.mongo.insertOneOnDB(self.mongo.getProcessedDB(),featured_cwe,'features_cwe',verbose=False,ignore_lock=True)
+            self.mongo.insertOneOnDB(self.mongo.getProcessedDB(),featured_cwe,'features_cwe','cwe',verbose=False,ignore_lock=True)
             data_size+=Utils.sizeof(featured_cwe)
             iter_count+=1
             if iter_count%verbose_frequency==0{
@@ -2333,8 +2338,8 @@ class DataProcessor(object){
             # _id ignore
             # references
             featured_exploit['cve']=exploit['cve']
-            featured_exploit['exploitDate']=exploit['date']
-
+            featured_exploit['exploitDate']=Utils.changeStrDateFormat(exploit['date'],'%Y-%m-%d','%d/%m/%Y')
+            
             if exploit['verified'].lower()=='true'{
                 featured_exploit['exploit_was_verified']=1
             }else{
@@ -2342,8 +2347,10 @@ class DataProcessor(object){
             }
             featured_exploit['has_exploit']=1
 
+            featured_exploit['exploit']=exploit['exploit']
+
             if update_callback { update_callback() }
-            self.mongo.insertOneOnDB(self.mongo.getProcessedDB(),featured_exploit,'features_exploit',verbose=False,ignore_lock=True)
+            self.mongo.insertOneOnDB(self.mongo.getProcessedDB(),featured_exploit,'features_exploit','exploit',verbose=False,ignore_lock=True)
             data_size+=Utils.sizeof(featured_exploit)
             iter_count+=1
             if iter_count%verbose_frequency==0{
@@ -2357,20 +2364,292 @@ class DataProcessor(object){
     }
     
     def enrichData(self,update_callback=None){
-        # TODO include CWE, CAPEC, OVAL, exploit into CVE DATA
-        # (insert using data on CVEs)
-        # (insert using data on the other sources, search if the given exploit already fulfilled and if data is complete)
-        pass
+        self.references=self.mongo.loadReferences()
+        self.logger.info('Running \"Enrich\" on data...')
+        lock=self.mongo.getLock(self.mongo.getProcessedDB(),'full_dataset')
+        while self.mongo.checkIfCollectionIsLocked(lock=lock){
+            time.sleep(1)
+        }
+        lock.acquire()
+        verbose_frequency=666
+        iter_count=0
+        data_size=0
+        cves_refs=[]
+        iter_count=1
+        total_iters=len(self.references['cve'])
+        for cve_ref in self.references['cve']{
+            cve=self.mongo.findOneOnDBFromIndex(self.mongo.getProcessedDB(),'features_cve','cve','CVE-{}'.format(cve_ref))
+            if cve{
+                cve_id=cve['cve']
+                full_cve={}
+                cve_labels={}
+                CWEs=[]
+                lastModifiedDate=None
+                interimDate=None
+                proposedDate=None
+                assignedDate=None
+                publishedDate=None
+                for k,v in cve.items(){
+                    if 'exploits_weaponized' in k{
+                        cve_labels[k]=v
+                    }elif k=='CWEs'{
+                        CWEs=v
+                    }elif k=='interimDate'{
+                        interimDate=v
+                    }elif k=='proposedDate'{
+                        proposedDate=v
+                    }elif k=='assignedDate'{
+                        assignedDate=v
+                    }elif k=='publishedDate'{
+                        publishedDate=v
+                    }elif k=='lastModifiedDate'{
+                        lastModifiedDate=v
+                    }elif k!='_id'{
+                        full_cve[k]=v
+                    }
+                }
+                capecs=[]
+                cweDate=[]
+                merged_cwes={}
+                for cwe in CWEs{
+                    cwe=self.mongo.findOneOnDBFromIndex(self.mongo.getProcessedDB(),'features_cwe','cwe',cwe)
+                    if cwe {
+                        for k,v in cwe.items(){
+                            k_cwe='cwe_{}'.format(k)
+                            if '_ENUM_' in k{
+                                if k_cwe not in merged_cwes{
+                                    merged_cwes[k_cwe]=v
+                                }else{
+                                    if merged_cwes[k_cwe]==0{
+                                        merged_cwes[k_cwe]=v
+                                    }elif merged_cwes[k_cwe]==1 and (v==1 or v==0) {
+                                        merged_cwes[k_cwe]=1
+                                    }else{
+                                        merged_cwes[k_cwe]+=v
+                                    }
+                                }
+                            }elif k=='cweDate'{
+                                cweDate.append(v)
+                            }elif k=='Related_Attack_Patterns'{
+                                for el in v{
+                                    capecs.append(el)
+                                }
+                            }elif k not in ('_id','CVEs','cwe'){
+                                if k_cwe not in merged_cwes{
+                                    merged_cwes[k_cwe]=v
+                                }else{
+                                    merged_cwes[k_cwe]+=v
+                                }
+                            }
+                        }
+                    }
+                }
+                full_cve=dict(full_cve,**merged_cwes)
+                capecDate=[]
+                merged_capecs={}
+                for capec in capecs{
+                    capec=self.mongo.findOneOnDBFromIndex(self.mongo.getProcessedDB(),'features_capec','capec',capec)
+                    if capec{
+                        for k,v in capec.items(){
+                            k_capec='capec_{}'.format(k)
+                            if '_ENUM_' in k{
+                                if k_capec not in merged_capecs{
+                                    merged_capecs[k_capec]=v
+                                }else{
+                                    if merged_capecs[k_capec]==0{
+                                        merged_capecs[k_capec]=v
+                                    }elif merged_capecs[k_capec]==1 and (v==1 or v==0) {
+                                        merged_capecs[k_capec]=1
+                                    }else{
+                                        merged_capecs[k_capec]+=v
+                                    }
+                                }
+                            }elif k=='capecDate'{
+                                capecDate.append(v)
+                            }elif k not in ('_id','CWEs','capec'){
+                                if k_capec not in merged_capecs{
+                                    merged_capecs[k_capec]=v
+                                }else{
+                                    merged_capecs[k_capec]+=v
+                                }
+                            }
+                        }
+                    }
+                }
+                full_cve=dict(full_cve,**merged_capecs)
+                query={'cve':cve_id}
+                ovals=self.mongo.findAllOnDB(self.mongo.getProcessedDB(),'features_oval',query=query)
+                ovalDate=[]
+                patchDate=[]
+                merged_ovals={}
+                for oval in ovals{
+                    for k,v in oval.items(){
+                        k_oval='oval_{}'.format(k)
+                        if 'has_' in k{
+                            if k_oval not in merged_ovals{
+                                merged_ovals[k_oval]=v
+                            }else{
+                                if merged_ovals[k_oval]==0{
+                                    merged_ovals[k_oval]=v
+                                }elif merged_ovals[k_oval]==1 and (v==1 or v==0) {
+                                    merged_ovals[k_oval]=1
+                                }else{
+                                    merged_ovals[k_oval]+=v
+                                }
+                            }
+                        }elif k=='ovalDate'{
+                            ovalDate.append(v)
+                        }elif k=='patchDate'{
+                            patchDate.append(v)
+                        }
+                    }
+                }
+                full_cve=dict(full_cve,**merged_ovals)
+                query={'cve':cve_id.split('CVE-')[1]}
+                exploits=self.mongo.findAllOnDB(self.mongo.getProcessedDB(),'features_exploit',query=query)
+                exploitDate=[]
+                cve_labels['exploits_has']=0
+                cve_labels['exploits_verified']=0
+                for exploit in exploits{
+                    if 'exploitDate' in exploit{
+                        exploitDate.append(exploit['exploitDate'])
+                    }
+                    if 'has_exploit' in exploit and exploit['has_exploit']==1{
+                        cve_labels['exploits_has']=1
+                    }
+                    if 'exploit_was_verified' in exploit and exploit['exploit_was_verified']==1{
+                        cve_labels['exploits_verified']=1
+                    }
+                }
+                if len(cweDate)==0{
+                    cweDate=None
+                }else{
+                    finalDate=cweDate[0]
+                    for date in cweDate{
+                        if Utils.isFirstStrDateOldest(date,finalDate,'%d/%m/%Y'){ # oldest
+                            finalDate=date
+                        }
+                    }
+                    cweDate=finalDate
+                }
+                if len(capecDate)==0{
+                    capecDate=None
+                }else{
+                    finalDate=capecDate[0]
+                    for date in capecDate{
+                        if Utils.isFirstStrDateOldest(date,finalDate,'%d/%m/%Y'){ # oldest
+                            finalDate=date
+                        }
+                    }
+                    capecDate=finalDate
+                }
+                if len(ovalDate)==0{
+                    ovalDate=None
+                }else{
+                    finalDate=ovalDate[0]
+                    for date in ovalDate{
+                        if Utils.isFirstStrDateOldest(date,finalDate,'%d/%m/%Y'){ # oldest
+                            finalDate=date
+                        }
+                    }
+                    ovalDate=finalDate
+                }
+                if len(patchDate)==0{
+                    patchDate=None
+                }else{
+                    finalDate=patchDate[0]
+                    for date in patchDate{
+                        if Utils.isFirstStrDateOldest(date,finalDate,'%d/%m/%Y'){ # oldest
+                            finalDate=date
+                        }
+                    }
+                    patchDate=finalDate
+                }
+                if len(exploitDate)==0{
+                    exploitDate=None
+                }else{
+                    finalDate=exploitDate[0]
+                    for date in exploitDate{
+                        if Utils.isFirstStrDateOldest(date,finalDate,'%d/%m/%Y'){ # oldest
+                            finalDate=date
+                        }
+                    }
+                    exploitDate=finalDate
+                }
+                # cweDate
+                # capecDate
+                # ovalDate
+                # patchDate
+                # exploitDate
+                # lastModifiedDate
+                # interimDate
+                # proposedDate
+                # assignedDate
+                # publishedDate
+                # publishedDate-proposedDate (td-t0)
+                # patchDate-publishedDate (tp-td)
+                # exploitDate-patchDate (te-tp)
+                # exploitDate-publishedDate (te-td)
+                # exploitDate-proposedDate (te-t0)
+                # now()-proposedDate (age)
+                cve_labels['delta_days_exploit']=0
+                full_cve['delta_days_cwe']=0
+                full_cve['delta_days_capec']=0
+                full_cve['delta_days_oval']=0
+                full_cve['delta_days_patch']=0
+                full_cve['delta_days_proposed']=0
+                full_cve['delta_days_assigned']=0
+                if publishedDate {
+                    if exploitDate {
+                        cve_labels['delta_days_exploit']=Utils.daysBetweenStrDate(publishedDate,exploitDate,'%d/%m/%Y')
+                    }
+                    if cweDate {
+                        full_cve['delta_days_cwe']=Utils.daysBetweenStrDate(publishedDate,cweDate,'%d/%m/%Y')
+                    }
+                    if capecDate {
+                        full_cve['delta_days_capec']=Utils.daysBetweenStrDate(publishedDate,capecDate,'%d/%m/%Y')
+                    }
+                    if ovalDate {
+                        full_cve['delta_days_oval']=Utils.daysBetweenStrDate(publishedDate,ovalDate,'%d/%m/%Y')
+                    }
+                    if patchDate {
+                        full_cve['delta_days_patch']=Utils.daysBetweenStrDate(publishedDate,patchDate,'%d/%m/%Y')
+                    }
+                    if proposedDate {
+                        full_cve['delta_days_proposed']=Utils.daysBetweenStrDate(publishedDate,proposedDate,'%d/%m/%Y')
+                    }
+                    if assignedDate {
+                        full_cve['delta_days_assigned']=Utils.daysBetweenStrDate(publishedDate,assignedDate,'%d/%m/%Y')
+                    }
+                }
+
+                full_cve=dict(cve_labels,**full_cve)
+                if update_callback { update_callback() }
+                self.mongo.insertOneOnDB(self.mongo.getProcessedDB(),full_cve,'full_dataset','cve',verbose=False,ignore_lock=True)
+                data_size+=Utils.sizeof(full_cve)
+                if iter_count%verbose_frequency==0{
+                    lock.refresh()
+                    self.logger.verbose('Percentage done {:.2f}% - Total data size: {}'.format((float(iter_count)/total_iters*100),Utils.bytesToHumanReadable(data_size)))
+                }
+            }   
+            iter_count+=1
+        }
+        self.logger.verbose('Percentage done {:.2f}% - Total data size: {}'.format((float(iter_count)/total_iters*100),Utils.bytesToHumanReadable(data_size)))
+        lock.release()
+        self.logger.info('Runned \"Enrich\" on data...OK')
     }
 
     def analyzeFullDataset(self,update_callback=None){
         # TODO check the coverage of each feature to decide later which ones to exclude
+        # reduce amount of vendors (if amount of vendor cves is lower than X, use others on vendors or remove feature)
         # return list of key and its coverage
+        # min, max, how many containing, zero values, 1 values, other values...
         pass
     }
 
     def filterAndNormalizeFullDataset(self,update_callback=None){
         # TODO filter bad features (remove FeatureGenerator.ABSENT_FIELD_FOR_ENUM an other not used features)
+        # TODO sort by cve
         pass
     }
 
