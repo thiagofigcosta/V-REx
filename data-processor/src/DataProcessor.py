@@ -2372,7 +2372,6 @@ class DataProcessor(object){
         }
         lock.acquire()
         verbose_frequency=666
-        iter_count=0
         data_size=0
         cves_refs=[]
         iter_count=1
@@ -2640,16 +2639,108 @@ class DataProcessor(object){
     }
 
     def analyzeFullDataset(self,update_callback=None){
-        # TODO check the coverage of each feature to decide later which ones to exclude
-        # reduce amount of vendors (if amount of vendor cves is lower than X, use others on vendors or remove feature)
-        # return list of key and its coverage
-        # min, max, how many containing, zero values, 1 values, other values...
-        pass
+        self.logger.info('Running \"Analyze\" on data...')
+        lock=self.mongo.getLock(self.mongo.getProcessedDB(),'statistics')
+        while self.mongo.checkIfCollectionIsLocked(lock=lock){
+            time.sleep(1)
+        }
+        lock.acquire()
+        dataset=self.mongo.findAllOnDB(self.mongo.getProcessedDB(),'full_dataset')
+        verbose_frequency=666
+        iter_count=0
+        total_entries=dataset.count()
+        total_iters=total_entries
+        data_size=0
+        field_precesence={}
+        # field name -> value -> amount
+        field_values_compressed={} 
+        # field name -> value -> amount
+        field_vendor_values_compressed={} 
+        for data in dataset{
+            for k,v in data.items(){
+                if k!='_id'{
+                    v=str(v)
+                    if k not in field_precesence{
+                        field_precesence[k]=1
+                    }else{
+                        field_precesence[k]+=1
+                    }
+                    if 'vendor_ENUM_' not in k {
+                        if k not in field_values_compressed{
+                            field_values_compressed[k]={}
+                        }
+                        if v not in field_values_compressed[k]{
+                            field_values_compressed[k][v]=1
+                        }else{
+                            field_values_compressed[k][v]+=1
+                        }
+                    }else{
+                        if k not in field_vendor_values_compressed{
+                            field_vendor_values_compressed[k]={}
+                        }
+                        if v not in field_vendor_values_compressed[k]{
+                            field_vendor_values_compressed[k][v]=1
+                        }else{
+                            field_vendor_values_compressed[k][v]+=1
+                        }
+                    }
+                }
+            }
+            if update_callback { update_callback() }
+            iter_count+=1
+            if iter_count%verbose_frequency==0{
+                lock.refresh()
+                data_size=Utils.sizeof(field_precesence)+Utils.sizeof(field_values_compressed)+Utils.sizeof(field_vendor_values_compressed)
+                self.logger.verbose('Percentage done {:.2f}% - Total data size: {}'.format((float(iter_count)/total_iters*100),Utils.bytesToHumanReadable(data_size)))
+            }
+        }
+        total_entries={'total_entries':total_entries}
+        min_values={}
+        max_values={}
+        for k,dic in field_values_compressed.items() {
+            for v,_ in dic.items() {
+                v=float(v)
+                if k not in min_values {
+                    min_values[k]=v
+                }elif v<min_values[k]{
+                    min_values[k]=v
+                }
+                if k not in max_values {
+                    max_values[k]=v
+                }elif v>max_values[k]{
+                    max_values[k]=v
+                }
+            }
+        }
+        # wrapping the document inside 'data' avoid slowness on mongo express
+        field_precesence={'data':field_precesence}
+        field_values_compressed={'data':field_values_compressed}
+        field_vendor_values_compressed={'data':field_vendor_values_compressed}
+        min_values={'data':min_values}
+        max_values={'data':max_values}
+        total_entries={'data':total_entries}
+        field_precesence['__name__']='field_precesence'
+        field_values_compressed['__name__']='field_values_compressed'
+        field_vendor_values_compressed['__name__']='field_vendor_values_compressed'
+        min_values['__name__']='min_values'
+        max_values['__name__']='max_values'
+        total_entries['__name__']='total_entries'
+        self.mongo.insertOneOnDB(self.mongo.getProcessedDB(),field_precesence,'statistics','__name__',verbose=False,ignore_lock=True)
+        self.mongo.insertOneOnDB(self.mongo.getProcessedDB(),field_values_compressed,'statistics','__name__',verbose=False,ignore_lock=True)
+        self.mongo.insertOneOnDB(self.mongo.getProcessedDB(),field_vendor_values_compressed,'statistics','__name__',verbose=False,ignore_lock=True)
+        self.mongo.insertOneOnDB(self.mongo.getProcessedDB(),min_values,'statistics','__name__',verbose=False,ignore_lock=True)
+        self.mongo.insertOneOnDB(self.mongo.getProcessedDB(),max_values,'statistics','__name__',verbose=False,ignore_lock=True)
+        self.mongo.insertOneOnDB(self.mongo.getProcessedDB(),total_entries,'statistics','__name__',verbose=False,ignore_lock=True)
+        data_size=Utils.sizeof(field_precesence)+Utils.sizeof(field_values_compressed)+Utils.sizeof(field_vendor_values_compressed)+Utils.sizeof(min_values)+Utils.sizeof(max_values)+Utils.sizeof(total_entries)
+        self.logger.verbose('Percentage done {:.2f}% - Total data size: {}'.format((float(iter_count)/total_iters*100),Utils.bytesToHumanReadable(data_size)))
+        lock.release()
+        self.logger.info('Runned \"Analyze\" on data...OK')
     }
 
     def filterAndNormalizeFullDataset(self,update_callback=None){
         # TODO filter bad features (remove FeatureGenerator.ABSENT_FIELD_FOR_ENUM an other not used features)
         # TODO sort by cve
+        # reduce amount of vendors (if amount of vendor cves is lower than X, use others on vendors or remove feature)
         pass
     }
 
