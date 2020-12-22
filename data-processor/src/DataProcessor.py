@@ -2660,28 +2660,30 @@ class DataProcessor(object){
             for k,v in data.items(){
                 if k!='_id'{
                     v=str(v)
-                    if k not in field_precesence{
-                        field_precesence[k]=1
-                    }else{
-                        field_precesence[k]+=1
-                    }
-                    if 'vendor_ENUM_' not in k {
-                        if k not in field_values_compressed{
-                            field_values_compressed[k]={}
-                        }
-                        if v not in field_values_compressed[k]{
-                            field_values_compressed[k][v]=1
+                    if v.replace('.','',1).isdigit(){ # check if is float
+                        if k not in field_precesence{
+                            field_precesence[k]=1
                         }else{
-                            field_values_compressed[k][v]+=1
+                            field_precesence[k]+=1
                         }
-                    }else{
-                        if k not in field_vendor_values_compressed{
-                            field_vendor_values_compressed[k]={}
-                        }
-                        if v not in field_vendor_values_compressed[k]{
-                            field_vendor_values_compressed[k][v]=1
+                        if 'vendor_ENUM_' not in k {
+                            if k not in field_values_compressed{
+                                field_values_compressed[k]={}
+                            }
+                            if v not in field_values_compressed[k]{
+                                field_values_compressed[k][v]=1
+                            }else{
+                                field_values_compressed[k][v]+=1
+                            }
                         }else{
-                            field_vendor_values_compressed[k][v]+=1
+                            if k not in field_vendor_values_compressed{
+                                field_vendor_values_compressed[k]={}
+                            }
+                            if v not in field_vendor_values_compressed[k]{
+                                field_vendor_values_compressed[k][v]=1
+                            }else{
+                                field_vendor_values_compressed[k][v]+=1
+                            }
                         }
                     }
                 }
