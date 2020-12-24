@@ -1402,13 +1402,6 @@ class DataProcessor(object){
             featured_cve={}
 
             # _id ignore
-            
-            # references
-            featured_cve['cve']=cve['cve']
-            if 'CWEs' in cve{
-                featured_cve['CWEs']=cve['CWEs']
-            }
-            # references
 
             # enums
             if 'Status' not in cve{
@@ -1605,9 +1598,19 @@ class DataProcessor(object){
                 featured_cve=dict(featured_cve,**FeatureGenerator.buildFeaturesFromEnum('Description','',bag_of_tags,has_absent=False))
             }
 
+            # references
+            compressed_cve={}
+            compressed_cve['cve']=cve['cve']
+            if 'CWEs' in cve{
+                compressed_cve['CWEs']=cve['CWEs']
+            }
+            # references
+
+            compressed_cve['data']=featured_cve
+
             if update_callback { update_callback() }
-            self.mongo.insertOneOnDB(self.mongo.getProcessedDB(),featured_cve,'features_cve','cve',verbose=False,ignore_lock=True)
-            data_size+=Utils.sizeof(featured_cve)
+            self.mongo.insertOneOnDB(self.mongo.getProcessedDB(),compressed_cve,'features_cve','cve',verbose=False,ignore_lock=True)
+            data_size+=Utils.sizeof(compressed_cve)
             iter_count+=1
             if iter_count%verbose_frequency==0{
                 lock.refresh()
@@ -2388,11 +2391,13 @@ class DataProcessor(object){
                 proposedDate=None
                 assignedDate=None
                 publishedDate=None
+                if 'CWEs' in cve{
+                    CWEs=cve['CWEs']
+                }
+                cve=cve['data']
                 for k,v in cve.items(){
                     if 'exploits_weaponized' in k{
                         cve_labels[k]=v
-                    }elif k=='CWEs'{
-                        CWEs=v
                     }elif k=='interimDate'{
                         interimDate=v
                     }elif k=='proposedDate'{
@@ -2623,9 +2628,12 @@ class DataProcessor(object){
                 }
 
                 full_cve=dict(cve_labels,**full_cve)
+                compressed_cve={}
+                compressed_cve['cve']=cve_id
+                compressed_cve['data']=full_cve
                 if update_callback { update_callback() }
-                self.mongo.insertOneOnDB(self.mongo.getProcessedDB(),full_cve,'full_dataset','cve',verbose=False,ignore_lock=True)
-                data_size+=Utils.sizeof(full_cve)
+                self.mongo.insertOneOnDB(self.mongo.getProcessedDB(),compressed_cve,'full_dataset','cve',verbose=False,ignore_lock=True)
+                data_size+=Utils.sizeof(compressed_cve)
                 if iter_count%verbose_frequency==0{
                     lock.refresh()
                     self.logger.verbose('Percentage done {:.2f}% - Total data size: {}'.format((float(iter_count)/total_iters*100),Utils.bytesToHumanReadable(data_size)))
@@ -2657,6 +2665,7 @@ class DataProcessor(object){
         # field name -> value -> amount
         field_vendor_values_compressed={} 
         for data in dataset{
+            data=data['data']
             for k,v in data.items(){
                 if k!='_id'{
                     v=str(v)
