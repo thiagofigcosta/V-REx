@@ -1256,10 +1256,10 @@ class DataProcessor(object){
                             for el in v{
                                 if type(el) is list{
                                     for el2 in el{
-                                        fields_and_values[k].add(el2)
+                                        fields_and_values[k].add(el2.replace(' ','_'))
                                     }
                                 }else{
-                                    fields_and_values[k].add(el)
+                                    fields_and_values[k].add(el.replace(' ','_'))
                                 }
                             }
                         }else{
@@ -1271,7 +1271,7 @@ class DataProcessor(object){
                                 }
                                 v=tuple(v)
                             }
-                            fields_and_values[k].add(v)
+                            fields_and_values[k].add(v.replace(' ','_'))
                         }
                     }elif k=='Description'{
                         v=re.findall(r"[\w']+", v) # split text into words
@@ -1696,10 +1696,10 @@ class DataProcessor(object){
                         for el in v{
                             if type(el) is list{
                                 for el2 in el{
-                                    fields_and_values[k].add(el2)
+                                    fields_and_values[k].add(el2.replace(' ','_'))
                                 }
                             }else{
-                                fields_and_values[k].add(el)
+                                fields_and_values[k].add(el.replace(' ','_'))
                             }
                         }
                     }else{
@@ -1711,7 +1711,7 @@ class DataProcessor(object){
                             }
                             v=tuple(v)
                         }
-                        fields_and_values[k].add(v)
+                        fields_and_values[k].add(v.replace(' ','_'))
                     }
                 }elif k=='Description'{
                     v=re.findall(r"[\w']+", v) # split text into words
@@ -2020,18 +2020,18 @@ class DataProcessor(object){
                                 if type(el) is list{
                                     for el2 in el{
                                         if 'REALIZATION: ' not in el2 and 'OMISSION: ' not in el2{
-                                            fields_and_values[k].add(el2)
+                                            fields_and_values[k].add(el2.replace(' ','_'))
                                         }
                                     }
                                 }else{
                                     if 'REALIZATION: ' not in el and 'OMISSION: ' not in el{
-                                        fields_and_values[k].add(el)
+                                        fields_and_values[k].add(el.replace(' ','_'))
                                     }
                                 }
                             }
                         }else{
                             if 'REALIZATION: ' not in v and 'OMISSION: ' not in v{
-                                fields_and_values[k].add(v)
+                                fields_and_values[k].add(v.replace(' ','_'))
                             }
                         }
                     }else{
@@ -2043,7 +2043,7 @@ class DataProcessor(object){
                             }
                             v=tuple(v)
                         }
-                        fields_and_values[k].add(v)
+                        fields_and_values[k].add(v.replace(' ','_'))
                     }
                 }elif k=='Description'{
                     v=re.findall(r"[\w']+", v) # split text into words
@@ -2826,7 +2826,7 @@ class DataProcessor(object){
                 if k not in features_to_be_removed{
                     if k in features_to_be_normalized{
                         scaler=features_to_be_normalized[k]
-                        if 'exploits_' in k or 'delta_days_exploit' in k{ # TODO run enrich again and remove  or 'delta_days_exploit' in k
+                        if 'exploits_' in k {
                             labels[k]=(v-scaler[0])/scaler[1]
                         }else{
                             features[k]=(v-scaler[0])/scaler[1]
@@ -2834,7 +2834,7 @@ class DataProcessor(object){
                     }elif k in vendor_features_to_became_absent{
                         features['vendor_ENUM_{}'.format(FeatureGenerator.ABSENT_FIELD_FOR_ENUM.lower())]=1
                     }else{
-                        if 'exploits_' in k or 'delta_days_exploit' in k{ # TODO run enrich again and remove  or 'delta_days_exploit' in k
+                        if 'exploits_' in k {
                             labels[k]=v
                         }else{
                             features[k]=v
