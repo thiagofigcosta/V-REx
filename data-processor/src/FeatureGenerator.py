@@ -22,7 +22,7 @@ class FeatureGenerator(object){
             value=[value]
         }
         for enum in every_value{
-            presence=1 if enum in value else 0
+            presence=1 if enum.replace(' ','_') in value else 0
             output[FeatureGenerator.buildEnumKeyName(field_name,enum)]=presence
         }
         return output
@@ -41,11 +41,19 @@ class FeatureGenerator(object){
             out=[]
         }
         for l in lofl{
-            for el in l{
+            if type(l) is list{
+                for el in l{
+                    if unique{
+                        out.add(el)
+                    }else{
+                        out.append(el)
+                    }
+                }
+            }else{
                 if unique{
-                    out.add(el)
+                    out.add(l)
                 }else{
-                    out.append(el)
+                    out.append(l)
                 }
             }
         }
