@@ -2591,7 +2591,7 @@ class DataProcessor(object){
                 # exploitDate-publishedDate (te-td)
                 # exploitDate-proposedDate (te-t0)
                 # now()-proposedDate (age)
-                cve_labels['delta_days_exploit']=0
+                cve_labels['exploits_delta_days']=0
                 full_cve['delta_days_cwe']=0
                 full_cve['delta_days_capec']=0
                 full_cve['delta_days_oval']=0
@@ -2600,7 +2600,7 @@ class DataProcessor(object){
                 full_cve['delta_days_assigned']=0
                 if publishedDate {
                     if exploitDate {
-                        cve_labels['delta_days_exploit']=Utils.daysBetweenStrDate(publishedDate,exploitDate,'%d/%m/%Y')
+                        cve_labels['exploits_delta_days']=Utils.daysBetweenStrDate(publishedDate,exploitDate,'%d/%m/%Y')
                     }
                     if cweDate {
                         full_cve['delta_days_cwe']=Utils.daysBetweenStrDate(publishedDate,cweDate,'%d/%m/%Y')
@@ -2727,12 +2727,12 @@ class DataProcessor(object){
         min_values['__name__']='min_values'
         max_values['__name__']='max_values'
         total_entries['__name__']='total_entries'
-        self.mongo.insertOneOnDB(self.mongo.getProcessedDB(),field_precesence,'statistics','__name__',verbose=False,ignore_lock=True)
+        self.mongo.insertOneOnDB(self.mongo.getProcessedDB(),total_entries,'statistics','__name__',verbose=False,ignore_lock=True)
         self.mongo.insertOneOnDB(self.mongo.getProcessedDB(),field_values_compressed,'statistics','__name__',verbose=False,ignore_lock=True)
-        self.mongo.insertOneOnDB(self.mongo.getProcessedDB(),field_vendor_values_compressed,'statistics','__name__',verbose=False,ignore_lock=True)
         self.mongo.insertOneOnDB(self.mongo.getProcessedDB(),min_values,'statistics','__name__',verbose=False,ignore_lock=True)
         self.mongo.insertOneOnDB(self.mongo.getProcessedDB(),max_values,'statistics','__name__',verbose=False,ignore_lock=True)
-        self.mongo.insertOneOnDB(self.mongo.getProcessedDB(),total_entries,'statistics','__name__',verbose=False,ignore_lock=True)
+        self.mongo.insertOneOnDB(self.mongo.getProcessedDB(),field_precesence,'statistics','__name__',verbose=False,ignore_lock=True)
+        self.mongo.insertOneOnDB(self.mongo.getProcessedDB(),field_vendor_values_compressed,'statistics','__name__',verbose=False,ignore_lock=True)
         data_size=Utils.sizeof(field_precesence)+Utils.sizeof(field_values_compressed)+Utils.sizeof(field_vendor_values_compressed)+Utils.sizeof(min_values)+Utils.sizeof(max_values)+Utils.sizeof(total_entries)
         self.logger.verbose('Percentage done {:.2f}% - Total data size: {}'.format((float(iter_count)/total_iters*100),Utils.bytesToHumanReadable(data_size)))
         lock.release()
@@ -2740,10 +2740,121 @@ class DataProcessor(object){
     }
 
     def filterAndNormalizeFullDataset(self,update_callback=None){
-        # TODO filter bad features (remove FeatureGenerator.ABSENT_FIELD_FOR_ENUM an other not used features)
-        # TODO sort by cve
-        # reduce amount of vendors (if amount of vendor cves is lower than X, use others on vendors or remove feature)
-        pass
+        self.logger.info('Running \"Filter and Normalize\" on data...')
+        lock=self.mongo.getLock(self.mongo.getProcessedDB(),'dataset')
+        while self.mongo.checkIfCollectionIsLocked(lock=lock){
+            time.sleep(1)
+        }
+        # lock.acquire() # TODO uncomment
+        threshold_presence=.8
+        minimum_vendor_occurrences=100 # TODO adjust
+        total_entries=None
+        field_values_compressed=None
+        min_values=None
+        max_values=None
+        field_precesence=None
+        field_vendor_values_compressed=None
+        metadata=self.mongo.findAllOnDB(self.mongo.getProcessedDB(),'statistics')
+        for data in metadata{
+            if data['__name__']=='total_entries'{
+                total_entries=data['data']['total_entries']
+            }elif data['__name__']=='field_values_compressed'{
+                field_values_compressed=data['data']
+            }elif data['__name__']=='min_values'{
+                min_values=data['data']
+            }elif data['__name__']=='max_values'{
+                max_values=data['data']
+            }elif data['__name__']=='field_precesence'{
+                field_precesence=data['data']
+            }elif data['__name__']=='field_vendor_values_compressed'{
+                field_vendor_values_compressed=data['data']
+            }
+        }
+
+        features_to_be_normalized={}
+        for k,_ in min_values.items(){
+            min_value=min_values[k]
+            max_value=max_values[k]
+            if min_value!=max_value and (min_value not in (-1,0,1) or  max_value not in (-1,0,1)){
+                features_to_be_normalized[k]=(min_value,(max_value-min_value)) # offset, multiplier
+            }
+        }
+        features_to_be_removed=[]
+        features_to_be_filled_with_zero=[]
+        for k,v in field_values_compressed.items() {
+            if len(v)<=1{
+                features_to_be_removed.append(k)
+            }
+            if field_precesence[k]!=total_entries{
+                if threshold_presence*total_entries>field_precesence[k]{
+                    features_to_be_removed.append(k)
+                }else{
+                    features_to_be_filled_with_zero.append(k)
+                }
+            }
+        }
+        vendor_features_to_became_absent=['vendor_ENUM_-']
+        for k,v in field_vendor_values_compressed.items() { # TODO finish
+            # if len (v)<=1 or v['1']<minimum_vendor_occurrences{
+            #     vendor_features_to_became_absent.append(k)
+            # }
+            if  v['0']==total_entries {
+                vendor_features_to_became_absent.append(k)
+            }else{
+                print(k,'|',v)
+            }
+        }
+        print('Before',len(field_vendor_values_compressed)) # TODO remove
+        print('Now',len(field_vendor_values_compressed)-len(vendor_features_to_became_absent)) # TODO remove
+        # exit() # TODO remove
+
+        features_to_be_removed.append('_id') # random generation
+        features_to_be_removed.append('cve') # outside features
+        dataset=self.mongo.findAllOnDB(self.mongo.getProcessedDB(),'full_dataset').sort('cve',1)  
+        verbose_frequency=666
+        iter_count=0
+        total_iters=dataset.count()
+        data_size=0
+        for data in dataset{
+            features={}
+            labels={}
+            cve=data['cve']
+            for el in features_to_be_filled_with_zero {
+                features[el]=0
+            }
+            for k,v in data.items(){
+                if k not in features_to_be_removed{
+                    if k in features_to_be_normalized{
+                        scaler=features_to_be_normalized[k]
+                        if 'exploits_' in k or 'delta_days_exploit' in k{ # TODO run enrich again and remove  or 'delta_days_exploit' in k
+                            labels[k]=(v-scaler[0])/scaler[1]
+                        }else{
+                            features[k]=(v-scaler[0])/scaler[1]
+                        }
+                    }elif k in vendor_features_to_became_absent{
+                        features['vendor_ENUM_{}'.format(FeatureGenerator.ABSENT_FIELD_FOR_ENUM.lower())]=1
+                    }else{
+                        if 'exploits_' in k or 'delta_days_exploit' in k{ # TODO run enrich again and remove  or 'delta_days_exploit' in k
+                            labels[k]=v
+                        }else{
+                            features[k]=v
+                        }
+                    }
+                }
+            }
+            entry={'index':iter_count,'cve':cve,'features':features,'labels':labels}
+            if update_callback { update_callback() }
+            self.mongo.insertOneOnDB(self.mongo.getProcessedDB(),entry,'dataset','cve',verbose=False,ignore_lock=True)
+            data_size+=Utils.sizeof(entry)
+            iter_count+=1
+            if iter_count%verbose_frequency==0{
+                lock.refresh()
+                self.logger.verbose('Percentage done {:.2f}% - Total data size: {}'.format((float(iter_count)/total_iters*100),Utils.bytesToHumanReadable(data_size)))
+            }
+        }
+        self.logger.verbose('Percentage done {:.2f}% - Total data size: {}'.format((float(iter_count)/total_iters*100),Utils.bytesToHumanReadable(data_size)))
+        lock.release()
+        self.logger.info('Runned \"Filter and Normalize\" on data...OK')
     }
 
     def runPipeline(self,update_callback=None){

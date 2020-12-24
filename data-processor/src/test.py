@@ -15,4 +15,4 @@ print(mongo.getQueueConsumerId())
 
 processor=DataProcessor(mongo,LOGGER)
 
-processor.analyzeFullDataset()
+processor.filterAndNormalizeFullDataset()
