@@ -10,8 +10,10 @@ from pymongo import MongoClient
 from MongoQueue import MongoQueue,MongoJob,MongoLock
 
 class MongoDB(object){
+    # 'Just':'to fix vscode coloring':'when using pytho{\}'
     QUEUE_DB_NAME='queue'
     QUEUE_COL_CRAWLER_NAME='crawler'
+    QUEUE_COL_PROCESSOR_NAME='processor'
     RAW_DATA_DB_NAME='raw_data'
     DUMMY_FOLDER='tmp/crawler/DummyMongo/'
     QUEUE_TIMEOUT_WITHOUT_PROGRESS=1500
@@ -219,10 +221,12 @@ class MongoDB(object){
 
     def startQueue(self,id=0){ 
         consumer_id='front-end_{}-{}'.format(socket.gethostname(),id)
-        collection=self.client[MongoDB.QUEUE_DB_NAME][MongoDB.QUEUE_COL_CRAWLER_NAME]
         self.consumer_id=consumer_id
         self.queues={}
-        self.queues[MongoDB.QUEUE_COL_CRAWLER_NAME]=MongoQueue(collection, consumer_id=consumer_id, timeout=1500, max_attempts=3)
+        collection=self.client[MongoDB.QUEUE_DB_NAME][MongoDB.QUEUE_COL_CRAWLER_NAME]
+        self.queues[MongoDB.QUEUE_COL_CRAWLER_NAME]=MongoQueue(collection, consumer_id=consumer_id, timeout=MongoDB.QUEUE_TIMEOUT_WITHOUT_PROGRESS, max_attempts=3)
+        collection=self.client[MongoDB.QUEUE_DB_NAME][MongoDB.QUEUE_COL_PROCESSOR_NAME]
+        self.queues[MongoDB.QUEUE_COL_PROCESSOR_NAME]=MongoQueue(collection, consumer_id=consumer_id, timeout=MongoDB.QUEUE_TIMEOUT_WITHOUT_PROGRESS, max_attempts=3)
     }
 
     def getQueues(self){
@@ -305,6 +309,10 @@ class MongoDB(object){
 
     def insertOnCrawlerQueue(self,task,args=None){
         self.insertOnQueue(MongoDB.QUEUE_COL_CRAWLER_NAME,task,args)
+    }
+
+    def insertOnProcessorQueue(self,task,args=None){
+        self.insertOnQueue(MongoDB.QUEUE_COL_PROCESSOR_NAME,task,args)
     }
 
     def findOneOnDB(self,db,collection,query,wait_unlock=True){

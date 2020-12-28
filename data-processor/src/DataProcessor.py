@@ -8,6 +8,7 @@ import nltk
 import math 
 from nltk.stem import WordNetLemmatizer
 import time
+from MongoDB import MongoDB
 
 class DataProcessor(object){
     # 'Just':'to fix vscode coloring':'when using pytho{\}'
@@ -2876,4 +2877,208 @@ class DataProcessor(object){
         self.filterAndNormalizeFullDataset(update_callback=update_callback)
     }
 
+     def loopOnQueue(self){
+        while True{
+            job=self.mongo.getQueues()[MongoDB.QUEUE_COL_PROCESSOR_NAME].next()
+            if job is not None{
+                payload=job.payload
+                task=payload['task']
+                try{
+                    self.logger.info('Running job {}-{}...'.format(task,job.job_id))
+                    if task=='Run Pipeline'{
+                        self.mongo.getQueues()[MongoDB.QUEUE_COL_PROCESSOR_NAME].put({'task': 'Merge'})
+                        self.mongo.getQueues()[MongoDB.QUEUE_COL_PROCESSOR_NAME].put({'task': 'Flattern and Simplify','args':{'type':'CVE'}})
+                        self.mongo.getQueues()[MongoDB.QUEUE_COL_PROCESSOR_NAME].put({'task': 'Flattern and Simplify','args':{'type':'OVAL'}})
+                        self.mongo.getQueues()[MongoDB.QUEUE_COL_PROCESSOR_NAME].put({'task': 'Flattern and Simplify','args':{'type':'CAPEC'}})
+                        self.mongo.getQueues()[MongoDB.QUEUE_COL_PROCESSOR_NAME].put({'task': 'Flattern and Simplify','args':{'type':'CWE'}})
+                        self.mongo.getQueues()[MongoDB.QUEUE_COL_PROCESSOR_NAME].put({'task': 'Filter Exploits'})
+                        self.mongo.getQueues()[MongoDB.QUEUE_COL_PROCESSOR_NAME].put({'task': 'Transform','args':{'type':'CVE'}})
+                        self.mongo.getQueues()[MongoDB.QUEUE_COL_PROCESSOR_NAME].put({'task': 'Transform','args':{'type':'OVAL'}})
+                        self.mongo.getQueues()[MongoDB.QUEUE_COL_PROCESSOR_NAME].put({'task': 'Transform','args':{'type':'CAPEC'}})
+                        self.mongo.getQueues()[MongoDB.QUEUE_COL_PROCESSOR_NAME].put({'task': 'Transform','args':{'type':'CWE'}})
+                        self.mongo.getQueues()[MongoDB.QUEUE_COL_PROCESSOR_NAME].put({'task': 'Transform','args':{'type':'EXPLOITS'}})
+                        self.mongo.getQueues()[MongoDB.QUEUE_COL_PROCESSOR_NAME].put({'task': 'Enrich'})
+                        self.mongo.getQueues()[MongoDB.QUEUE_COL_PROCESSOR_NAME].put({'task': 'Analyze'})
+                        self.mongo.getQueues()[MongoDB.QUEUE_COL_PROCESSOR_NAME].put({'task': 'Filter and Normalize'})
+                    }elif task=='Merge'{
+                        if not self.mongo.checkIfListOfCollectionsExistsAndItsNotLocked(self.mongo.getRawDB(),['CVE_MITRE','CVE_NVD','CVE_DETAILS']){
+                            self.logger.warn('Returning {} job to queue, because it does not have its requirements fulfilled'.format(task))
+                            job.put_back()
+                            job=None
+                            time.sleep(20)
+                        }else{
+                            time.sleep(10)
+                        }
+                        if job{
+                            self.mergeCve(update_callback=lambda: job.progress())
+                        }
+                    }elif task=='Flattern and Simplify' and payload['args']['type']=='CVE'{
+                        if not self.mongo.checkIfListOfCollectionsExistsAndItsNotLocked(self.mongo.getProcessedDB(),['merged_cve']){
+                            self.logger.warn('Returning {}-{} job to queue, because it does not have its requirements fulfilled'.format(task,payload['args']['type']))
+                            job.put_back()
+                            job=None
+                            time.sleep(20)
+                        }else{
+                            time.sleep(10)
+                        }
+                        if job{
+                            self.flatternAndSimplifyCve(update_callback=lambda: job.progress())
+                        }
+                    }elif task=='Flattern and Simplify' and payload['args']['type']=='OVAL'{
+                        if not self.mongo.checkIfListOfCollectionsExistsAndItsNotLocked(self.mongo.getRawDB(),['OVAL']){
+                            self.logger.warn('Returning {}-{} job to queue, because it does not have its requirements fulfilled'.format(task,payload['args']['type']))
+                            job.put_back()
+                            job=None
+                            time.sleep(20)
+                        }else{
+                            time.sleep(10)
+                        }
+                        if job{
+                            self.flatternAndSimplifyOval(update_callback=lambda: job.progress())
+                        }
+                    }elif task=='Flattern and Simplify' and payload['args']['type']=='CAPEC'{
+                        if not self.mongo.checkIfListOfCollectionsExistsAndItsNotLocked(self.mongo.getRawDB(),['CAPEC_MITRE']){
+                            self.logger.warn('Returning {}-{} job to queue, because it does not have its requirements fulfilled'.format(task,payload['args']['type']))
+                            job.put_back()
+                            job=None
+                            time.sleep(20)
+                        }else{
+                            time.sleep(10)
+                        }
+                        if job{
+                            self.flatternAndSimplifyCapec(update_callback=lambda: job.progress())
+                        }
+                    }elif task=='Flattern and Simplify' and payload['args']['type']=='CWE'{
+                        if not self.mongo.checkIfListOfCollectionsExistsAndItsNotLocked(self.mongo.getRawDB(),['CWE_MITRE']){
+                            self.logger.warn('Returning {}-{} job to queue, because it does not have its requirements fulfilled'.format(task,payload['args']['type']))
+                            job.put_back()
+                            job=None
+                            time.sleep(20)
+                        }else{
+                            time.sleep(10)
+                        }
+                        if job{
+                            self.flatternAndSimplifyCwe(update_callback=lambda: job.progress())
+                        }
+                    }elif task=='Filter Exploits'{
+                        if not self.mongo.checkIfListOfCollectionsExistsAndItsNotLocked(self.mongo.getRawDB(),['EXPLOIT_DB']){
+                            self.logger.warn('Returning {} job to queue, because it does not have its requirements fulfilled'.format(task))
+                            job.put_back()
+                            job=None
+                            time.sleep(20)
+                        }else{
+                            time.sleep(10)
+                        }
+                        if job{
+                            self.filterExploits(update_callback=lambda: job.progress())
+                        }
+                    }elif task=='Transform' and payload['args']['type']=='CVE'{
+                        if not self.mongo.checkIfListOfCollectionsExistsAndItsNotLocked(self.mongo.getProcessedDB(),['flat_cve']){
+                            self.logger.warn('Returning {}-{} job to queue, because it does not have its requirements fulfilled'.format(task,payload['args']['type']))
+                            job.put_back()
+                            job=None
+                            time.sleep(20)
+                        }else{
+                            time.sleep(10)
+                        }
+                        if job{
+                            self.transformCve(update_callback=lambda: job.progress())
+                        }
+                    }elif task=='Transform' and payload['args']['type']=='OVAL'{
+                        if not self.mongo.checkIfListOfCollectionsExistsAndItsNotLocked(self.mongo.getProcessedDB(),['flat_oval']){
+                            self.logger.warn('Returning {}-{} job to queue, because it does not have its requirements fulfilled'.format(task,payload['args']['type']))
+                            job.put_back()
+                            job=None
+                            time.sleep(20)
+                        }else{
+                            time.sleep(10)
+                        }
+                        if job{
+                            self.transformOval(update_callback=lambda: job.progress())
+                        }
+                    }elif task=='Transform' and payload['args']['type']=='CAPEC'{
+                        if not self.mongo.checkIfListOfCollectionsExistsAndItsNotLocked(self.mongo.getProcessedDB(),['flat_capec']){
+                            self.logger.warn('Returning {}-{} job to queue, because it does not have its requirements fulfilled'.format(task,payload['args']['type']))
+                            job.put_back()
+                            job=None
+                            time.sleep(20)
+                        }else{
+                            time.sleep(10)
+                        }
+                        if job{
+                            self.transformCapec(update_callback=lambda: job.progress())
+                        }
+                    }elif task=='Transform' and payload['args']['type']=='CWE'{
+                        if not self.mongo.checkIfListOfCollectionsExistsAndItsNotLocked(self.mongo.getProcessedDB(),['flat_cwe']){
+                            self.logger.warn('Returning {}-{} job to queue, because it does not have its requirements fulfilled'.format(task,payload['args']['type']))
+                            job.put_back()
+                            job=None
+                            time.sleep(20)
+                        }else{
+                            time.sleep(10)
+                        }
+                        if job{
+                            self.transformCwe(update_callback=lambda: job.progress())
+                        }
+                    }elif task=='Transform' and payload['args']['type']=='EXPLOITS'{
+                        if not self.mongo.checkIfListOfCollectionsExistsAndItsNotLocked(self.mongo.getProcessedDB(),['exploits']){
+                            self.logger.warn('Returning {}-{} job to queue, because it does not have its requirements fulfilled'.format(task,payload['args']['type']))
+                            job.put_back()
+                            job=None
+                            time.sleep(20)
+                        }else{
+                            time.sleep(10)
+                        }
+                        if job{
+                            self.transformExploits(update_callback=lambda: job.progress())
+                        }
+                    }elif task=='Enrich'{
+                        if not self.mongo.checkIfListOfCollectionsExistsAndItsNotLocked(self.mongo.getProcessedDB(),['features_capec','features_cve','features_cwe','features_exploit','features_oval']){
+                            self.logger.warn('Returning {} job to queue, because it does not have its requirements fulfilled'.format(task))
+                            job.put_back()
+                            job=None
+                            time.sleep(20)
+                        }else{
+                            time.sleep(10)
+                        }
+                        if job{
+                            self.enrichData(update_callback=lambda: job.progress())
+                        }
+                    }elif task=='Analyze'{
+                        if not self.mongo.checkIfListOfCollectionsExistsAndItsNotLocked(self.mongo.getProcessedDB(),['full_dataset']){
+                            self.logger.warn('Returning {} job to queue, because it does not have its requirements fulfilled'.format(task))
+                            job.put_back()
+                            job=None
+                            time.sleep(20)
+                        }else{
+                            time.sleep(10)
+                        }
+                        if job{
+                            self.analyzeFullDataset(update_callback=lambda: job.progress())
+                        }
+                    }elif task=='Filter and Normalize'{
+                        if not self.mongo.checkIfListOfCollectionsExistsAndItsNotLocked(self.mongo.getProcessedDB(),['full_dataset','statistics']){
+                            self.logger.warn('Returning {} job to queue, because it does not have its requirements fulfilled'.format(task))
+                            job.put_back()
+                            job=None
+                            time.sleep(20)
+                        }else{
+                            time.sleep(10)
+                        }
+                        if job{
+                            self.filterAndNormalizeFullDataset(update_callback=lambda: job.progress())
+                        }
+                    }
+                    if job{
+                        job.complete()
+                        self.logger.info('Runned job {}-{}...'.format(task,job.job_id))
+                    }
+                }except Exception as e{
+                    job.error(str(e))
+                    self.logger.error('Failed to run job {}-{}...'.format(task,job.job_id))      
+                    self.logger.exception(e)
+                }
+            }
+        }
+    }
 }

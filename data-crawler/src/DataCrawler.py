@@ -13,6 +13,7 @@ from XmlDictParser import XmlDictParser
 from MongoDB import MongoDB
 
 class DataCrawler(object){
+    # 'Just':'to fix vscode coloring':'when using pytho{\}'
     SOURCES=[]
     TMP_FOLDER='tmp/crawler/'
 
@@ -977,7 +978,7 @@ class DataCrawler(object){
                     }
                 }except Exception as e{
                     job.error(str(e))
-                    self.logger.error('Runned job {}-{}...'.format(task,job.job_id))      
+                    self.logger.error('Failed to run job {}-{}...'.format(task,job.job_id))      
                     self.logger.exception(e)
                 }
             }
