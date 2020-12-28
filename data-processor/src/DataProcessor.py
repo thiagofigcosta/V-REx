@@ -2754,9 +2754,9 @@ class DataProcessor(object){
         while self.mongo.checkIfCollectionIsLocked(lock=lock){
             time.sleep(1)
         }
-        # lock.acquire() # TODO uncomment
+        lock.acquire()
         threshold_presence=.8
-        minimum_vendor_occurrences=100 # TODO adjust
+        minimum_vendor_occurrences=33
         total_entries=None
         field_values_compressed=None
         min_values=None
@@ -2803,19 +2803,11 @@ class DataProcessor(object){
             }
         }
         vendor_features_to_became_absent=['vendor_ENUM_-']
-        for k,v in field_vendor_values_compressed.items() { # TODO finish
-            # if len (v)<=1 or v['1']<minimum_vendor_occurrences{
-            #     vendor_features_to_became_absent.append(k)
-            # }
-            if  v['0']==total_entries {
+        for k,v in field_vendor_values_compressed.items() {
+            if len(v)<=1 or v['1']<minimum_vendor_occurrences{
                 vendor_features_to_became_absent.append(k)
-            }else{
-                print(k,'|',v)
             }
         }
-        print('Before',len(field_vendor_values_compressed)) # TODO remove
-        print('Now',len(field_vendor_values_compressed)-len(vendor_features_to_became_absent)) # TODO remove
-        # exit() # TODO remove
 
         features_to_be_removed.append('_id') # random generation
         features_to_be_removed.append('cve') # outside features
@@ -2828,6 +2820,7 @@ class DataProcessor(object){
             features={}
             labels={}
             cve=data['cve']
+            data=data['data']
             for el in features_to_be_filled_with_zero {
                 features[el]=0
             }
