@@ -292,4 +292,24 @@ class Utils(object){
         delta=date2-date1
         return delta.days
     }
+
+    @staticmethod
+    def binarySearch(lis,el){ # list must be sorted
+        low=0
+        high=len(lis)-1
+        ret=None 
+        while low<=high{
+            mid=(low+high)//2
+            if el<lis[mid]{
+                high=mid-1
+            }elif el>lis[mid]{
+                low=mid+1
+            }else{
+                ret=mid
+                break
+            }
+        }
+        return ret
+    }
+
 }

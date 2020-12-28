@@ -2781,12 +2781,14 @@ class DataProcessor(object){
             }
         }
 
+        list_of_features_to_be_normalized=[]
         features_to_be_normalized={}
         for k,_ in min_values.items(){
             min_value=min_values[k]
             max_value=max_values[k]
             if min_value!=max_value and (min_value not in (-1,0,1) or  max_value not in (-1,0,1)){
                 features_to_be_normalized[k]=(min_value,(max_value-min_value)) # offset, multiplier
+                list_of_features_to_be_normalized.append(k)
             }
         }
         features_to_be_removed=[]
@@ -2817,6 +2819,13 @@ class DataProcessor(object){
         iter_count=0
         total_iters=dataset.count()
         data_size=0
+
+        list_of_features_to_be_normalized.sort()
+        features_to_be_removed.sort()
+        vendor_features_to_became_absent.sort()
+        list_of_features_to_be_normalized=tuple(list_of_features_to_be_normalized)
+        features_to_be_removed=tuple(features_to_be_removed)
+        vendor_features_to_became_absent=tuple(vendor_features_to_became_absent)
         for data in dataset{
             features={}
             labels={}
@@ -2826,15 +2835,15 @@ class DataProcessor(object){
                 features[el]=0
             }
             for k,v in data.items(){
-                if k not in features_to_be_removed{
-                    if k in features_to_be_normalized{
+                if not Utils.binarySearch(features_to_be_removed,k){
+                    if Utils.binarySearch(list_of_features_to_be_normalized,k){
                         scaler=features_to_be_normalized[k]
                         if 'exploits_' in k {
                             labels[k]=(v-scaler[0])/scaler[1]
                         }else{
                             features[k]=(v-scaler[0])/scaler[1]
                         }
-                    }elif k in vendor_features_to_became_absent{
+                    }elif Utils.binarySearch(vendor_features_to_became_absent,k){
                         features['vendor_ENUM_{}'.format(FeatureGenerator.ABSENT_FIELD_FOR_ENUM.lower())]=1
                     }else{
                         if 'exploits_' in k {
