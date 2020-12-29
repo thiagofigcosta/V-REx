@@ -2787,7 +2787,7 @@ class DataProcessor(object){
             min_value=min_values[k]
             max_value=max_values[k]
             if min_value!=max_value and (min_value not in (-1,0,1) or  max_value not in (-1,0,1)){
-                features_to_be_normalized[k]=(min_value,(max_value-min_value)) # offset, multiplier
+                features_to_be_normalized[k]=(float(min_value),float(max_value-min_value)) # offset, multiplier
                 list_of_features_to_be_normalized.append(k)
             }
         }
@@ -2839,11 +2839,11 @@ class DataProcessor(object){
                     if Utils.binarySearch(list_of_features_to_be_normalized,k){
                         scaler=features_to_be_normalized[k]
                         if 'exploits_' in k {
-                            labels[k]=(v-scaler[0])/scaler[1]
+                            labels[k]=(float(v)-scaler[0])/scaler[1]
                         }else{
-                            features[k]=(v-scaler[0])/scaler[1]
+                            features[k]=(float(v)-scaler[0])/scaler[1]
                         }
-                    }elif Utils.binarySearch(vendor_features_to_became_absent,k){
+                    }elif k.startswith('vendor_ENUM') and Utils.binarySearch(vendor_features_to_became_absent,k){
                         features['vendor_ENUM_{}'.format(FeatureGenerator.ABSENT_FIELD_FOR_ENUM.lower())]=1
                     }else{
                         if 'exploits_' in k {
