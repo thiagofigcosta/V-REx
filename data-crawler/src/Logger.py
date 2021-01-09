@@ -69,7 +69,7 @@ class Logger(object){
 				sys.stderr.write(formatted_message+'\n')
 				sys.stderr.flush()
 			}else{
-				print (formatted_message)
+				print (formatted_message, flush=True)
             }
         }
 		with open(self.getLogFilename(), 'a') as logfile{

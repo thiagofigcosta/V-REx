@@ -180,7 +180,7 @@ def main(argv){
 
     if zombie{
         LOGGER.info('Keeping Front end alive on Zombie Mode...')
-        LOGGER.info('Tip: Use `front-end` cmd on container to run commands.')
+        LOGGER.info('Tip: Use `front-end` command on container to run commands.')
         while(True){
             pass
         }
@@ -206,7 +206,12 @@ def main(argv){
 
 if __name__ == "__main__"{
     LOGGER.info('Starting Front end...')
-    mongo=MongoDB('127.0.0.1',27017,LOGGER,user='root',password='123456')
+    if Utils.runningOnDockerContainer(){
+        mongo_addr='mongo'
+    }else{
+        mongo_addr='127.0.0.1'
+    }
+    mongo=MongoDB(mongo_addr,27017,LOGGER,user='root',password='123456')
     mongo.startQueue(id=0)
     LOGGER.info('Started Front end...OK')
     LOGGER.info('Writting on queue as {}'.format(mongo.getQueueConsumerId()))

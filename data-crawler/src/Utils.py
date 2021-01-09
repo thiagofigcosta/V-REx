@@ -275,4 +275,13 @@ class Utils(object){
         parent=Utils.appendToStrIfDoesNotEndsWith(parent,Utils.FILE_SEPARATOR)
         return parent+child
     }
+
+    @staticmethod
+    def runningOnDockerContainer(){
+        path = '/proc/self/cgroup'
+        return (
+            os.path.exists('/.dockerenv') or
+            os.path.isfile(path) and any('docker' in line for line in open(path))
+        )
+    }
 }

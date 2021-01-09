@@ -16,14 +16,14 @@ COPY src/ .
 RUN chmod +x entrypoint.sh
 RUN chmod +x frontstarter.sh
 
-RUN ln -s frontstarter.sh /bin/front-end
-RUN ln -s frontstarter.sh /bin/frontend
-RUN ln -s frontstarter.sh /bin/front
+RUN cp frontstarter.sh /usr/bin/front-end
+RUN cp frontstarter.sh /usr/bin/frontend
+RUN cp frontstarter.sh /usr/bin/front
 
 ENV PATH=/root/.local/bin:$PATH
 
 RUN cp /bin/bash /bin/bash_bkp
-RUN rm -f /bin/bash && ln -s entrypoint.sh /bin/bash
-# RUN rm -f /bin/sh && ln -s entrypoint.sh /bin/sh # still testing
+RUN chmod +x /bin/bash_bkp
+RUN rm -f /bin/bash && cp frontstarter.sh /bin/bash
 
 CMD ["./entrypoint.sh"]
