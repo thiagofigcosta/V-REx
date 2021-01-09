@@ -6,6 +6,20 @@ Neural network with parts of the code from:
 >- https://github.com/kapilt/mongoqueue
 >- https://github.com/sarthakpati/cnpy 
 >- https://github.com/madler/zlib
+>- https://github.com/mongodb/mongo-cxx-driver
+>- https://github.com/mongodb/mongo-c-driver
+>- https://github.com/mnmlstc/core
+
+## To run commands
+
+Access the front-end container and use one of the following commands:
+
+>- bash
+>- front
+>- frontend
+>- front-end
+
+Type `h` + enter for help
 
 ## Passwords location
 Inside .env file
@@ -21,59 +35,69 @@ Inside .env file
 >- python:3.8-slim
 
 
-## Running with Docker compose
+## Running with Docker compose (recommended)
 ```
+docker-compose build
 docker-compose up
 ```
 or in background
 ```
+docker-compose build
 docker-compose up -d
 ```
 
-### Cleanup docker compose volumes
-```
-sudo rm -rf docker_volumes
-```
+## Running without Docker compose
 
-## Build docker images
+### Build docker images
 
-### Data crawler
+#### Data Crawler
 ```
 ./update_Pytho\{N\}.sh # update Pytho{\}
 docker build -t data-crawler:v1.0.0 data-crawler/  # build image
 docker rmi -f $(docker images -f "dangling=true" -q) # cleanup <none> images
 ```
 
-### Front end
+#### Data Processor
+```
+./update_Pytho\{N\}.sh # update Pytho{\}
+docker build -t data-processor:v1.0.0 data-processor/  # build image
+docker rmi -f $(docker images -f "dangling=true" -q) # cleanup <none> images
+```
+
+#### Front end
 ```
 ./update_Pytho\{N\}.sh # update Pytho{\}
 docker build -t front-end:v1.0.0 front-end/  # build image
 docker rmi -f $(docker images -f "dangling=true" -q) # cleanup <none> images
 ```
 
-### Core
+#### Core
 ```
 docker build -t core:v1.0.0 core/  # build image
 docker rmi -f $(docker images -f "dangling=true" -q) # cleanup <none> images
 ```
 
-## Running docker images
+### Running docker images
 
-### Data crawler
+#### Data crawler
 ```
 docker run data-crawler:v1.0.0
 ```
 
-### Front end
+#### Front end
 ```
 docker run front-end:v1.0.0
 ```
 
-### Core
+#### Core
 ```
 docker run core:v1.0.0
 ```
 
+## Cleanup docker compose volumes
+```
+sudo rm -rf docker_volumes
+```
 
 ## Web Interfaces:
 >- Mongo-Express: http://localhost:8081/

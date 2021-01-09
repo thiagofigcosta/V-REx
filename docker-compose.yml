@@ -2,10 +2,34 @@ version: '3.8'
 
 services:
     data-crawler:
-        build: data-crawler
+        build: 
+            context: data-crawler
+            dockerfile: Dockerfile
         restart: always
         depends_on:
             - mongo
+        networks:
+            - mongo-network
+
+    data-processor:
+        build: 
+            context: data-processor
+            dockerfile: Dockerfile
+        restart: always
+        depends_on:
+            - mongo
+        networks:
+            - mongo-network
+
+    front-end:
+        build: 
+            context: front-end
+            dockerfile: Dockerfile
+        restart: always
+        depends_on:
+            - mongo
+        networks:
+            - mongo-network
 
     mongo:
         image: mongo:4.0.20
