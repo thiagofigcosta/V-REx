@@ -8,3 +8,4 @@ tmp/
 data_bkp/
 core/src/mongo-c-driver/cmake-build
 core/src/mongo-cxx-driver/build
+core/res/dataset/
