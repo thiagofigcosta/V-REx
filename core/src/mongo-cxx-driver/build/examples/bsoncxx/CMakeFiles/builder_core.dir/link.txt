@@ -1,0 +1,1 @@
+/usr/bin/g++  -O3 -DNDEBUG  -rdynamic CMakeFiles/builder_core.dir/builder_core.cpp.o  -o builder_core  -Wl,-rpath,/home/computahackerboy/Desktop/Programming/V-REx/core/src/mongo-cxx-driver/build/src/bsoncxx:/usr/local/lib ../../src/bsoncxx/libbsoncxx.so.0.0.0 -Wl,-rpath-link,/usr/local/lib 

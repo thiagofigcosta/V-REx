@@ -1,0 +1,1 @@
+/usr/bin/g++  -O3 -DNDEBUG  -rdynamic CMakeFiles/view_and_value.dir/view_and_value.cpp.o  -o view_and_value  -Wl,-rpath,/home/computahackerboy/Desktop/Programming/V-REx/core/src/mongo-cxx-driver/build/src/bsoncxx:/usr/local/lib ../../src/bsoncxx/libbsoncxx.so.0.0.0 -Wl,-rpath-link,/usr/local/lib 

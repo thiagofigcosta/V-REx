@@ -1,0 +1,1 @@
+/usr/bin/g++  -O3 -DNDEBUG  -rdynamic CMakeFiles/builder_stream_customization.dir/builder_stream_customization.cpp.o  -o builder_stream_customization  -Wl,-rpath,/home/computahackerboy/Desktop/Programming/V-REx/core/src/mongo-cxx-driver/build/src/bsoncxx:/usr/local/lib ../../src/bsoncxx/libbsoncxx.so.0.0.0 -Wl,-rpath-link,/usr/local/lib 

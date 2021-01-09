@@ -1,0 +1,9 @@
+CMake Error at cmake_install.cmake:41 (file):
+  file INSTALL cannot copy file
+  "/home/computahackerboy/Desktop/Programming/V-REx/core/src/mongo-cxx-driver/build/src/bsoncxx/third_party/EP_mnmlstc_core-prefix/src/EP_mnmlstc_core-build/core-config-version.cmake"
+  to
+  "/usr/local/include/bsoncxx/v_noabi/bsoncxx/third_party/mnmlstc/share/cmake/core/core-config-version.cmake":
+  Permission denied.
+
+
+make[4]: *** [Makefile:86: install] Error 1
