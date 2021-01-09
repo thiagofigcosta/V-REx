@@ -1,6 +1,0 @@
-/home/computahackerboy/Desktop/Programming/V-REx/core/src/mongo-cxx-driver/build/src/bsoncxx/third_party/EP_mnmlstc_core-prefix/src/EP_mnmlstc_core-build/CMakeFiles/install/strip.dir
-/home/computahackerboy/Desktop/Programming/V-REx/core/src/mongo-cxx-driver/build/src/bsoncxx/third_party/EP_mnmlstc_core-prefix/src/EP_mnmlstc_core-build/CMakeFiles/install/local.dir
-/home/computahackerboy/Desktop/Programming/V-REx/core/src/mongo-cxx-driver/build/src/bsoncxx/third_party/EP_mnmlstc_core-prefix/src/EP_mnmlstc_core-build/CMakeFiles/install.dir
-/home/computahackerboy/Desktop/Programming/V-REx/core/src/mongo-cxx-driver/build/src/bsoncxx/third_party/EP_mnmlstc_core-prefix/src/EP_mnmlstc_core-build/CMakeFiles/list_install_components.dir
-/home/computahackerboy/Desktop/Programming/V-REx/core/src/mongo-cxx-driver/build/src/bsoncxx/third_party/EP_mnmlstc_core-prefix/src/EP_mnmlstc_core-build/CMakeFiles/rebuild_cache.dir
-/home/computahackerboy/Desktop/Programming/V-REx/core/src/mongo-cxx-driver/build/src/bsoncxx/third_party/EP_mnmlstc_core-prefix/src/EP_mnmlstc_core-build/CMakeFiles/edit_cache.dir
