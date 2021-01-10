@@ -42,16 +42,7 @@ int main (){
         cout << "Eternal blue" <<endl << bsoncxx::to_json(*maybe_result) << endl;
     }
 
-    mongocxx::cursor cursor = coll.find({});
-    int total=0;
-    for(auto&& doc : cursor) {
-        if (total++ == 0){
-            bsoncxx::document::element cve = doc["cve"];
-            cout << "first cve: "<< cve.get_utf8().value <<endl;
-        }
-        string str_doc= bsoncxx::to_json(*maybe_result);
-    }
-    cout << "Total documents " << total <<endl;
+    
 
 
     auto builder = bsoncxx::builder::stream::document{};

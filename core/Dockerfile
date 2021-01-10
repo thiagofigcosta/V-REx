@@ -1,6 +1,6 @@
 FROM ubuntu:18.04 AS builder
 RUN apt-get update -y
-RUN apt-get install -y --no-install-recommends gcc g++ build-essential cmake
+RUN apt-get install -y --no-install-recommends gcc g++ build-essential cmake libboost-stacktrace-dev
 
 WORKDIR /code
 COPY src/ .
@@ -13,7 +13,7 @@ RUN apt-get install -y libgomp1
 
 # to build mongo drivers 
 # TODO move to builder
-RUN apt-get install -y --no-install-recommends cmake libssl-dev libsasl2-dev g++ python-dev build-essential
+RUN apt-get install -y --no-install-recommends cmake libssl-dev libsasl2-dev g++ python-dev build-essential libboost-stacktrace-dev
 RUN mkdir /cpp_libs
 COPY src/mongo-c-driver /cpp_libs/mongo-c-driver
 RUN mkdir -p /cpp_libs/mongo-c-driver/cmake-build 
