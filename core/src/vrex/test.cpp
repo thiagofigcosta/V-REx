@@ -16,7 +16,13 @@ void testCsvRead(){
 }
 
 void testMongo(){
-    MongoDB mongo = MongoDB("127.0.0.1","root","123456");
+    string mongo_host;
+    if (Utils::runningOnDockerContainer()){
+        mongo_host="mongo";
+    }else{
+        mongo_host="127.0.0.1";
+    }
+    MongoDB mongo = MongoDB(mongo_host,"root","123456");
     bsoncxx::stdx::optional<bsoncxx::document::value> maybe_result =
         mongo.getCollection(mongo.getDB("processed_data"),"dataset").find_one(document{} << "cve" << "CVE-2017-0144" << finalize);
     if(maybe_result) {
