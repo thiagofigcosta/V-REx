@@ -9,7 +9,7 @@
   const string Utils::FILE_SEPARATOR="/";
 #endif
 const string Utils::RESOURCES_FOLDER="../../res";
-
+default_random_engine Utils::RNG = default_random_engine{};
 
 Utils::Utils() {
 }
@@ -141,7 +141,9 @@ bool Utils::checkIfIsFile(const string &path){
 bool Utils::checkIfFileContainsString(const string &path,const string &str){
     bool found=false;
     ifstream file(path);
-    if(!file.is_open()) throw runtime_error("Could not open file");
+    if(!file.is_open()) {
+        throw runtime_error("Could not open file");
+    }
     string line;
     while(getline(file, line) && !found){
         if(line.find(str) != string::npos){
@@ -151,4 +153,49 @@ bool Utils::checkIfFileContainsString(const string &path,const string &str){
     }
     file.close();
     return found;
+}
+
+vector<pair<int, vector<float>>> Utils::extractSubVector(const vector<pair<int, vector<float>>> &vec, int start, int size){
+    if ((size_t)start>=vec.size()){
+        throw runtime_error("Start position ("+to_string(start)+") bigger than vector size ("+to_string(vec.size())+")");
+    }
+    int diff=vec.size()-(start+size);
+    if (diff<0){
+        size+=diff;
+    }
+    vector<pair<int, vector<float>>> subvector = {vec.begin()+start, vec.begin()+start+size };
+    return subvector;
+}
+
+pair<vector<pair<int, vector<float>>>,map<string,int>> Utils::enumfyDataset(const vector<pair<string, vector<float>>> &vec){
+    set<string> label;
+    for (pair<string, vector<float>> entry:vec){
+        label.insert(entry.first);
+    }
+    map<string,int> equivalence;
+    int i=0;
+    for (string l:label){
+        equivalence[l]=i++;
+    }
+    vector<pair<int, vector<float>>> enumfied_data;
+    for (pair<string, vector<float>> entry:vec){
+        enumfied_data.push_back(pair<int, vector<float>>(equivalence[entry.first],entry.second));
+    } 
+    return pair<vector<pair<int, vector<float>>>,map<string,int>> (enumfied_data,equivalence);
+}
+
+vector<pair<int, vector<float>>> Utils::shuffleDataset(const vector<pair<int, vector<float>>> &vec){
+    vector<int> indexes(vec.size());
+    iota (indexes.begin(), indexes.end(), 0);
+    shuffle(indexes.begin(), indexes.end(), Utils::RNG);
+    vector<pair<int, vector<float>>> out;
+    for(int i:indexes){
+        out.push_back(vec[i]);
+    }
+    return out;
+}
+
+pair<vector<pair<int, vector<float>>>,vector<pair<int, vector<float>>>> Utils::divideDataSet(const vector<pair<int, vector<float>>> &vec, float percentageOfFirst){
+    size_t fristSize=vec.size()*percentageOfFirst;
+    return pair<vector<pair<int, vector<float>>>,vector<pair<int, vector<float>>>> (Utils::extractSubVector(vec, 0, fristSize),Utils::extractSubVector(vec, fristSize, vec.size()-fristSize));
 }

@@ -14,7 +14,7 @@
 using namespace std;
 
 
-Layer::Layer(size_t noOfNodes, int previousLayerNumOfNodes, int layerID, NodeType type, int batchsize,  int K, int L, int RangePow, float Sparsity, float* weights, float* bias, float *adamAvgMom, float *adamAvgVel) {
+Layer::Layer(size_t noOfNodes, int previousLayerNumOfNodes, int layerID, NodeType type, int batchsize,  int K, int L, int RangePow, float Sparsity,SlideMode Mode,SlideHashingFunction hashFunc, float* weights, float* bias, float *adamAvgMom, float *adamAvgVel) {
     _layerID = layerID;
     _noOfNodes = noOfNodes;
     _Nodes = new Node[noOfNodes];
@@ -25,6 +25,8 @@ Layer::Layer(size_t noOfNodes, int previousLayerNumOfNodes, int layerID, NodeTyp
     _batchsize = batchsize;
     _RangeRow = RangePow;
     _previousLayerNumOfNodes = previousLayerNumOfNodes;
+    hash_func=hashFunc;
+    mode=Mode;
 
 // create a list of random nodes just in case not enough nodes from hashtable for active nodes.
     _randNode = new int[_noOfNodes];
@@ -35,18 +37,18 @@ Layer::Layer(size_t noOfNodes, int previousLayerNumOfNodes, int layerID, NodeTyp
     std::random_shuffle(_randNode, _randNode + _noOfNodes);
 
 //TODO: Initialize Hash Tables and add the nodes. Done by Beidi
-    _hashTables = new LSH(_K, _L, RangePow);
+    _hashTables = new LSH(_K, _L, RangePow,hash_func);
 
-    if (HashFunction == 1) {
+    if (hash_func == SlideHashingFunction::WTA) {
         _wtaHasher = new WtaHash(_K * _L, previousLayerNumOfNodes);
-    } else if (HashFunction == 2) {
+    } else if (hash_func == SlideHashingFunction::DENSIFIED_WTA) {
         _binids = new int[previousLayerNumOfNodes];
         _dwtaHasher = new DensifiedWtaHash(_K * _L, previousLayerNumOfNodes);
-    } else if (HashFunction == 3) {
+    } else if (hash_func == SlideHashingFunction::TOPK_MIN_HASH) {
         _binids = new int[previousLayerNumOfNodes];
         _MinHasher = new DensifiedMinhash(_K * _L, previousLayerNumOfNodes);
         _MinHasher->getMap(previousLayerNumOfNodes, _binids);
-    } else if (HashFunction == 4) {
+    } else if (hash_func == SlideHashingFunction::SIMHASH) {
         _srp = new SparseRandomProjection(previousLayerNumOfNodes, _K * _L, Ratio);
     }
 
@@ -104,21 +106,21 @@ Layer::Layer(size_t noOfNodes, int previousLayerNumOfNodes, int layerID, NodeTyp
 void Layer::updateTable()
 {
 
-    if (HashFunction == 1) {
+    if (hash_func == SlideHashingFunction::WTA) {
          delete _wtaHasher;
         _wtaHasher = new WtaHash(_K * _L, _previousLayerNumOfNodes);
-    } else if (HashFunction == 2) {
+    } else if (hash_func == SlideHashingFunction::DENSIFIED_WTA) {
         delete _dwtaHasher;
         delete _binids;
         _binids = new int[_previousLayerNumOfNodes];
         _dwtaHasher = new DensifiedWtaHash(_K * _L, _previousLayerNumOfNodes);
-    } else if (HashFunction == 3) {
+    } else if (hash_func == SlideHashingFunction::TOPK_MIN_HASH) {
         delete _MinHasher;
         delete  _binids;
         _binids = new int[_previousLayerNumOfNodes];
         _MinHasher = new DensifiedMinhash(_K * _L, _previousLayerNumOfNodes);
         _MinHasher->getMap(_previousLayerNumOfNodes, _binids);
-    } else if (HashFunction == 4) {
+    } else if (hash_func == SlideHashingFunction::SIMHASH) {
 
         _srp = new SparseRandomProjection(_previousLayerNumOfNodes, _K * _L, Ratio);
 
@@ -136,13 +138,13 @@ void Layer::addtoHashTable(float* weights, int length, float bias, int ID)
 {
     //LSH logic
     int *hashes;
-    if(HashFunction==1) {
+    if(hash_func==SlideHashingFunction::WTA) {
         hashes = _wtaHasher->getHash(weights);
-    }else if (HashFunction==2) {
+    }else if (hash_func==SlideHashingFunction::DENSIFIED_WTA) {
         hashes = _dwtaHasher->getHashEasy(weights, length, TOPK);
-    }else if (HashFunction==3) {
+    }else if (hash_func== SlideHashingFunction::TOPK_MIN_HASH) {
         hashes = _MinHasher->getHashEasy(_binids, weights, length, TOPK);
-    }else if (HashFunction==4) {
+    }else if (hash_func==SlideHashingFunction::SIMHASH) {
         hashes = _srp->getHash(weights, length);
     }
 
@@ -152,7 +154,10 @@ void Layer::addtoHashTable(float* weights, int length, float bias, int ID)
     _Nodes[ID]._indicesInTables = hashIndices;
     _Nodes[ID]._indicesInBuckets = bucketIndices;
 
+    #pragma GCC diagnostic push 
+    #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
     delete [] hashes;
+    #pragma GCC diagnostic pop 
 
 }
 
@@ -218,7 +223,10 @@ int Layer::queryActiveNodeandComputeActivations(int** activenodesperlayer, float
     //LSH QueryLogic
 
     //Beidi. Query out all the candidate nodes
+    #pragma GCC diagnostic push 
+    #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
     int len;
+    #pragma GCC diagnostic pop 
     int in = 0;
 
     if(Sparsity == 1.0){
@@ -232,16 +240,16 @@ int Layer::queryActiveNodeandComputeActivations(int** activenodesperlayer, float
     }
     else
     {
-        if (Mode==1) {
+        if (mode==SlideMode::TOPK_THRESHOLD) {
             int *hashes;
-            if (HashFunction == 1) {
+            if (hash_func == SlideHashingFunction::WTA) {
                 hashes = _wtaHasher->getHash(activeValuesperlayer[layerIndex]);
-            } else if (HashFunction == 2) {
+            } else if (hash_func == SlideHashingFunction::DENSIFIED_WTA) {
                 hashes = _dwtaHasher->getHash(activenodesperlayer[layerIndex], activeValuesperlayer[layerIndex],
                                               lengths[layerIndex]);
-            } else if (HashFunction == 3) {
+            } else if (hash_func == SlideHashingFunction::TOPK_MIN_HASH) {
                 hashes = _MinHasher->getHashEasy(_binids, activeValuesperlayer[layerIndex], lengths[layerIndex], TOPK);
-            } else if (HashFunction == 4) {
+            } else if (hash_func == SlideHashingFunction::SIMHASH) {
                 hashes = _srp->getHashSparse(activenodesperlayer[layerIndex], activeValuesperlayer[layerIndex], lengths[layerIndex]);
             }
             int *hashIndices = _hashTables->hashesToIndex(hashes);
@@ -295,21 +303,24 @@ int Layer::queryActiveNodeandComputeActivations(int** activenodesperlayer, float
             // auto t33 = std::chrono::high_resolution_clock::now(); //unused
             in = len;
 
+            #pragma GCC diagnostic push 
+            #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
             delete[] hashes;
+            #pragma GCC diagnostic pop 
             delete[] hashIndices;
             delete[] actives;
 
         }
-        if (Mode==4) {
+        if (mode==SlideMode::SAMPLING) {
             int *hashes;
-            if (HashFunction == 1) {
+            if (hash_func == SlideHashingFunction::WTA) {
                 hashes = _wtaHasher->getHash(activeValuesperlayer[layerIndex]);
-            } else if (HashFunction == 2) {
+            } else if (hash_func == SlideHashingFunction::DENSIFIED_WTA) {
                 hashes = _dwtaHasher->getHash(activenodesperlayer[layerIndex], activeValuesperlayer[layerIndex],
                                               lengths[layerIndex]);
-            } else if (HashFunction == 3) {
+            } else if (hash_func == SlideHashingFunction::TOPK_MIN_HASH) {
                 hashes = _MinHasher->getHashEasy(_binids, activeValuesperlayer[layerIndex], lengths[layerIndex], TOPK);
-            } else if (HashFunction == 4) {
+            } else if (hash_func == SlideHashingFunction::SIMHASH) {
                 hashes = _srp->getHashSparse(activenodesperlayer[layerIndex], activeValuesperlayer[layerIndex], lengths[layerIndex]);
             }
             int *hashIndices = _hashTables->hashesToIndex(hashes);
@@ -377,12 +388,15 @@ int Layer::queryActiveNodeandComputeActivations(int** activenodesperlayer, float
                 i++;
             }
 
+            #pragma GCC diagnostic push 
+            #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
             delete[] hashes;
+            #pragma GCC diagnostic pop 
             delete[] hashIndices;
             delete[] actives;
 
         }
-        else if ((Mode == 2) & (_type== NodeType::Softmax)) {
+        else if ((mode == SlideMode::UNKNOWN_MODE1) & (_type== NodeType::Softmax)) {
             len = floor(_noOfNodes * Sparsity);
             lengths[layerIndex + 1] = len;
             activenodesperlayer[layerIndex + 1] = new int[len];
@@ -416,7 +430,7 @@ int Layer::queryActiveNodeandComputeActivations(int** activenodesperlayer, float
 
         }
 
-        else if ((Mode==3) & (_type== NodeType::Softmax)){
+        else if ((mode == SlideMode::UNKNOWN_MODE2) & (_type== NodeType::Softmax)){
 
             len = floor(_noOfNodes * Sparsity);
             lengths[layerIndex + 1] = len;
@@ -449,7 +463,10 @@ int Layer::queryActiveNodeandComputeActivations(int** activenodesperlayer, float
     }
 
     //***********************************
+    #pragma GCC diagnostic push 
+    #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
     activeValuesperlayer[layerIndex + 1] = new float[len]; //assuming its not initialized else memory leak;
+    #pragma GCC diagnostic pop 
     float maxValue = 0;
     if (_type == NodeType::Softmax)
         _normalizationConstants[inputID] = 0;

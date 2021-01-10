@@ -1,10 +1,13 @@
 // SLIDE: https://github.com/keroro824/HashingDeepLearning 
 
 #pragma once
-#include "Layer.h"
+
 #include <chrono>
 #include <sys/mman.h>
 #include <map>
+
+#include "Layer.h"
+#include "LSH.h"
 
 using namespace std;
 
@@ -19,13 +22,20 @@ private:
 	float * _Sparsity;
 	//int* _inputIDs;
 	int  _currentBatchSize;
+	int _inputDim;
+	int * _K;
+	int * _L;
+	int * _RangePow;
+	SlideHashingFunction hash_func;
+	SlideMode mode;
 
 
 public:
-	Network(int* sizesOfLayers, NodeType* layersTypes, int noOfLayers, int batchsize, float lr, int inputdim, int* K, int* L, int* RangePow, float* Sparsity, map<string, vector<float>> loadedData);
+	Network(int* sizesOfLayers, NodeType* layersTypes, int noOfLayers, int batchsize, float lr, int inputdim, int* K, int* L, int* RangePow, float* Sparsity,SlideMode Mode,SlideHashingFunction hashFunc);
+	void setWeights(map<string, vector<float>> loadedData);
 	Layer* getLayer(int LayerID);
 	int predictClass(int ** inputIndices, float ** inputValues, int * length, int ** labels, int *labelsize);
-	int ProcessInput(int** inputIndices, float** inputValues, int* lengths, int ** label, int *labelsize, int iter, bool rehash, bool rebuild);
+	float ProcessInput(int** inputIndices, float** inputValues, int* lengths, int ** label, int *labelsize, int iter, bool rehash, bool rebuild);
 	map<string, vector<float>> mapfyWeights();
 	~Network();
 	void * operator new(size_t size){

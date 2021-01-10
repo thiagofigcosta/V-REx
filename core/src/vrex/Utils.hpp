@@ -12,6 +12,9 @@
 #include <locale>
 #include <sys/stat.h>
 #include <stdexcept>
+#include <set>
+#include <random>
+#include <map>
 
 using namespace std;
 
@@ -39,10 +42,15 @@ class Utils{
         static bool checkIfFileExists(const string &path);
         static bool checkIfIsFile(const string &path);
         static bool checkIfFileContainsString(const string &path,const string &str);
-
+        static vector<pair<int, vector<float>>> extractSubVector(const vector<pair<int, vector<float>>> &vec, int start, int size);
+        static pair<vector<pair<int, vector<float>>>,map<string,int>> enumfyDataset(const vector<pair<string, vector<float>>> &vec);
+        static vector<pair<int, vector<float>>> shuffleDataset(const vector<pair<int, vector<float>>> &vec);
+        static pair<vector<pair<int, vector<float>>>,vector<pair<int, vector<float>>>> divideDataSet(const vector<pair<int, vector<float>>> &vec, float percentageOfFirst);
 
     private:
         // variables
         static const string RESOURCES_FOLDER;
         static const string FILE_SEPARATOR;
+        static default_random_engine RNG;
+        
 };

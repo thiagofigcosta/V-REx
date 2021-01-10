@@ -4,9 +4,11 @@
 
 #include "Utils.hpp"
 #include "MongoDB.hpp"
+#include "Slide.hpp"
 
 using namespace std;
 
 void test();
 void testCsvRead();
 void testMongo();
+void testSlide();

@@ -61,7 +61,73 @@ void testMongo(){
     mongo.getCollection(mongo.getDB("tests"),"cxx").insert_one(view);
 }
 
+void testSlide(){
+    pair<vector<pair<int, vector<float>>>,map<string,int>> enumfied = Utils::enumfyDataset(Utils::readLabeledCsvDataset(Utils::getResourcePath("iris.data")));
+    vector<pair<int, vector<float>>> dataset = enumfied.first;
+    map<string,int> equivalence = enumfied.second;
+
+    dataset=Utils::shuffleDataset(dataset);
+
+    float train_percentage=.7;
+    pair<vector<pair<int, vector<float>>>,vector<pair<int, vector<float>>>> dividedData=
+        Utils::divideDataSet(dataset, train_percentage);
+    vector<pair<int, vector<float>>> train_data=dividedData.first;
+    vector<pair<int, vector<float>>> test_data=dividedData.second;
+
+    // int layers=2;
+    // int epochs=3;
+    // float alpha=0.01;
+    // int batch_size=5;
+    // int *layer_sizes=new int[layers]{2,2};
+    // int *range_pow=new int[layers]{6,18};
+    // int *K=new int[layers]{2,6};
+    // int *L=new int[layers]{20,50};
+    // float *sparcity=new float[layers]{1,1};
+    // int rehash=6400;
+    // int rebuild=128000;
+    // int step_size=10;
+    // Slide slide=Slide(layers, layer_sizes, Slide::getStdLayerTypes(layers), train_data[0].second.size(), alpha, batch_size, range_pow,
+    //         K,L,sparcity, rehash, rebuild, step_size);
+    // slide.train(train_data,epochs);
+
+
+    int layers=1;
+    int epochs=3;
+    float alpha=0.01;
+    int batch_size=5;
+    int *layer_sizes=new int[layers]{2};
+    int *range_pow=new int[layers]{6};
+    int *K=new int[layers]{2};
+    int *L=new int[layers]{20};
+    float *sparcity=new float[layers]{1};
+    int rehash=6400;
+    int rebuild=128000;
+    int step_size=10;
+    Slide slide=Slide(layers, layer_sizes, Slide::getStdLayerTypes(layers), train_data[0].second.size(), alpha, batch_size, range_pow,
+            K,L,sparcity, rehash, rebuild, step_size);
+    slide.train(train_data,epochs);
+
+
+    // cout << "Train:"<<endl;
+    // for(pair<int, vector<float>> data:train_data){
+    //     cout << data.first <<": ";
+    //     for (float el : data.second){
+    //         cout<<el<<",";
+    //     }
+    //     cout << endl;
+    // }
+    // cout <<endl<< "Test:"<<endl;
+    // for(pair<int, vector<float>> data:test_data){
+    //     cout << data.first <<": ";
+    //     for (float el : data.second){
+    //         cout<<el<<",";
+    //     }
+    //     cout << endl;
+    // }
+}
+
 void test() {
     // testCsvRead();
-    testMongo();
+    // testMongo();
+    testSlide();
 }

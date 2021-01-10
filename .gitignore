@@ -11,3 +11,4 @@ core/src/mongo-cxx-driver/build
 core/res/dataset/
 core/src/vrex/bin
 core/src/vrex/obj
+core/src/vrex/*.o

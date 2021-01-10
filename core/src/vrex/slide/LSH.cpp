@@ -9,12 +9,13 @@
 
 using namespace std;
 
-LSH::LSH(int K, int L, int RangePow)
+LSH::LSH(int K, int L, int RangePow,SlideHashingFunction hashFunc)
 {
 	_K = K;
 	_L = L;
 	_RangePow = RangePow;
 	_bucket = new Bucket*[L];
+	hash_func=hashFunc;
 
 //#pragma omp parallel for
 	for (int i = 0; i < L; i++)
@@ -76,10 +77,10 @@ int* LSH::hashesToIndex(int * hashes)
 		for (int j = 0; j < _K; j++)
 		{
 
-			if (HashFunction==4){
+			if (hash_func==SlideHashingFunction::SIMHASH){
 				unsigned int h = hashes[_K*i + j];
 				index += h<<(_K-1-j);
-			}else if ((HashFunction==1) | (HashFunction==2)){
+			}else if ((hash_func==SlideHashingFunction::WTA) | (hash_func==SlideHashingFunction::DENSIFIED_WTA)){
                 unsigned int h = hashes[_K*i + j];
                 index += h<<((_K-1-j)*(int)floor(log(binsize)));
 
@@ -91,7 +92,7 @@ int* LSH::hashesToIndex(int * hashes)
                 index += h * hashes[_K * i + j];
             }
 		}
-		if (HashFunction==3) {
+		if (hash_func==SlideHashingFunction::TOPK_MIN_HASH) {
 			index = index&((1<<_RangePow)-1);
 		}
 		indices[i] = index;

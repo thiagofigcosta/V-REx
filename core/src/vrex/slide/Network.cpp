@@ -9,9 +9,7 @@
 #define DEBUG 1
 using namespace std;
 
-
-Network::Network(int *sizesOfLayers, NodeType *layersTypes, int noOfLayers, int batchSize, float lr, int inputdim,  int* K, int* L, int* RangePow, float* Sparsity, map<string, vector<float>> loadedData) {
-
+Network::Network(int *sizesOfLayers, NodeType *layersTypes, int noOfLayers, int batchSize, float lr, int inputdim,  int* K, int* L, int* RangePow, float* Sparsity,SlideMode Mode,SlideHashingFunction hashFunc) {
     _numberOfLayers = noOfLayers;
     _hiddenlayers = new Layer *[noOfLayers];
     _sizesOfLayers = sizesOfLayers;
@@ -19,33 +17,45 @@ Network::Network(int *sizesOfLayers, NodeType *layersTypes, int noOfLayers, int 
     _learningRate = lr;
     _currentBatchSize = batchSize;
     _Sparsity = Sparsity;
-
-
+    _inputDim=inputdim;
+	_K=K;
+	_L=L;
+	_RangePow=RangePow;
+    hash_func=hashFunc;
+    mode=Mode;
     for (int i = 0; i < noOfLayers; i++) {
         #pragma GCC diagnostic push 
         #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
         float* weight, *bias, *adamAvgMom, *adamAvgVel;
         if (i != 0) {
-            if(LOADWEIGHT){
-                weight = &loadedData["w_layer_"+to_string(i)][0];
-                bias = &loadedData["b_layer_"+to_string(i)][0];
-                adamAvgMom = &loadedData["am_layer_"+to_string(i)][0];
-                adamAvgVel = &loadedData["av_layer_"+to_string(i)][0];
-            }
-            _hiddenlayers[i] = new Layer(sizesOfLayers[i], sizesOfLayers[i - 1], i, _layersTypes[i], _currentBatchSize,  K[i], L[i], RangePow[i], Sparsity[i], weight, bias, adamAvgMom, adamAvgVel);
+            _hiddenlayers[i] = new Layer(sizesOfLayers[i], sizesOfLayers[i - 1], i, _layersTypes[i], _currentBatchSize,  K[i], L[i], RangePow[i], Sparsity[i],mode,hash_func, weight, bias, adamAvgMom, adamAvgVel);
         } else {
-            if(LOADWEIGHT){
-                weight = &loadedData["w_layer_"+to_string(i)][0];
-                bias = &loadedData["b_layer_"+to_string(i)][0];
-                adamAvgMom = &loadedData["am_layer_"+to_string(i)][0];
-                adamAvgVel = &loadedData["av_layer_"+to_string(i)][0];
-            }
-            _hiddenlayers[i] = new Layer(sizesOfLayers[i], inputdim, i, _layersTypes[i], _currentBatchSize, K[i], L[i], RangePow[i], Sparsity[i], weight, bias, adamAvgMom, adamAvgVel);
+            _hiddenlayers[i] = new Layer(sizesOfLayers[i], inputdim, i, _layersTypes[i], _currentBatchSize, K[i], L[i], RangePow[i], Sparsity[i],mode,hash_func, weight, bias, adamAvgMom, adamAvgVel);
         }
         #pragma GCC diagnostic pop
-
     }
     cout << "after layer" << endl;
+}
+
+void Network::setWeights(map<string, vector<float>> loadedData){
+    for (int i = 0; i < _numberOfLayers; i++) {
+        float* weight, *bias, *adamAvgMom, *adamAvgVel;
+        if (i != 0) {
+            weight = &loadedData["w_layer_"+to_string(i)][0];
+            bias = &loadedData["b_layer_"+to_string(i)][0];
+            adamAvgMom = &loadedData["am_layer_"+to_string(i)][0];
+            adamAvgVel = &loadedData["av_layer_"+to_string(i)][0];
+            delete _hiddenlayers[i];
+            _hiddenlayers[i] = new Layer(_sizesOfLayers[i], _sizesOfLayers[i - 1], i, _layersTypes[i], _currentBatchSize,  _K[i], _L[i], _RangePow[i], _Sparsity[i],mode,hash_func, weight, bias, adamAvgMom, adamAvgVel);
+        } else {
+            weight = &loadedData["w_layer_"+to_string(i)][0];
+            bias = &loadedData["b_layer_"+to_string(i)][0];
+            adamAvgMom = &loadedData["am_layer_"+to_string(i)][0];
+            adamAvgVel = &loadedData["av_layer_"+to_string(i)][0];
+            delete _hiddenlayers[i];
+            _hiddenlayers[i] = new Layer(_sizesOfLayers[i], _inputDim, i, _layersTypes[i], _currentBatchSize, _K[i], _L[i], _RangePow[i], _Sparsity[i],mode,hash_func, weight, bias, adamAvgMom, adamAvgVel);
+        }
+    }
 }
 
 
@@ -112,9 +122,9 @@ int Network::predictClass(int **inputIndices, float **inputValues, int *length, 
 }
 
 
-int Network::ProcessInput(int **inputIndices, float **inputValues, int *lengths, int **labels, int *labelsize, int iter, bool rehash, bool rebuild) {
+float Network::ProcessInput(int **inputIndices, float **inputValues, int *lengths, int **labels, int *labelsize, int iter, bool rehash, bool rebuild) {
 
-    float logloss = 0.0;
+    // float logloss = 0.0; // not used
     int* avg_retrieval = new int[_numberOfLayers]();
 
     for (int j = 0; j < _numberOfLayers; j++)
@@ -136,6 +146,7 @@ int Network::ProcessInput(int **inputIndices, float **inputValues, int *lengths,
     int*** activeNodesPerBatch = new int**[_currentBatchSize];
     float*** activeValuesPerBatch = new float**[_currentBatchSize];
     int** sizesPerBatch = new int*[_currentBatchSize];
+    float* grads = new float[_currentBatchSize];
 #pragma omp parallel for
     for (int i = 0; i < _currentBatchSize; i++) {
         int **activenodesperlayer = new int *[_numberOfLayers + 1]();
@@ -159,6 +170,7 @@ int Network::ProcessInput(int **inputIndices, float **inputValues, int *lengths,
 
         //Now backpropagate.
         // layers
+        grads[i]=0;
         for (int j = _numberOfLayers - 1; j >= 0; j--) {
             Layer* layer = _hiddenlayers[j];
             Layer* prev_layer = _hiddenlayers[j - 1];
@@ -170,9 +182,9 @@ int Network::ProcessInput(int **inputIndices, float **inputValues, int *lengths,
                     node->ComputeExtaStatsForSoftMax(layer->getNomalizationConstant(i), i, labels[i], labelsize[i]);
                 }
                 if (j != 0) {
-                    node->backPropagate(prev_layer->getAllNodes(), activeNodesPerBatch[i][j], sizesPerBatch[i][j], tmplr, i);
+                    grads[i]+=node->backPropagate(prev_layer->getAllNodes(), activeNodesPerBatch[i][j], sizesPerBatch[i][j], tmplr, i);
                 } else {
-                    node->backPropagateFirstLayer(inputIndices[i], inputValues[i], lengths[i], tmplr, i);
+                    grads[i]+=node->backPropagateFirstLayer(inputIndices[i], inputValues[i], lengths[i], tmplr, i);
                 }
             }
         }
@@ -249,20 +261,22 @@ int Network::ProcessInput(int **inputIndices, float **inputValues, int *lengths,
             }
             if (tmpRehash) {
                 int *hashes;
-                if(HashFunction==1) {
+                if(hash_func==SlideHashingFunction::WTA) {
                     hashes = _hiddenlayers[l]->_wtaHasher->getHash(local_weights);
-                }else if (HashFunction==2){
+                }else if (hash_func==SlideHashingFunction::DENSIFIED_WTA){
                     hashes = _hiddenlayers[l]->_dwtaHasher->getHashEasy(local_weights, dim, TOPK);
-                }else if (HashFunction==3){
+                }else if (hash_func==SlideHashingFunction::TOPK_MIN_HASH){
                     hashes = _hiddenlayers[l]->_MinHasher->getHashEasy(_hiddenlayers[l]->_binids, local_weights, dim, TOPK);
-                }else if (HashFunction==4){
+                }else if (hash_func==SlideHashingFunction::SIMHASH){
                     hashes = _hiddenlayers[l]->_srp->getHash(local_weights, dim);
                 }
 
                 int *hashIndices = _hiddenlayers[l]->_hashTables->hashesToIndex(hashes);
                 int * bucketIndices = _hiddenlayers[l]->_hashTables->add(hashIndices, m+1);
-
+                #pragma GCC diagnostic push 
+                #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
                 delete[] hashes;
+                #pragma GCC diagnostic pop 
                 delete[] hashIndices;
                 delete[] bucketIndices;
             }
@@ -272,10 +286,15 @@ int Network::ProcessInput(int **inputIndices, float **inputValues, int *lengths,
         }
     }
 
+    float total_grads=0;
+    for (size_t i=0;i<(size_t)_currentBatchSize;i++){
+        total_grads+=grads[i];
+    }
+
     if (DEBUG&rehash) {
         cout << "Avg sample size = " << avg_retrieval[0]*1.0/_currentBatchSize<<" "<<avg_retrieval[1]*1.0/_currentBatchSize << endl;
     }
-    return logloss;
+    return total_grads;
 }
 
 

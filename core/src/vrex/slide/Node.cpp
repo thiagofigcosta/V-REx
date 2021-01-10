@@ -154,8 +154,9 @@ void Node::ComputeExtaStatsForSoftMax(float normalizationConstant, int inputID, 
 }
 
 
-void Node::backPropagate(Node* previousNodes, int* previousLayerActiveNodeIds, int previousLayerActiveNodeSize, float learningRate, int inputID)
+float Node::backPropagate(Node* previousNodes, int* previousLayerActiveNodeIds, int previousLayerActiveNodeSize, float learningRate, int inputID)
 {
+	float total_grad=0;
 	#pragma GCC diagnostic push 
     #pragma GCC diagnostic ignored "-Wunused-value"
 	assert(("Input Not Active but still called !! BUG", _train[inputID]._ActiveinputIds == 1));
@@ -167,7 +168,7 @@ void Node::backPropagate(Node* previousNodes, int* previousLayerActiveNodeIds, i
 	    prev_node->incrementDelta(inputID, _train[inputID]._lastDeltaforBPs * _weights[previousLayerActiveNodeIds[i]]);
 
 		float grad_t = _train[inputID]._lastDeltaforBPs * prev_node->getLastActivation(inputID);
-
+		total_grad+=grad_t;
 		if (ADAM)
 		{
 			_t[previousLayerActiveNodeIds[i]] += grad_t;
@@ -193,12 +194,13 @@ void Node::backPropagate(Node* previousNodes, int* previousLayerActiveNodeIds, i
 	_train[inputID]._lastDeltaforBPs = 0;
 	_train[inputID]._lastActivations = 0;
 	_activeInputs--;
-
+	return total_grad;
 }
 
 
-void Node::backPropagateFirstLayer(int* nnzindices, float* nnzvalues, int nnzSize, float learningRate, int inputID)
+float Node::backPropagateFirstLayer(int* nnzindices, float* nnzvalues, int nnzSize, float learningRate, int inputID)
 {
+	float total_grad=0;
 	#pragma GCC diagnostic push 
     #pragma GCC diagnostic ignored "-Wunused-value"
 	assert(("Input Not Active but still called !! BUG", _train[inputID]._ActiveinputIds == 1));
@@ -206,6 +208,7 @@ void Node::backPropagateFirstLayer(int* nnzindices, float* nnzvalues, int nnzSiz
 	for (int i = 0; i < nnzSize; i++)
 	{
 		float grad_t = _train[inputID]._lastDeltaforBPs * nnzvalues[i];
+		total_grad+=grad_t;
 		// float grad_tsq = grad_t * grad_t; // unused
 		if (ADAM)
 		{
@@ -232,6 +235,40 @@ void Node::backPropagateFirstLayer(int* nnzindices, float* nnzvalues, int nnzSiz
 	_train[inputID]._lastDeltaforBPs = 0;
 	_train[inputID]._lastActivations = 0;
     _activeInputs--;
+	return total_grad;
+}
+
+float Node::calcBackPropagateGrad(Node* previousNodes, int* previousLayerActiveNodeIds, int previousLayerActiveNodeSize, int inputID)
+{
+	float total_grad=0;
+	#pragma GCC diagnostic push 
+    #pragma GCC diagnostic ignored "-Wunused-value"
+	assert(("Input Not Active but still called !! BUG", _train[inputID]._ActiveinputIds == 1));
+	#pragma GCC diagnostic pop 
+	for (int i = 0; i < previousLayerActiveNodeSize; i++)
+	{
+		//UpdateDelta before updating weights
+	    Node* prev_node = &(previousNodes[previousLayerActiveNodeIds[i]]);
+		float grad_t = _train[inputID]._lastDeltaforBPs * prev_node->getLastActivation(inputID);
+		total_grad+=grad_t;
+	}
+	return total_grad;
+}
+
+
+float Node::calcBackPropagateGradFirstLayer(int* nnzindices, float* nnzvalues, int nnzSize, int inputID)
+{
+	float total_grad=0;
+	#pragma GCC diagnostic push 
+    #pragma GCC diagnostic ignored "-Wunused-value"
+	assert(("Input Not Active but still called !! BUG", _train[inputID]._ActiveinputIds == 1));
+	#pragma GCC diagnostic pop 
+	for (int i = 0; i < nnzSize; i++)
+	{
+		float grad_t = _train[inputID]._lastDeltaforBPs * nnzvalues[i];
+		total_grad+=grad_t;
+	}
+	return total_grad;
 }
 
 void Node::SetlastActivation(int inputID, float realActivation)
