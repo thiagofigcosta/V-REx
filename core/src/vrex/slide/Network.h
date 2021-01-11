@@ -35,7 +35,8 @@ public:
 	void setWeights(map<string, vector<float>> loadedData);
 	Layer* getLayer(int LayerID);
 	int predictClass(int ** inputIndices, float ** inputValues, int * length, int ** labels, int *labelsize);
-	float ProcessInput(int** inputIndices, float** inputValues, int* lengths, int ** label, int *labelsize, int iter, bool rehash, bool rebuild);
+	float ProcessInput(int** inputIndices, float** inputValues, int* lengths, int ** labels, int *labelsize, int iter, bool rehash, bool rebuild);
+	float evalInput(int** inputIndices, float** inputValues, int* lengths, int ** labels, int *labelsize);
 	map<string, vector<float>> mapfyWeights();
 	~Network();
 	void * operator new(size_t size){

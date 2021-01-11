@@ -168,7 +168,7 @@ float Node::backPropagate(Node* previousNodes, int* previousLayerActiveNodeIds, 
 	    prev_node->incrementDelta(inputID, _train[inputID]._lastDeltaforBPs * _weights[previousLayerActiveNodeIds[i]]);
 
 		float grad_t = _train[inputID]._lastDeltaforBPs * prev_node->getLastActivation(inputID);
-		total_grad+=grad_t;
+		total_grad+=abs(_train[inputID]._lastDeltaforBPs);
 		if (ADAM)
 		{
 			_t[previousLayerActiveNodeIds[i]] += grad_t;
@@ -194,7 +194,7 @@ float Node::backPropagate(Node* previousNodes, int* previousLayerActiveNodeIds, 
 	_train[inputID]._lastDeltaforBPs = 0;
 	_train[inputID]._lastActivations = 0;
 	_activeInputs--;
-	return total_grad;
+	return total_grad/previousLayerActiveNodeSize;
 }
 
 
@@ -208,7 +208,7 @@ float Node::backPropagateFirstLayer(int* nnzindices, float* nnzvalues, int nnzSi
 	for (int i = 0; i < nnzSize; i++)
 	{
 		float grad_t = _train[inputID]._lastDeltaforBPs * nnzvalues[i];
-		total_grad+=grad_t;
+		total_grad+=abs(_train[inputID]._lastDeltaforBPs);
 		// float grad_tsq = grad_t * grad_t; // unused
 		if (ADAM)
 		{
@@ -235,10 +235,10 @@ float Node::backPropagateFirstLayer(int* nnzindices, float* nnzvalues, int nnzSi
 	_train[inputID]._lastDeltaforBPs = 0;
 	_train[inputID]._lastActivations = 0;
     _activeInputs--;
-	return total_grad;
+	return total_grad/nnzSize;
 }
 
-float Node::calcBackPropagateGrad(Node* previousNodes, int* previousLayerActiveNodeIds, int previousLayerActiveNodeSize, int inputID)
+float Node::calcBackPropagateGrad(int previousLayerActiveNodeSize, int inputID)
 {
 	float total_grad=0;
 	#pragma GCC diagnostic push 
@@ -247,28 +247,9 @@ float Node::calcBackPropagateGrad(Node* previousNodes, int* previousLayerActiveN
 	#pragma GCC diagnostic pop 
 	for (int i = 0; i < previousLayerActiveNodeSize; i++)
 	{
-		//UpdateDelta before updating weights
-	    Node* prev_node = &(previousNodes[previousLayerActiveNodeIds[i]]);
-		float grad_t = _train[inputID]._lastDeltaforBPs * prev_node->getLastActivation(inputID);
-		total_grad+=grad_t;
+		total_grad+=abs(_train[inputID]._lastDeltaforBPs);
 	}
-	return total_grad;
-}
-
-
-float Node::calcBackPropagateGradFirstLayer(int* nnzindices, float* nnzvalues, int nnzSize, int inputID)
-{
-	float total_grad=0;
-	#pragma GCC diagnostic push 
-    #pragma GCC diagnostic ignored "-Wunused-value"
-	assert(("Input Not Active but still called !! BUG", _train[inputID]._ActiveinputIds == 1));
-	#pragma GCC diagnostic pop 
-	for (int i = 0; i < nnzSize; i++)
-	{
-		float grad_t = _train[inputID]._lastDeltaforBPs * nnzvalues[i];
-		total_grad+=grad_t;
-	}
-	return total_grad;
+	return total_grad/previousLayerActiveNodeSize;
 }
 
 void Node::SetlastActivation(int inputID, float realActivation)

@@ -120,13 +120,56 @@ vector<pair<float,float>> Slide::train(vector<pair<vector<int>, vector<float>>> 
             delete[] values;
             delete[] labels;
         }
-        validation_data=Utils::shuffleDataset(validation_data);
+        train_data=Utils::shuffleDataset(train_data);
 
         train_loss/=num_batches;
-        cout << "Train loss: "<<train_loss<<endl;
 
-        
-        // TODO validation, use calcBackPropagateGrad to get the loss
+        float val_loss=0;
+        if (validation_data.size()>0){
+            val_loss=evalLoss(validation_data);
+        }
+        log_losses.push_back(pair<float,float>(train_loss,val_loss));
     }
     return log_losses;
+}
+
+float Slide::evalLoss(vector<pair<vector<int>, vector<float>>> &eval_data){
+    float **values = new float *[eval_data.size()];
+    int *sizes = new int[eval_data.size()];
+    int **records = new int *[eval_data.size()];
+    int **labels = new int *[eval_data.size()];
+    int *labelsize = new int[eval_data.size()];
+    for (size_t c=0;c<eval_data.size();c++){
+        pair<vector<int>, vector<float>> entry=eval_data[c];
+        float *value=&entry.second[0];
+        int size=entry.second.size();
+        int *record=new int[size];
+        for (size_t t=0;t<entry.second.size();t++){
+            record[t]=1; // almost every input neuron is active???
+            if (entry.second[t]==0){
+                record[t]=0;
+            }
+        }
+        int *label=&entry.first[0];
+        int label_size=entry.first.size();
+
+        values[c]=value;
+        sizes[c]=size;
+        records[c]=record;
+        labels[c]=label;
+        labelsize[c]=label_size;
+    }
+    float loss=slide_network->evalInput(records, values, sizes, labels, labelsize);
+    // clean up
+    delete[] sizes;
+    // TODO: causing exception: double free or corruption (fasttop)
+    // for (int d = 0; d < Batchsize; d++) {
+    //     delete[] records[d];
+    //     delete[] values[d];
+    //     delete[] labels[d];
+    // }
+    delete[] records;
+    delete[] values;
+    delete[] labels;
+    return loss;
 }

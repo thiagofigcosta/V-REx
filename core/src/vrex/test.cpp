@@ -134,7 +134,7 @@ void testSlide(){
     // int epochs=3;
     // float alpha=0.01;
     // int batch_size=5;
-    // int *layer_sizes=new int[layers]{6,2};
+    // int *layer_sizes=new int[layers]{6,(int)train_data[0].second.size()};
     // int *range_pow=new int[layers]{6,18};
     // int *K=new int[layers]{2,6};
     // int *L=new int[layers]{20,50};
@@ -144,10 +144,10 @@ void testSlide(){
     // int step_size=10;
 
     int layers=1;
-    int epochs=3;
+    int epochs=5;
     float alpha=0.01;
     int batch_size=5;
-    int *layer_sizes=new int[layers]{2};
+    int *layer_sizes=new int[layers]{(int)train_data[0].second.size()};
     int *range_pow=new int[layers]{6};
     int *K=new int[layers]{2};
     int *L=new int[layers]{20};
@@ -157,7 +157,11 @@ void testSlide(){
     int step_size=10;
     Slide slide=Slide(layers, layer_sizes, Slide::getStdLayerTypes(layers), train_data[0].second.size(), alpha, batch_size, range_pow,
             K,L,sparcity, rehash, rebuild, step_size);
-    slide.train(train_data,epochs);
+    vector<float>train_losses=slide.train(train_data,epochs);
+    for (float loss:train_losses){
+        cout<<"Train loss: "<<loss<<endl;
+    }
+    cout<<"Test loss: "<<slide.evalLoss(test_data)<<endl;
 }
 
 void test() {

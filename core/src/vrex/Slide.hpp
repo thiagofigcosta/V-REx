@@ -24,6 +24,7 @@ class Slide{
         static NodeType* getStdLayerTypes(const int amount_layers);
         vector<float> train(vector<pair<vector<int>, vector<float>>> &train_data,int epochs);
         vector<pair<float,float>> train(vector<pair<vector<int>, vector<float>>> &train_data,vector<pair<vector<int>, vector<float>>> &validation_data,int epochs);
+        float evalLoss(vector<pair<vector<int>, vector<float>>> &eval_data);
 
     private:
         // variables
