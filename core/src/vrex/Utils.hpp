@@ -15,6 +15,8 @@
 #include <set>
 #include <random>
 #include <map>
+#include <limits>
+#include <cmath>
 
 using namespace std;
 
@@ -42,10 +44,11 @@ class Utils{
         static bool checkIfFileExists(const string &path);
         static bool checkIfIsFile(const string &path);
         static bool checkIfFileContainsString(const string &path,const string &str);
-        static vector<pair<int, vector<float>>> extractSubVector(const vector<pair<int, vector<float>>> &vec, int start, int size);
+        static vector<pair<vector<int>, vector<float>>> extractSubVector(const vector<pair<vector<int>, vector<float>>> &vec, int start, int size);
         static pair<vector<pair<int, vector<float>>>,map<string,int>> enumfyDataset(const vector<pair<string, vector<float>>> &vec);
-        static vector<pair<int, vector<float>>> shuffleDataset(const vector<pair<int, vector<float>>> &vec);
-        static pair<vector<pair<int, vector<float>>>,vector<pair<int, vector<float>>>> divideDataSet(const vector<pair<int, vector<float>>> &vec, float percentageOfFirst);
+        static vector<pair<vector<int>, vector<float>>> encodeDatasetLabels(const vector<pair<int, vector<float>>> &vec);
+        static vector<pair<vector<int>, vector<float>>> shuffleDataset(const vector<pair<vector<int>, vector<float>>> &vec);
+        static pair<vector<pair<vector<int>, vector<float>>>,vector<pair<vector<int>, vector<float>>>> divideDataSet(const vector<pair<vector<int>, vector<float>>> &vec, float percentageOfFirst);
 
     private:
         // variables

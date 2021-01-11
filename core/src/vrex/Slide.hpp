@@ -22,8 +22,8 @@ class Slide{
         void setWeights(map<string, vector<float>> loadedData);
         map<string, vector<float>> getWeights();
         static NodeType* getStdLayerTypes(const int amount_layers);
-        vector<float> train(vector<pair<int, vector<float>>> train_data,int epochs);
-        vector<pair<float,float>> train(vector<pair<int, vector<float>>> train_data,vector<pair<int, vector<float>>> validation_data,int epochs);
+        vector<float> train(vector<pair<vector<int>, vector<float>>> &train_data,int epochs);
+        vector<pair<float,float>> train(vector<pair<vector<int>, vector<float>>> &train_data,vector<pair<vector<int>, vector<float>>> &validation_data,int epochs);
 
     private:
         // variables

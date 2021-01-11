@@ -46,8 +46,9 @@ NodeType* Slide::getStdLayerTypes(const int amount_layers){
     return types;
 }
 
-vector<float> Slide::train(vector<pair<int, vector<float>>> train_data,int epochs){
-    vector<pair<float,float>> losses = train(train_data,{},epochs);
+vector<float> Slide::train(vector<pair<vector<int>, vector<float>>> &train_data,int epochs){
+    vector<pair<vector<int>, vector<float>>> validation_data;
+    vector<pair<float,float>> losses = train(train_data,validation_data,epochs);
     vector<float> log_loss;
     for (pair<float,float> ll:losses){
         log_loss.push_back(ll.first);
@@ -55,14 +56,14 @@ vector<float> Slide::train(vector<pair<int, vector<float>>> train_data,int epoch
     return log_loss;
 }
 
-vector<pair<float,float>> Slide::train(vector<pair<int, vector<float>>> train_data,vector<pair<int, vector<float>>> validation_data,int epochs){
+vector<pair<float,float>> Slide::train(vector<pair<vector<int>, vector<float>>> &train_data,vector<pair<vector<int>, vector<float>>> &validation_data,int epochs){
     vector<pair<float,float>> log_losses; // train / validation
     int num_batches=(train_data.size() + batch_size-1)/batch_size;
     for (size_t j=0;j<(size_t)epochs;j++){
         float train_loss=0;
         for (size_t i = 0; i <(size_t)num_batches; i++) {
             int iter=j*num_batches+i;
-            vector<pair<int, vector<float>>> batch_data=Utils::extractSubVector(train_data, i*batch_size, batch_size);
+            vector<pair<vector<int>, vector<float>>> batch_data=Utils::extractSubVector(train_data, i*batch_size, batch_size);
             bool must_rehash = false;
             bool must_rebuild = false;
             if ((size_t)(iter)%(rehash/batch_size) == ((size_t)rehash/batch_size-1)){
@@ -76,14 +77,14 @@ vector<pair<float,float>> Slide::train(vector<pair<int, vector<float>>> train_da
                 }
             }
             
-            int **records = new int *[batch_size];
             float **values = new float *[batch_size];
             int *sizes = new int[batch_size];
+            int **records = new int *[batch_size];
             int **labels = new int *[batch_size];
             int *labelsize = new int[batch_size];
 
             for (size_t c=0;c<(size_t)batch_size;c++){
-                pair<int, vector<float>> entry=batch_data[c];
+                pair<vector<int>, vector<float>> entry=batch_data[c];
                 float *value=&entry.second[0];
                 int size=entry.second.size();
                 int *record=new int[size];
@@ -93,36 +94,39 @@ vector<pair<float,float>> Slide::train(vector<pair<int, vector<float>>> train_da
                         record[t]=0;
                     }
                 }
-                int label_size=1;// TODO make possible to have multiple labels
-                int *label=new int[label_size];
-                label[0]=entry.first;
-                records[c]=record;
+                int *label=&entry.first[0];
+                int label_size=entry.first.size();
+
                 values[c]=value;
                 sizes[c]=size;
+                records[c]=record;
                 labels[c]=label;
                 labelsize[c]=label_size;
+                batch_data.clear();
             }
-
 
             train_loss+=slide_network->ProcessInput(records, values, sizes, labels, labelsize, 
                                                     iter, must_rehash, must_rebuild);
             
             // clean up
             delete[] sizes;
-            for (int d = 0; d < batch_size; d++){
-                delete[] records[d];
-                delete[] values[d];
-                delete[] labels[d];
-            }
+            // TODO: causing exception: double free or corruption (fasttop)
+            // for (int d = 0; d < Batchsize; d++) {
+            //     delete[] records[d];
+            //     delete[] values[d];
+            //     delete[] labels[d];
+            // }
             delete[] records;
             delete[] values;
             delete[] labels;
         }
+        validation_data=Utils::shuffleDataset(validation_data);
+
         train_loss/=num_batches;
         cout << "Train loss: "<<train_loss<<endl;
-        // TODO validation, use calcBackPropagateGrad to get the loss
 
-        // TODO shuffle
+        
+        // TODO validation, use calcBackPropagateGrad to get the loss
     }
     return log_losses;
 }

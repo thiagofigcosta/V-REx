@@ -155,7 +155,7 @@ bool Utils::checkIfFileContainsString(const string &path,const string &str){
     return found;
 }
 
-vector<pair<int, vector<float>>> Utils::extractSubVector(const vector<pair<int, vector<float>>> &vec, int start, int size){
+vector<pair<vector<int>, vector<float>>> Utils::extractSubVector(const vector<pair<vector<int>, vector<float>>> &vec, int start, int size){
     if ((size_t)start>=vec.size()){
         throw runtime_error("Start position ("+to_string(start)+") bigger than vector size ("+to_string(vec.size())+")");
     }
@@ -163,8 +163,7 @@ vector<pair<int, vector<float>>> Utils::extractSubVector(const vector<pair<int, 
     if (diff<0){
         size+=diff;
     }
-    vector<pair<int, vector<float>>> subvector = {vec.begin()+start, vec.begin()+start+size };
-    return subvector;
+    return {vec.begin()+start, vec.begin()+start+size };
 }
 
 pair<vector<pair<int, vector<float>>>,map<string,int>> Utils::enumfyDataset(const vector<pair<string, vector<float>>> &vec){
@@ -184,18 +183,43 @@ pair<vector<pair<int, vector<float>>>,map<string,int>> Utils::enumfyDataset(cons
     return pair<vector<pair<int, vector<float>>>,map<string,int>> (enumfied_data,equivalence);
 }
 
-vector<pair<int, vector<float>>> Utils::shuffleDataset(const vector<pair<int, vector<float>>> &vec){
+vector<pair<vector<int>, vector<float>>> Utils::shuffleDataset(const vector<pair<vector<int>, vector<float>>> &vec){
     vector<int> indexes(vec.size());
     iota (indexes.begin(), indexes.end(), 0);
     shuffle(indexes.begin(), indexes.end(), Utils::RNG);
-    vector<pair<int, vector<float>>> out;
+    vector<pair<vector<int>, vector<float>>> out;
     for(int i:indexes){
         out.push_back(vec[i]);
     }
     return out;
 }
 
-pair<vector<pair<int, vector<float>>>,vector<pair<int, vector<float>>>> Utils::divideDataSet(const vector<pair<int, vector<float>>> &vec, float percentageOfFirst){
+pair<vector<pair<vector<int>, vector<float>>>,vector<pair<vector<int>, vector<float>>>> Utils::divideDataSet(const vector<pair<vector<int>, vector<float>>> &vec, float percentageOfFirst){
     size_t fristSize=vec.size()*percentageOfFirst;
-    return pair<vector<pair<int, vector<float>>>,vector<pair<int, vector<float>>>> (Utils::extractSubVector(vec, 0, fristSize),Utils::extractSubVector(vec, fristSize, vec.size()-fristSize));
+    return pair<vector<pair<vector<int>, vector<float>>>,vector<pair<vector<int>, vector<float>>>> (Utils::extractSubVector(vec, 0, fristSize),Utils::extractSubVector(vec, fristSize, vec.size()-fristSize));
+}
+
+vector<pair<vector<int>, vector<float>>> Utils::encodeDatasetLabels(const vector<pair<int, vector<float>>> &vec){
+    int max=numeric_limits<int>::min();
+    set<int> values;
+    for (pair<int, vector<float>> entry:vec){
+        values.insert(entry.first);
+        if (entry.first > max){
+            max = entry.first;
+        }
+    }
+    int output_neurons=ceil(log2(max+1));
+    map<int,vector<int>> equivalence;
+    for (int l:values){
+        vector<int> array;
+        for (int i = 0; i < output_neurons; ++i) {
+            array.push_back((l >> i) & 1);
+        }
+        equivalence[l]=array;
+    }
+    vector<pair<vector<int>, vector<float>>> encoded_data;
+    for (pair<int, vector<float>> entry:vec){
+        encoded_data.push_back(pair<vector<int>, vector<float>>(equivalence[entry.first],entry.second));
+    }
+    return encoded_data;
 }

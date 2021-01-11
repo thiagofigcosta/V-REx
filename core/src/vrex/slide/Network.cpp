@@ -310,11 +310,11 @@ map<string, vector<float>> Network::mapfyWeights()
 
 
 Network::~Network() {
-
     delete[] _sizesOfLayers;
-    for (int i=0; i< _numberOfLayers; i++){
-        delete _hiddenlayers[i];
-    }
+    // TODO: causing exception: double free or corruption (fasttop)
+    // for (int i=0; i< _numberOfLayers; i++){
+    //     delete _hiddenlayers[i];
+    // }
     delete[] _hiddenlayers;
     delete[] _layersTypes;
 }

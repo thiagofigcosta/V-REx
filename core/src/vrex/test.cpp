@@ -62,23 +62,79 @@ void testMongo(){
 }
 
 void testSlide(){
+    bool print_data=false;
     pair<vector<pair<int, vector<float>>>,map<string,int>> enumfied = Utils::enumfyDataset(Utils::readLabeledCsvDataset(Utils::getResourcePath("iris.data")));
-    vector<pair<int, vector<float>>> dataset = enumfied.first;
+    vector<pair<vector<int>, vector<float>>> dataset = Utils::encodeDatasetLabels(enumfied.first);
+    enumfied.first.clear(); // free
+    if (print_data){
+        cout << "Raw encoded data:"<<endl;
+        for(pair<vector<int>, vector<float>> data:dataset){
+            for (int el : data.first){
+                cout<<el;
+            }
+            cout<<": ";
+            for (float el : data.second){
+                cout<<el<<",";
+            }
+            cout << endl;
+        }
+        cout<<"----------------------------"<<endl;
+    }
     map<string,int> equivalence = enumfied.second;
-
     dataset=Utils::shuffleDataset(dataset);
+    if (print_data){
+        cout << "Raw encoded randomized data:"<<endl;
+        for(pair<vector<int>, vector<float>> data:dataset){
+            for (int el : data.first){
+                cout<<el;
+            }
+            cout<<": ";
+            for (float el : data.second){
+                cout<<el<<",";
+            }
+            cout << endl;
+        }
+        cout<<"----------------------------"<<endl;
+    }
 
     float train_percentage=.7;
-    pair<vector<pair<int, vector<float>>>,vector<pair<int, vector<float>>>> dividedData=
+    pair<vector<pair<vector<int>, vector<float>>>,vector<pair<vector<int>, vector<float>>>> dividedData=
         Utils::divideDataSet(dataset, train_percentage);
-    vector<pair<int, vector<float>>> train_data=dividedData.first;
-    vector<pair<int, vector<float>>> test_data=dividedData.second;
+    vector<pair<vector<int>, vector<float>>> train_data=dividedData.first;
+    vector<pair<vector<int>, vector<float>>> test_data=dividedData.second;
+    if (print_data){
+        cout << "Raw encoded splitted randomized data:"<<endl;
+        cout << "Train data:"<<endl;
+        for(pair<vector<int>, vector<float>> data:train_data){
+            for (int el : data.first){
+                cout<<el;
+            }
+            cout<<": ";
+            for (float el : data.second){
+                cout<<el<<",";
+            }
+            cout << endl;
+        }
+        cout<<endl<< "Test data:"<<endl;
+        for(pair<vector<int>, vector<float>> data:test_data){
+            for (int el : data.first){
+                cout<<el;
+            }
+            cout<<": ";
+            for (float el : data.second){
+                cout<<el<<",";
+            }
+            cout << endl;
+        }
+        cout<<"----------------------------"<<endl;
+    }
 
+    // Too heavy for my computer :/
     // int layers=2;
     // int epochs=3;
     // float alpha=0.01;
     // int batch_size=5;
-    // int *layer_sizes=new int[layers]{2,2};
+    // int *layer_sizes=new int[layers]{6,2};
     // int *range_pow=new int[layers]{6,18};
     // int *K=new int[layers]{2,6};
     // int *L=new int[layers]{20,50};
@@ -86,10 +142,6 @@ void testSlide(){
     // int rehash=6400;
     // int rebuild=128000;
     // int step_size=10;
-    // Slide slide=Slide(layers, layer_sizes, Slide::getStdLayerTypes(layers), train_data[0].second.size(), alpha, batch_size, range_pow,
-    //         K,L,sparcity, rehash, rebuild, step_size);
-    // slide.train(train_data,epochs);
-
 
     int layers=1;
     int epochs=3;
@@ -106,24 +158,6 @@ void testSlide(){
     Slide slide=Slide(layers, layer_sizes, Slide::getStdLayerTypes(layers), train_data[0].second.size(), alpha, batch_size, range_pow,
             K,L,sparcity, rehash, rebuild, step_size);
     slide.train(train_data,epochs);
-
-
-    // cout << "Train:"<<endl;
-    // for(pair<int, vector<float>> data:train_data){
-    //     cout << data.first <<": ";
-    //     for (float el : data.second){
-    //         cout<<el<<",";
-    //     }
-    //     cout << endl;
-    // }
-    // cout <<endl<< "Test:"<<endl;
-    // for(pair<int, vector<float>> data:test_data){
-    //     cout << data.first <<": ";
-    //     for (float el : data.second){
-    //         cout<<el<<",";
-    //     }
-    //     cout << endl;
-    // }
 }
 
 void test() {
