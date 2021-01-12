@@ -62,9 +62,9 @@ void testMongo(){
 }
 
 void testSlide(){
-    bool print_data=false;
+    bool print_data=true;
     pair<vector<pair<int, vector<float>>>,map<string,int>> enumfied = Utils::enumfyDataset(Utils::readLabeledCsvDataset(Utils::getResourcePath("iris.data")));
-    vector<pair<vector<int>, vector<float>>> dataset = Utils::encodeDatasetLabels(enumfied.first);
+    vector<pair<vector<int>, vector<float>>> dataset = Utils::encodeDatasetLabels(enumfied.first,DataEncoder::SPARSE);
     enumfied.first.clear(); // free
     if (print_data){
         cout << "Raw encoded data:"<<endl;
@@ -162,6 +162,20 @@ void testSlide(){
         cout<<"Train loss: "<<loss<<endl;
     }
     cout<<"Test loss: "<<slide.evalLoss(test_data)<<endl;
+
+    // vector<vector<pair<int,float>>> predicted = slide.evalData(test_data);
+    // cout<<"Predicted values"<<endl;
+    // for (size_t i=0;i<predicted.size();i++){
+
+    //     for (pair<int,float> el : predicted[i]){
+    //         cout<<el.first;
+    //     }
+    //     cout<<"-> ";
+    //     for (int el : test_data[i].first){
+    //         cout<<el;
+    //     }
+    //     cout << endl;
+    // }
 }
 
 void test() {

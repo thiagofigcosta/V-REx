@@ -199,7 +199,7 @@ pair<vector<pair<vector<int>, vector<float>>>,vector<pair<vector<int>, vector<fl
     return pair<vector<pair<vector<int>, vector<float>>>,vector<pair<vector<int>, vector<float>>>> (Utils::extractSubVector(vec, 0, fristSize),Utils::extractSubVector(vec, fristSize, vec.size()-fristSize));
 }
 
-vector<pair<vector<int>, vector<float>>> Utils::encodeDatasetLabels(const vector<pair<int, vector<float>>> &vec){
+vector<pair<vector<int>, vector<float>>> Utils::encodeDatasetLabels(const vector<pair<int, vector<float>>> &vec, DataEncoder enc){
     int max=numeric_limits<int>::min();
     set<int> values;
     for (pair<int, vector<float>> entry:vec){
@@ -208,12 +208,44 @@ vector<pair<vector<int>, vector<float>>> Utils::encodeDatasetLabels(const vector
             max = entry.first;
         }
     }
-    int output_neurons=ceil(log2(max+1));
+
+    int output_neurons=0;
+
+    switch(enc){
+        case DataEncoder::BINARY:
+            output_neurons=ceil(log2(max+1));
+            break;
+        case DataEncoder::SPARSE:
+            output_neurons=max+1;
+            break;
+        case DataEncoder::INCREMENTAL:
+        case DataEncoder::INCREMENTAL_PLUS_ONE:
+        case DataEncoder::EXPONENTIAL:
+            output_neurons=1;
+            break;
+    }
+
     map<int,vector<int>> equivalence;
     for (int l:values){
         vector<int> array;
         for (int i = 0; i < output_neurons; ++i) {
-            array.push_back((l >> i) & 1);
+            switch(enc){
+                case DataEncoder::BINARY:
+                    array.push_back((l >> i) & 1);
+                    break;
+                case DataEncoder::SPARSE:
+                    array.push_back((int) (i==l));
+                    break;
+                case DataEncoder::INCREMENTAL:
+                    array.push_back(l);
+                    break;
+                case DataEncoder::INCREMENTAL_PLUS_ONE:
+                    array.push_back(l+1);
+                    break;
+                case DataEncoder::EXPONENTIAL:
+                    array.push_back(pow(2,l+1));
+                    break;
+            }
         }
         equivalence[l]=array;
     }

@@ -20,6 +20,8 @@
 
 using namespace std;
 
+enum class DataEncoder { BINARY, SPARSE, INCREMENTAL, INCREMENTAL_PLUS_ONE, EXPONENTIAL };
+
 class Utils{
     public:
         // constructors and destructor
@@ -44,9 +46,9 @@ class Utils{
         static bool checkIfFileExists(const string &path);
         static bool checkIfIsFile(const string &path);
         static bool checkIfFileContainsString(const string &path,const string &str);
-        static vector<pair<vector<int>, vector<float>>> extractSubVector(const vector<pair<vector<int>, vector<float>>> &vec, int start, int size);
         static pair<vector<pair<int, vector<float>>>,map<string,int>> enumfyDataset(const vector<pair<string, vector<float>>> &vec);
-        static vector<pair<vector<int>, vector<float>>> encodeDatasetLabels(const vector<pair<int, vector<float>>> &vec);
+        static vector<pair<vector<int>, vector<float>>> extractSubVector(const vector<pair<vector<int>, vector<float>>> &vec, int start, int size);
+        static vector<pair<vector<int>, vector<float>>> encodeDatasetLabels(const vector<pair<int, vector<float>>> &vec, DataEncoder enc);
         static vector<pair<vector<int>, vector<float>>> shuffleDataset(const vector<pair<vector<int>, vector<float>>> &vec);
         static pair<vector<pair<vector<int>, vector<float>>>,vector<pair<vector<int>, vector<float>>>> divideDataSet(const vector<pair<vector<int>, vector<float>>> &vec, float percentageOfFirst);
 
