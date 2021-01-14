@@ -1,15 +1,7 @@
 // SLIDE: https://github.com/keroro824/HashingDeepLearning 
 
 #include "Layer.h"
-#include <iostream>
-#include <algorithm>
-#include <vector>
-#include <map>
-#include <climits>
 #include "Config.h"
-#include <bitset>
-#include <fstream>
-#include <omp.h>
 
 using namespace std;
 
@@ -80,8 +72,6 @@ Layer::Layer(size_t noOfNodes, int previousLayerNumOfNodes, int layerID, NodeTyp
         }
     }
 
-    auto t1 = std::chrono::high_resolution_clock::now();
-
     _train_array = new train[noOfNodes*batchsize];
 
     // create nodes for this layer
@@ -92,9 +82,6 @@ Layer::Layer(size_t noOfNodes, int previousLayerNumOfNodes, int layerID, NodeTyp
                 _bias[i], _adamAvgMom+previousLayerNumOfNodes*i , _adamAvgVel+previousLayerNumOfNodes*i, _train_array);
         addtoHashTable(_Nodes[i]._weights, previousLayerNumOfNodes, _Nodes[i]._bias, i);
     }
-    auto t2 = std::chrono::high_resolution_clock::now();
-    auto timeDiffInMiliseconds = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
-    std::cout<< noOfNodes<<" "<<1.0 * timeDiffInMiliseconds<<std::endl;
 
     if (type == NodeType::Softmax)
     {
@@ -256,8 +243,6 @@ int Layer::queryActiveNodeandComputeActivations(int** activenodesperlayer, float
             int **actives = _hashTables->retrieveRaw(hashIndices);
 
             // Get candidates from hashtable
-            // auto t00 = std::chrono::high_resolution_clock::now(); //unused
-
             std::map<int, size_t> counts;
             // Make sure that the true label node is in candidates
             if (_type == NodeType::Softmax) {
@@ -282,10 +267,8 @@ int Layer::queryActiveNodeandComputeActivations(int** activenodesperlayer, float
                     }
                 }
             }
-            // auto t11 = std::chrono::high_resolution_clock::now(); //unused
 
             //thresholding
-            // auto t3 = std::chrono::high_resolution_clock::now(); //unused
             vector<int> vect;
             for (auto &&x : counts){
                 if (x.second>THRESH){
@@ -300,7 +283,6 @@ int Layer::queryActiveNodeandComputeActivations(int** activenodesperlayer, float
             for (int i = 0; i < len; i++) {
                 activenodesperlayer[layerIndex + 1][i] = vect[i];
             }
-            // auto t33 = std::chrono::high_resolution_clock::now(); //unused
             in = len;
 
             #pragma GCC diagnostic push 
@@ -401,7 +383,6 @@ int Layer::queryActiveNodeandComputeActivations(int** activenodesperlayer, float
             lengths[layerIndex + 1] = len;
             activenodesperlayer[layerIndex + 1] = new int[len];
 
-            // auto t1 = std::chrono::high_resolution_clock::now(); //unused
             bitset <MAPLEN> bs;
             int tmpsize = 0;
             if (_type == NodeType::Softmax) {
@@ -422,16 +403,7 @@ int Layer::queryActiveNodeandComputeActivations(int** activenodesperlayer, float
                     tmpsize++;
                 }
             }
-
-
-
-            // auto t2 = std::chrono::high_resolution_clock::now(); //unused
-//            std::cout << "sampling "<<" takes" << 1.0 * timeDiffInMiliseconds << std::endl;
-
-        }
-
-        else if ((mode == SlideMode::UNKNOWN_MODE2) & (_type== NodeType::Softmax)){
-
+        }else if ((mode == SlideMode::UNKNOWN_MODE2) & (_type== NodeType::Softmax)){
             len = floor(_noOfNodes * Sparsity);
             lengths[layerIndex + 1] = len;
             activenodesperlayer[layerIndex + 1] = new int[len];

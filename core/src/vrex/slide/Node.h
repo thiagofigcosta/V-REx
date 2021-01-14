@@ -1,6 +1,7 @@
 // SLIDE: https://github.com/keroro824/HashingDeepLearning 
 
 #pragma once
+
 #include <stdlib.h>
 #include <assert.h>
 #include <iostream>
@@ -8,6 +9,11 @@
 #include <linux/mman.h>
 #include <sys/mman.h>
 #include <asm-generic/mman-common.h>
+#include <random>
+#include <math.h>
+#include <time.h>
+#include <chrono>
+#include <algorithm>
 
 
 using namespace std;
@@ -123,7 +129,6 @@ public:
     void* operator new (std::size_t size, const std::nothrow_t& nothrow_value){return operator new (size);};
     void* operator new (std::size_t size, void* ptr){return operator new (size);};
     void* operator new[] (std::size_t size){
-        std::cout << "new Node array" << std::endl;
         void* ptr = mmap(NULL, size,
             PROT_READ | PROT_EXEC | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_HUGETLB | MAP_HUGE_1GB,
             -1, 0);

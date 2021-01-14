@@ -5,6 +5,10 @@
 #include <chrono>
 #include <sys/mman.h>
 #include <map>
+#include <omp.h>
+#include <iostream>
+#include <math.h>
+#include <algorithm>
 
 #include "Layer.h"
 #include "LSH.h"
@@ -34,13 +38,12 @@ public:
 	Network(int* sizesOfLayers, NodeType* layersTypes, int noOfLayers, int batchsize, float lr, int inputdim, int* K, int* L, int* RangePow, float* Sparsity,SlideMode Mode,SlideHashingFunction hashFunc);
 	void setWeights(map<string, vector<float>> loadedData);
 	Layer* getLayer(int LayerID);
-	int predictClass(int ** inputIndices, float ** inputValues, int * length, int ** labels, int *labelsize);
+	pair<int,vector<vector<pair<int,float>>>> predictClass(int ** inputIndices, float ** inputValues, int * length, int ** labels, int *labelsize);
 	float ProcessInput(int** inputIndices, float** inputValues, int* lengths, int ** labels, int *labelsize, int iter, bool rehash, bool rebuild);
 	float evalInput(int** inputIndices, float** inputValues, int* lengths, int ** labels, int *labelsize);
 	map<string, vector<float>> mapfyWeights();
 	~Network();
 	void * operator new(size_t size){
-	    cout << "new Network" << endl;
 	    void* ptr = mmap(NULL, size,
 	        PROT_READ | PROT_EXEC | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_HUGETLB,
 	        -1, 0);

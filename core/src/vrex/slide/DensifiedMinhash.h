@@ -1,6 +1,6 @@
 // SLIDE: https://github.com/keroro824/HashingDeepLearning 
-
 #pragma once
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <chrono>
@@ -9,6 +9,10 @@
 #include <random>
 #include <vector>
 #include <string.h>
+#include <math.h>
+#include <algorithm>
+#include <queue>
+
 #include "MurmurHash.h"
 
 

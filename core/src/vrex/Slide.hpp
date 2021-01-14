@@ -2,6 +2,7 @@
 
 #include <map>
 #include <vector>
+#include <chrono>
 
 #include "slide/Node.h"
 #include "slide/Network.h"
@@ -14,7 +15,7 @@ class Slide{
         // constructors and destructor
         Slide(int numLayer, int *sizesOfLayers, NodeType* layerTypes, int InputDim, float Lr, int Batchsize, int *RangePow,
             int *KValues,int *LValues,float *Sparsity, int Rehash, int Rebuild, int Stepsize, SlideMode Mode=SlideMode::SAMPLING,
-            SlideHashingFunction HashFunc=SlideHashingFunction::DENSIFIED_WTA);
+            SlideHashingFunction HashFunc=SlideHashingFunction::DENSIFIED_WTA, bool printDeltas=false);
         Slide(const Slide& orig);
         virtual ~Slide();
 
@@ -25,6 +26,9 @@ class Slide{
         vector<float> train(vector<pair<vector<int>, vector<float>>> &train_data,int epochs);
         vector<pair<float,float>> train(vector<pair<vector<int>, vector<float>>> &train_data,vector<pair<vector<int>, vector<float>>> &validation_data,int epochs);
         float evalLoss(vector<pair<vector<int>, vector<float>>> &eval_data);
+        pair<int,vector<vector<pair<int,float>>>> evalData(vector<pair<vector<int>, vector<float>>> &test_data);
+        void allocAndCastDatasetToSlide(vector<pair<vector<int>, vector<float>>> &data,float **&values, int *&sizes, int **&records, int **&labels, int *&labelsize);
+        void deallocSlideDataset(float **values, int *sizes, int **records, int **labels, int *labelsize);
 
     private:
         // variables
@@ -45,5 +49,5 @@ class Slide{
         int amount_layers;
         SlideMode mode;
         SlideHashingFunction hash_function;
-
+        bool print_deltas;
 };

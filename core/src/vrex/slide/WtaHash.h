@@ -1,6 +1,7 @@
 // SLIDE: https://github.com/keroro824/HashingDeepLearning 
 
 #pragma once
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <chrono>
@@ -9,7 +10,12 @@
 #include <random>
 #include <vector>
 #include <string.h>
+#include <math.h>
+#include <algorithm>
+#include <map>
+
 #include "MurmurHash.h"
+
 /*
 *  Algorithm from the paper The Power of Comparative Reasoning. Jay Yagnik, Dennis Strelow, David A. Ross, Ruei-sung Lin
 

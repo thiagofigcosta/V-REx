@@ -216,6 +216,7 @@ vector<pair<vector<int>, vector<float>>> Utils::encodeDatasetLabels(const vector
             output_neurons=ceil(log2(max+1));
             break;
         case DataEncoder::SPARSE:
+        case DataEncoder::DISTINCT_SPARSE:
             output_neurons=max+1;
             break;
         case DataEncoder::INCREMENTAL:
@@ -235,6 +236,9 @@ vector<pair<vector<int>, vector<float>>> Utils::encodeDatasetLabels(const vector
                     break;
                 case DataEncoder::SPARSE:
                     array.push_back((int) (i==l));
+                    break;
+                case DataEncoder::DISTINCT_SPARSE:
+                    array.push_back((int) (i==l)*(l+1));
                     break;
                 case DataEncoder::INCREMENTAL:
                     array.push_back(l);

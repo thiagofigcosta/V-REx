@@ -1,14 +1,8 @@
 // SLIDE: https://github.com/keroro824/HashingDeepLearning 
 
 #include "DensifiedWtaHash.h"
-#include <random>
-#include <iostream>
-#include <math.h>
-#include <vector>
-#include <climits>
-#include <algorithm>
-#include <map>
 #include "Config.h"
+
 using namespace std;
 
 

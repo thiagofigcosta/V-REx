@@ -1,7 +1,8 @@
 #include "Slide.hpp"
 
 Slide::Slide(int numLayer, int *sizesOfLayers, NodeType* layerTypes, int InputDim, float Lr, int Batchsize, int *RangePow,
-            int *KValues,int *LValues,float *Sparsity, int Rehash, int Rebuild, int Stepsize, SlideMode Mode,SlideHashingFunction HashFunc) {
+            int *KValues,int *LValues,float *Sparsity, int Rehash, int Rebuild, int Stepsize, SlideMode Mode,SlideHashingFunction HashFunc, 
+            bool printDeltas) {
         range_pow=RangePow;
         K=KValues;
         L=LValues;
@@ -18,6 +19,7 @@ Slide::Slide(int numLayer, int *sizesOfLayers, NodeType* layerTypes, int InputDi
         layer_types=layerTypes;
         mode=Mode;
         hash_function=HashFunc;
+        print_deltas=printDeltas;
 
         slide_network=new Network(layer_sizes, layer_types, amount_layers, batch_size, learning_rate, input_dim, K, L, range_pow, sparsity,mode,hash_function);
 }
@@ -58,6 +60,10 @@ vector<float> Slide::train(vector<pair<vector<int>, vector<float>>> &train_data,
 
 vector<pair<float,float>> Slide::train(vector<pair<vector<int>, vector<float>>> &train_data,vector<pair<vector<int>, vector<float>>> &validation_data,int epochs){
     vector<pair<float,float>> log_losses; // train / validation
+    chrono::high_resolution_clock::time_point t1,t2;
+    if (print_deltas) {
+        t1 = chrono::high_resolution_clock::now();
+    }
     int num_batches=(train_data.size() + batch_size-1)/batch_size;
     for (size_t j=0;j<(size_t)epochs;j++){
         float train_loss=0;
@@ -76,49 +82,16 @@ vector<pair<float,float>> Slide::train(vector<pair<vector<int>, vector<float>>> 
                     must_rebuild = true;
                 }
             }
-            
-            float **values = new float *[batch_size];
-            int *sizes = new int[batch_size];
-            int **records = new int *[batch_size];
-            int **labels = new int *[batch_size];
-            int *labelsize = new int[batch_size];
-
-            for (size_t c=0;c<(size_t)batch_size;c++){
-                pair<vector<int>, vector<float>> entry=batch_data[c];
-                float *value=&entry.second[0];
-                int size=entry.second.size();
-                int *record=new int[size];
-                for (size_t t=0;t<entry.second.size();t++){
-                    record[t]=1; // almost every input neuron is active???
-                    if (entry.second[t]==0){
-                        record[t]=0;
-                    }
-                }
-                int *label=&entry.first[0];
-                int label_size=entry.first.size();
-
-                values[c]=value;
-                sizes[c]=size;
-                records[c]=record;
-                labels[c]=label;
-                labelsize[c]=label_size;
-                batch_data.clear();
-            }
+            float **values;
+            int *sizes, *labelsize;
+            int **records, **labels;
+            allocAndCastDatasetToSlide(batch_data,values,sizes,records,labels,labelsize);
 
             train_loss+=slide_network->ProcessInput(records, values, sizes, labels, labelsize, 
                                                     iter, must_rehash, must_rebuild);
-            
-            // clean up
-            delete[] sizes;
-            // TODO: causing exception: double free or corruption (fasttop)
-            // for (int d = 0; d < Batchsize; d++) {
-            //     delete[] records[d];
-            //     delete[] values[d];
-            //     delete[] labels[d];
-            // }
-            delete[] records;
-            delete[] values;
-            delete[] labels;
+
+            batch_data.clear();
+            deallocSlideDataset(values,sizes,records,labels,labelsize);
         }
         train_data=Utils::shuffleDataset(train_data);
 
@@ -130,36 +103,94 @@ vector<pair<float,float>> Slide::train(vector<pair<vector<int>, vector<float>>> 
         }
         log_losses.push_back(pair<float,float>(train_loss,val_loss));
     }
+    if (print_deltas) {
+        t2 = chrono::high_resolution_clock::now();
+        cout<<"Training takes: "<<chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count()<<" ms"<<endl;
+    }
     return log_losses;
 }
 
 float Slide::evalLoss(vector<pair<vector<int>, vector<float>>> &eval_data){
-    float **values = new float *[eval_data.size()];
-    int *sizes = new int[eval_data.size()];
-    int **records = new int *[eval_data.size()];
-    int **labels = new int *[eval_data.size()];
-    int *labelsize = new int[eval_data.size()];
-    for (size_t c=0;c<eval_data.size();c++){
-        pair<vector<int>, vector<float>> entry=eval_data[c];
-        float *value=&entry.second[0];
-        int size=entry.second.size();
-        int *record=new int[size];
-        for (size_t t=0;t<entry.second.size();t++){
-            record[t]=1; // almost every input neuron is active???
-            if (entry.second[t]==0){
-                record[t]=0;
-            }
-        }
-        int *label=&entry.first[0];
-        int label_size=entry.first.size();
-
-        values[c]=value;
-        sizes[c]=size;
-        records[c]=record;
-        labels[c]=label;
-        labelsize[c]=label_size;
+    int num_batches=(eval_data.size() + batch_size-1)/batch_size;
+    float loss=0;
+    chrono::high_resolution_clock::time_point t1,t2;
+    if (print_deltas) {
+        t1 = chrono::high_resolution_clock::now();
     }
-    float loss=slide_network->evalInput(records, values, sizes, labels, labelsize);
+    for (size_t i = 0; i <(size_t)num_batches; i++) {
+        vector<pair<vector<int>, vector<float>>> batch_data=Utils::extractSubVector(eval_data, i*batch_size, batch_size);
+        float **values;
+        int *sizes, *labelsize;
+        int **records, **labels;
+        allocAndCastDatasetToSlide(batch_data,values,sizes,records,labels,labelsize);
+
+        loss+=slide_network->evalInput(records, values, sizes, labels, labelsize);
+
+        batch_data.clear();
+        deallocSlideDataset(values,sizes,records,labels,labelsize);
+    }
+    loss/=num_batches;
+    if (print_deltas) {
+        t2 = chrono::high_resolution_clock::now();
+        cout<<"Loss evaluation takes: "<<chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count()<<" ms"<<endl;
+    }
+    return loss;
+}
+
+pair<int,vector<vector<pair<int,float>>>> Slide::evalData(vector<pair<vector<int>, vector<float>>> &test_data){
+    pair<int,vector<vector<pair<int,float>>>>  output;
+    chrono::high_resolution_clock::time_point t1,t2;
+    if (print_deltas) {
+        t1 = chrono::high_resolution_clock::now();
+    }
+    int num_batches=(test_data.size() + batch_size-1)/batch_size;
+    for (size_t i = 0; i <(size_t)num_batches; i++) {
+        vector<pair<vector<int>, vector<float>>> batch_data=Utils::extractSubVector(test_data, i*batch_size, batch_size);
+        float **values;
+        int *sizes, *labelsize;
+        int **records, **labels;
+        allocAndCastDatasetToSlide(batch_data,values,sizes,records,labels,labelsize);
+        pair<int,vector<vector<pair<int,float>>>> batch_out=slide_network->predictClass(records, values, sizes, labels, labelsize);
+        output.second.insert(output.second.end(),batch_out.second.begin(),batch_out.second.end());
+        output.first+=batch_out.first;
+        
+        batch_data.clear();
+        deallocSlideDataset(values,sizes,records,labels,labelsize);
+    }
+    if (print_deltas) {
+        t2 = chrono::high_resolution_clock::now();
+        cout<<"Inference takes: "<<chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count()<<" ms"<<endl;
+    }
+    return output;
+}
+
+void Slide::allocAndCastDatasetToSlide(vector<pair<vector<int>, vector<float>>> &data,float **&values, int *&sizes, int **&records, int **&labels, int *&labelsize){
+    values = new float *[data.size()];
+    sizes = new int[data.size()];
+    records = new int *[data.size()];
+    labels = new int *[data.size()];
+    labelsize = new int[data.size()];
+    for (size_t c=0;c<data.size();c++){
+        pair<vector<int>, vector<float>> entry=data[c];
+        sizes[c]=entry.second.size();
+        labelsize[c]=entry.first.size();
+        records[c]=new int[sizes[c]];
+        values[c]=new float [sizes[c]];
+        labels[c]=new int [labelsize[c]];
+        for (size_t t=0;t<(size_t)sizes[c];t++){
+            records[c][t]=1; // almost every input neuron is active???
+            if (entry.second[t]==0){
+                records[c][t]=0;
+            }
+            values[c][t]=entry.second[t];
+        }
+        for (size_t t=0;t<(size_t)labelsize[c];t++){
+            labels[c][t]=entry.first[t];
+        }
+    }
+}
+
+void Slide::deallocSlideDataset(float **values, int *sizes, int **records, int **labels, int *labelsize){
     // clean up
     delete[] sizes;
     // TODO: causing exception: double free or corruption (fasttop)
@@ -171,5 +202,4 @@ float Slide::evalLoss(vector<pair<vector<int>, vector<float>>> &eval_data){
     delete[] records;
     delete[] values;
     delete[] labels;
-    return loss;
 }

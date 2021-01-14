@@ -1,11 +1,7 @@
 // SLIDE: https://github.com/keroro824/HashingDeepLearning 
 
-#include <iostream>
-#include <unordered_map>
 #include "LSH.h"
-#include <climits>
 #include "Config.h"
-#include <chrono>
 
 using namespace std;
 

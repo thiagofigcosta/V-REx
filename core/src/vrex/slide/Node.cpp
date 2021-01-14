@@ -1,13 +1,6 @@
 // SLIDE: https://github.com/keroro824/HashingDeepLearning 
 
 #include "Node.h"
-#include <random>
-#include <math.h>
-#include <time.h>
-#include <stdlib.h>
-#include <chrono>
-#include <algorithm>
-#include <sys/mman.h>
 #include "Config.h"
 
 using namespace std;

@@ -1,6 +1,5 @@
 // SLIDE: https://github.com/keroro824/HashingDeepLearning 
 
-#include <iostream>
 #include "Bucket.h"
 
 

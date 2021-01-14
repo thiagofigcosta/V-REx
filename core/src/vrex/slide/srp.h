@@ -1,7 +1,11 @@
 // SLIDE: https://github.com/keroro824/HashingDeepLearning 
+#pragma once
 
 #include <vector>
-#pragma once
+#include <iostream>
+#include <algorithm>
+#include <cmath>
+
 using namespace std;
 
 class SparseRandomProjection 

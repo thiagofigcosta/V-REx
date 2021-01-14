@@ -1,14 +1,23 @@
 // SLIDE: https://github.com/keroro824/HashingDeepLearning 
 
 #pragma once
+
+#include <sys/mman.h>
+#include <map>
+#include <bitset>
+#include <fstream>
+#include <omp.h>
+#include <iostream>
+#include <algorithm>
+#include <vector>
+#include <climits>
+
 #include "Node.h"
 #include "WtaHash.h"
 #include "DensifiedMinhash.h"
 #include "srp.h"
 #include "LSH.h"
 #include "DensifiedWtaHash.h"
-#include <sys/mman.h>
-#include <map>
 
 using namespace std;
 
@@ -55,7 +64,6 @@ public:
 	~Layer();
 
     void * operator new(size_t size){
-        cout << "new Layer" << endl;
         void* ptr = mmap(NULL, size,
             PROT_READ | PROT_EXEC | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_HUGETLB,
             -1, 0);

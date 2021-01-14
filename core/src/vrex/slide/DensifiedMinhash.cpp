@@ -1,13 +1,7 @@
 // SLIDE: https://github.com/keroro824/HashingDeepLearning 
 
 #include "DensifiedMinhash.h"
-#include <random>
-#include <iostream>
-#include <math.h>
-#include <vector>
-#include <climits>
-#include <algorithm>
-#include <queue>
+
 using namespace std;
 
 typedef pair<int, float> PAIR;

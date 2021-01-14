@@ -1,8 +1,14 @@
 // SLIDE: https://github.com/keroro824/HashingDeepLearning 
 
 #pragma once
-#include "Bucket.h"
+
+#include <climits>
+#include <chrono>
+#include <unordered_map>
+#include <iostream>
 #include <random>
+
+#include "Bucket.h"
 
 enum class SlideMode { TOPK_THRESHOLD=1, SAMPLING=4, UNKNOWN_MODE1=2, UNKNOWN_MODE2=3 }; // TODO find out mode names
 enum class SlideHashingFunction { WTA=1, DENSIFIED_WTA=2, TOPK_MIN_HASH=3, SIMHASH=4 };

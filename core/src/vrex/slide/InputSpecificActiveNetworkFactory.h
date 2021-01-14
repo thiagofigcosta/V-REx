@@ -1,7 +1,9 @@
 // SLIDE: https://github.com/keroro824/HashingDeepLearning 
 
 #pragma once
+
 #include "InputSpecificActiveNetwork.h"
+
 using namespace std;
 
 class InputSpecificActiveNetworkFactory

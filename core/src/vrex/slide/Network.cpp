@@ -1,12 +1,10 @@
 // SLIDE: https://github.com/keroro824/HashingDeepLearning 
 
 #include "Network.h"
-#include <iostream>
-#include <math.h>
-#include <algorithm>
 #include "Config.h"
-#include <omp.h>
+
 #define DEBUG 1
+
 using namespace std;
 
 Network::Network(int *sizesOfLayers, NodeType *layersTypes, int noOfLayers, int batchSize, float lr, int inputdim,  int* K, int* L, int* RangePow, float* Sparsity,SlideMode Mode,SlideHashingFunction hashFunc) {
@@ -34,7 +32,6 @@ Network::Network(int *sizesOfLayers, NodeType *layersTypes, int noOfLayers, int 
         }
         #pragma GCC diagnostic pop
     }
-    cout << "after layer" << endl;
 }
 
 void Network::setWeights(map<string, vector<float>> loadedData){
@@ -70,11 +67,14 @@ Layer *Network::getLayer(int LayerID) {
 }
 
 
-int Network::predictClass(int **inputIndices, float **inputValues, int *length, int **labels, int *labelsize) {
+pair<int,vector<vector<pair<int,float>>>> Network::predictClass(int **inputIndices, float **inputValues, int *length, int **labels, int *labelsize) {
     int correctPred = 0;
-
-    auto t1 = std::chrono::high_resolution_clock::now();
-    #pragma omp parallel for reduction(+:correctPred)
+    #pragma GCC diagnostic push 
+    #pragma GCC diagnostic ignored "-Wsizeof-pointer-div"
+    int last_layer_size=labelsize[(sizeof(labelsize)/sizeof(*labelsize))-1];
+    #pragma GCC diagnostic pop 
+    vector<vector<pair<int,float>>> predicted_classes(_currentBatchSize, vector<pair<int,float>>(last_layer_size, pair<int,float>(0,0.0)));
+#pragma omp parallel for reduction(+:correctPred)
     for (int i = 0; i < _currentBatchSize; i++) {
         int **activenodesperlayer = new int *[_numberOfLayers + 1]();
         float **activeValuesperlayer = new float *[_numberOfLayers + 1]();
@@ -92,21 +92,27 @@ int Network::predictClass(int **inputIndices, float **inputValues, int *length, 
 
         //compute softmax
         int noOfClasses = sizes[_numberOfLayers];
-        float max_act = -222222222;
-        int predict_class = -1;
+        float max_act = numeric_limits<int>::min();
+        int predicted_class_pos = -1;
         for (int k = 0; k < noOfClasses; k++) {
             float cur_act = _hiddenlayers[_numberOfLayers - 1]->getNodebyID(activenodesperlayer[_numberOfLayers][k])->getLastActivation(i);
             if (max_act < cur_act) {
                 max_act = cur_act;
-                predict_class = activenodesperlayer[_numberOfLayers][k];
+                predicted_class_pos = activenodesperlayer[_numberOfLayers][k];
+            }
+            predicted_classes[i][k].second=cur_act;
+        }
+        predicted_classes[i][predicted_class_pos].first=labels[i][predicted_class_pos];
+        for (int c=0;c<labelsize[i];c++){
+            if (labels[i][c]==predicted_classes[i][c].first){
+                if (c+1==labelsize[i]){
+                    correctPred++;
+                }
+            }else{
+                break;
             }
         }
-
-        if (std::find (labels[i], labels[i]+labelsize[i], predict_class)!= labels[i]+labelsize[i]) {
-            correctPred++;
-        }
-
-        delete[] sizes;
+        delete[] sizes; 
         for (int j = 1; j < _numberOfLayers + 1; j++) {
             delete[] activenodesperlayer[j];
             delete[] activeValuesperlayer[j];
@@ -114,11 +120,7 @@ int Network::predictClass(int **inputIndices, float **inputValues, int *length, 
         delete[] activenodesperlayer;
         delete[] activeValuesperlayer;
     }
-    auto t2 = std::chrono::high_resolution_clock::now();
-    float timeDiffInMiliseconds = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
-    std::cout << "Inference takes " << timeDiffInMiliseconds/1000 << " milliseconds" << std::endl;
-
-    return correctPred;
+    return pair<int,vector<vector<pair<int,float>>>>(correctPred,predicted_classes);
 }
 
 
@@ -161,7 +163,7 @@ float Network::ProcessInput(int **inputIndices, float **inputValues, int *length
         activeValuesperlayer[0] = inputValues[i];
         sizes[0] = lengths[i];
         int in;
-        //auto t1 = std::chrono::high_resolution_clock::now();
+        // forward propagation
         for (int j = 0; j < _numberOfLayers; j++) {
             in = _hiddenlayers[j]->queryActiveNodeandComputeActivations(activenodesperlayer, activeValuesperlayer, sizes, j, i, labels[i], labelsize[i],
                     _Sparsity[j], iter*_currentBatchSize+i);
@@ -204,8 +206,6 @@ float Network::ProcessInput(int **inputIndices, float **inputValues, int *length
     delete[] activeValuesPerBatch;
     delete[] sizesPerBatch;
 
-
-    // auto t1 = std::chrono::high_resolution_clock::now(); // unused
     bool tmpRehash;
     bool tmpRebuild;
 
@@ -313,7 +313,6 @@ float Network::evalInput(int** inputIndices, float** inputValues, int* lengths, 
         activenodesperlayer[0] = inputIndices[i];  // inputs parsed from training data file
         activeValuesperlayer[0] = inputValues[i];
         sizes[0] = lengths[i];
-        //auto t1 = std::chrono::high_resolution_clock::now();
         for (int j = 0; j < _numberOfLayers; j++) {
             _hiddenlayers[j]->queryActiveNodeandComputeActivations(activenodesperlayer, activeValuesperlayer, sizes, j, i, labels[i], 0,
                     _Sparsity[j], -1);

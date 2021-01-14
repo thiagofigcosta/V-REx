@@ -62,9 +62,9 @@ void testMongo(){
 }
 
 void testSlide(){
-    bool print_data=true;
+    bool print_data=false;
     pair<vector<pair<int, vector<float>>>,map<string,int>> enumfied = Utils::enumfyDataset(Utils::readLabeledCsvDataset(Utils::getResourcePath("iris.data")));
-    vector<pair<vector<int>, vector<float>>> dataset = Utils::encodeDatasetLabels(enumfied.first,DataEncoder::SPARSE);
+    vector<pair<vector<int>, vector<float>>> dataset = Utils::encodeDatasetLabels(enumfied.first,DataEncoder::INCREMENTAL);
     enumfied.first.clear(); // free
     if (print_data){
         cout << "Raw encoded data:"<<endl;
@@ -134,7 +134,7 @@ void testSlide(){
     // int epochs=3;
     // float alpha=0.01;
     // int batch_size=5;
-    // int *layer_sizes=new int[layers]{6,(int)train_data[0].second.size()};
+    // int *layer_sizes=new int[layers]{6,(int)train_data[0].first.size()};
     // int *range_pow=new int[layers]{6,18};
     // int *K=new int[layers]{2,6};
     // int *L=new int[layers]{20,50};
@@ -147,7 +147,7 @@ void testSlide(){
     int epochs=5;
     float alpha=0.01;
     int batch_size=5;
-    int *layer_sizes=new int[layers]{(int)train_data[0].second.size()};
+    int *layer_sizes=new int[layers]{(int)train_data[0].first.size()};
     int *range_pow=new int[layers]{6};
     int *K=new int[layers]{2};
     int *L=new int[layers]{20};
@@ -155,27 +155,32 @@ void testSlide(){
     int rehash=6400;
     int rebuild=128000;
     int step_size=10;
+    bool print_deltas=true;
     Slide slide=Slide(layers, layer_sizes, Slide::getStdLayerTypes(layers), train_data[0].second.size(), alpha, batch_size, range_pow,
-            K,L,sparcity, rehash, rebuild, step_size);
+            K,L,sparcity, rehash, rebuild, step_size,SlideMode::SAMPLING,SlideHashingFunction::DENSIFIED_WTA,print_deltas);
     vector<float>train_losses=slide.train(train_data,epochs);
     for (float loss:train_losses){
         cout<<"Train loss: "<<loss<<endl;
     }
-    cout<<"Test loss: "<<slide.evalLoss(test_data)<<endl;
+    float test_loss=slide.evalLoss(test_data);
+    cout<<"Test loss: "<<test_loss<<endl;
 
-    // vector<vector<pair<int,float>>> predicted = slide.evalData(test_data);
-    // cout<<"Predicted values"<<endl;
-    // for (size_t i=0;i<predicted.size();i++){
-
-    //     for (pair<int,float> el : predicted[i]){
-    //         cout<<el.first;
-    //     }
-    //     cout<<"-> ";
-    //     for (int el : test_data[i].first){
-    //         cout<<el;
-    //     }
-    //     cout << endl;
-    // }
+    pair<int,vector<vector<pair<int,float>>>> predicted = slide.evalData(test_data);
+    cout<<"Test size: "<<test_data.size()<<endl;
+    cout<<"Correct values: "<<predicted.first<<endl;
+    if (print_data){
+        cout<<"Predicted values"<<endl;
+        for (size_t i=0;i<predicted.second.size();i++){
+            for (pair<int,float> el : predicted.second[i]){
+                cout<<el.first;
+            }
+            cout<<"-> ";
+            for (int el : test_data[i].first){
+                cout<<el;
+            }
+            cout << endl;
+        }
+    }
 }
 
 void test() {

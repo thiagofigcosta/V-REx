@@ -1,8 +1,5 @@
 // SLIDE: https://github.com/keroro824/HashingDeepLearning 
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <stdint.h>
 #include "MurmurHash.h"
 
 uint32_t MurmurHash (const char *key, uint32_t len, uint32_t seed) {

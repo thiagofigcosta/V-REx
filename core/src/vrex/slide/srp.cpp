@@ -1,9 +1,6 @@
 // SLIDE: https://github.com/keroro824/HashingDeepLearning 
 
 #include "srp.h"
-#include <iostream>
-#include <algorithm>
-#include <cmath>
 
 using namespace std;
 

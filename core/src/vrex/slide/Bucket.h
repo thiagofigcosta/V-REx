@@ -1,6 +1,8 @@
 // SLIDE: https://github.com/keroro824/HashingDeepLearning 
-
 #pragma once
+
+#include <iostream>
+
 #include "Config.h"
 
 class Bucket
