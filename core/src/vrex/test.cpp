@@ -135,6 +135,7 @@ void testSlide(){
     // float alpha=0.01;
     // int batch_size=5;
     // int *layer_sizes=new int[layers]{6,(int)train_data[0].first.size()};
+    // bool adam=true;
     // int *range_pow=new int[layers]{6,18};
     // int *K=new int[layers]{2,6};
     // int *L=new int[layers]{20,50};
@@ -142,12 +143,14 @@ void testSlide(){
     // int rehash=6400;
     // int rebuild=128000;
     // int step_size=10;
+    // bool print_deltas=true;
 
     int layers=1;
     int epochs=5;
     float alpha=0.01;
     int batch_size=5;
     int *layer_sizes=new int[layers]{(int)train_data[0].first.size()};
+    bool adam=true;
     int *range_pow=new int[layers]{6};
     int *K=new int[layers]{2};
     int *L=new int[layers]{20};
@@ -156,8 +159,8 @@ void testSlide(){
     int rebuild=128000;
     int step_size=10;
     bool print_deltas=true;
-    Slide slide=Slide(layers, layer_sizes, Slide::getStdLayerTypes(layers), train_data[0].second.size(), alpha, batch_size, range_pow,
-            K,L,sparcity, rehash, rebuild, step_size,SlideMode::SAMPLING,SlideHashingFunction::DENSIFIED_WTA,print_deltas);
+    Slide slide=Slide(layers, layer_sizes, Slide::getStdLayerTypes(layers), train_data[0].second.size(), alpha, batch_size, adam, 
+    range_pow, K, L, sparcity, rehash, rebuild, step_size, SlideMode::SAMPLING, SlideHashingFunction::DENSIFIED_WTA, print_deltas);
     vector<float>train_losses=slide.train(train_data,epochs);
     for (float loss:train_losses){
         cout<<"Train loss: "<<loss<<endl;

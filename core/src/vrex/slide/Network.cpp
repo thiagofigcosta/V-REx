@@ -3,11 +3,9 @@
 #include "Network.h"
 #include "Config.h"
 
-#define DEBUG 1
-
 using namespace std;
 
-Network::Network(int *sizesOfLayers, NodeType *layersTypes, int noOfLayers, int batchSize, float lr, int inputdim,  int* K, int* L, int* RangePow, float* Sparsity,SlideMode Mode,SlideHashingFunction hashFunc) {
+Network::Network(int *sizesOfLayers, NodeType *layersTypes, int noOfLayers, int batchSize, float lr, int inputdim,  int* K, int* L, int* RangePow, float* Sparsity,SlideMode Mode,SlideHashingFunction hashFunc, bool useAdamOt) {
     _numberOfLayers = noOfLayers;
     _hiddenlayers = new Layer *[noOfLayers];
     _sizesOfLayers = sizesOfLayers;
@@ -21,6 +19,7 @@ Network::Network(int *sizesOfLayers, NodeType *layersTypes, int noOfLayers, int 
 	_RangePow=RangePow;
     hash_func=hashFunc;
     mode=Mode;
+    use_adam=useAdamOt;
     for (int i = 0; i < noOfLayers; i++) {
         #pragma GCC diagnostic push 
         #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
@@ -138,9 +137,9 @@ float Network::ProcessInput(int **inputIndices, float **inputValues, int *length
         _hiddenlayers[1]->updateRandomNodes();
     }
     float tmplr = _learningRate;
-    if (ADAM) {
-        tmplr = _learningRate * sqrt((1 - pow(BETA2, iter + 1))) /
-                (1 - pow(BETA1, iter + 1));
+    if (use_adam) {
+        tmplr = _learningRate * sqrt((1 - pow(Slide::ADAM_OT_BETA2, iter + 1))) /
+                (1 - pow(Slide::ADAM_OT_BETA1, iter + 1));
     }else{
 //        tmplr *= pow(0.9, iter/10.0);
     }
@@ -235,22 +234,22 @@ float Network::ProcessInput(int **inputIndices, float **inputValues, int *length
             float* local_weights = new float[dim];
             std::copy(tmp->_weights, tmp->_weights + dim, local_weights);
 
-            if(ADAM){
+            if(use_adam){
                 for (int d=0; d < dim;d++){
                     float _t = tmp->_t[d];
                     float Mom = tmp->_adamAvgMom[d];
                     float Vel = tmp->_adamAvgVel[d];
-                    Mom = BETA1 * Mom + (1 - BETA1) * _t;
-                    Vel = BETA2 * Vel + (1 - BETA2) * _t * _t;
-                    local_weights[d] += ratio * tmplr * Mom / (sqrt(Vel) + EPS);
+                    Mom = Slide::ADAM_OT_BETA1 * Mom + (1 - Slide::ADAM_OT_BETA1) * _t;
+                    Vel = Slide::ADAM_OT_BETA2 * Vel + (1 - Slide::ADAM_OT_BETA2) * _t * _t;
+                    local_weights[d] += ratio * tmplr * Mom / (sqrt(Vel) + Slide::ADAM_OT_EPSILON);
                     tmp->_adamAvgMom[d] = Mom;
                     tmp->_adamAvgVel[d] = Vel;
                     tmp->_t[d] = 0;
                 }
 
-                tmp->_adamAvgMombias = BETA1 * tmp->_adamAvgMombias + (1 - BETA1) * tmp->_tbias;
-                tmp->_adamAvgVelbias = BETA2 * tmp->_adamAvgVelbias + (1 - BETA2) * tmp->_tbias * tmp->_tbias;
-                tmp->_bias += ratio*tmplr * tmp->_adamAvgMombias / (sqrt(tmp->_adamAvgVelbias) + EPS);
+                tmp->_adamAvgMombias = Slide::ADAM_OT_BETA1 * tmp->_adamAvgMombias + (1 - Slide::ADAM_OT_BETA1) * tmp->_tbias;
+                tmp->_adamAvgVelbias = Slide::ADAM_OT_BETA2 * tmp->_adamAvgVelbias + (1 - Slide::ADAM_OT_BETA2) * tmp->_tbias * tmp->_tbias;
+                tmp->_bias += ratio*tmplr * tmp->_adamAvgMombias / (sqrt(tmp->_adamAvgVelbias) + Slide::ADAM_OT_EPSILON);
                 tmp->_tbias = 0;
                 std::copy(local_weights, local_weights + dim, tmp->_weights);
             }
@@ -291,9 +290,6 @@ float Network::ProcessInput(int **inputIndices, float **inputValues, int *length
         total_grads+=grads[i];
     }
 
-    if (DEBUG&rehash) {
-        cout << "Avg sample size = " << avg_retrieval[0]*1.0/_currentBatchSize<<" "<<avg_retrieval[1]*1.0/_currentBatchSize << endl;
-    }
     return total_grads/_currentBatchSize;
 }
 

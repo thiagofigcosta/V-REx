@@ -1,6 +1,10 @@
 #include "Slide.hpp"
 
-Slide::Slide(int numLayer, int *sizesOfLayers, NodeType* layerTypes, int InputDim, float Lr, int Batchsize, int *RangePow,
+const float Slide::ADAM_OT_BETA1=0.9;
+const float Slide::ADAM_OT_BETA2=0.999;
+const float Slide::ADAM_OT_EPSILON=0.00000001;
+
+Slide::Slide(int numLayer, int *sizesOfLayers, NodeType* layerTypes, int InputDim, float Lr, int Batchsize, bool useAdamOt, int *RangePow,
             int *KValues,int *LValues,float *Sparsity, int Rehash, int Rebuild, int Stepsize, SlideMode Mode,SlideHashingFunction HashFunc, 
             bool printDeltas) {
         range_pow=RangePow;
@@ -20,8 +24,9 @@ Slide::Slide(int numLayer, int *sizesOfLayers, NodeType* layerTypes, int InputDi
         mode=Mode;
         hash_function=HashFunc;
         print_deltas=printDeltas;
+        use_adam=useAdamOt;
 
-        slide_network=new Network(layer_sizes, layer_types, amount_layers, batch_size, learning_rate, input_dim, K, L, range_pow, sparsity,mode,hash_function);
+        slide_network=new Network(layer_sizes, layer_types, amount_layers, batch_size, learning_rate, input_dim, K, L, range_pow, sparsity,mode,hash_function,use_adam);
 }
 
 Slide::Slide(const Slide& orig) {

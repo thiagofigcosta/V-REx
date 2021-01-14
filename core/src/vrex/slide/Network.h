@@ -12,6 +12,7 @@
 
 #include "Layer.h"
 #include "LSH.h"
+#include "../Slide.hpp"
 
 using namespace std;
 
@@ -32,10 +33,10 @@ private:
 	int * _RangePow;
 	SlideHashingFunction hash_func;
 	SlideMode mode;
-
+	bool use_adam;
 
 public:
-	Network(int* sizesOfLayers, NodeType* layersTypes, int noOfLayers, int batchsize, float lr, int inputdim, int* K, int* L, int* RangePow, float* Sparsity,SlideMode Mode,SlideHashingFunction hashFunc);
+	Network(int* sizesOfLayers, NodeType* layersTypes, int noOfLayers, int batchsize, float lr, int inputdim, int* K, int* L, int* RangePow, float* Sparsity,SlideMode Mode,SlideHashingFunction hashFunc, bool useAdamOt);
 	void setWeights(map<string, vector<float>> loadedData);
 	Layer* getLayer(int LayerID);
 	pair<int,vector<vector<pair<int,float>>>> predictClass(int ** inputIndices, float ** inputValues, int * length, int ** labels, int *labelsize);
