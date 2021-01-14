@@ -5,8 +5,6 @@
 
 class Slide;
 
-#include "Config.h"
-
 class Bucket
 {
 private:

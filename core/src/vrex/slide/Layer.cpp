@@ -1,7 +1,6 @@
 // SLIDE: https://github.com/keroro824/HashingDeepLearning 
 
 #include "Layer.h"
-#include "Config.h"
 #include "../Slide.hpp"
 
 using namespace std;
@@ -10,7 +9,8 @@ using namespace std;
 Layer::Layer(size_t noOfNodes, int previousLayerNumOfNodes, int layerID, NodeType type, int batchsize,  int K, int L, int RangePow, float Sparsity,SlideMode Mode, SlideHashingFunction hashFunc, bool useAdamOt, float* weights, float* bias, float *adamAvgMom, float *adamAvgVel) {
     _layerID = layerID;
     _noOfNodes = noOfNodes;
-    _Nodes = new Node[noOfNodes];
+    use_adam=useAdamOt;
+    _Nodes = Node::createNodeArray(noOfNodes,use_adam);
     _type = type;
     _noOfActive = floor(_noOfNodes * Sparsity);
     _K = K;
@@ -20,7 +20,6 @@ Layer::Layer(size_t noOfNodes, int previousLayerNumOfNodes, int layerID, NodeTyp
     _previousLayerNumOfNodes = previousLayerNumOfNodes;
     hash_func=hashFunc;
     mode=Mode;
-    use_adam=useAdamOt;
 
 // create a list of random nodes just in case not enough nodes from hashtable for active nodes.
     _randNode = new int[_noOfNodes];

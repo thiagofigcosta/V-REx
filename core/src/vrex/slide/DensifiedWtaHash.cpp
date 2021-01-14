@@ -1,7 +1,6 @@
 // SLIDE: https://github.com/keroro824/HashingDeepLearning 
 
 #include "DensifiedWtaHash.h"
-#include "Config.h"
 #include "../Slide.hpp"
 
 using namespace std;

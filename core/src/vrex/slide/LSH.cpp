@@ -1,7 +1,6 @@
 // SLIDE: https://github.com/keroro824/HashingDeepLearning 
 
 #include "LSH.h"
-#include "Config.h"
 #include "../Slide.hpp"
 
 using namespace std;

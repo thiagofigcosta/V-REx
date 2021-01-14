@@ -1,19 +1,19 @@
 // SLIDE: https://github.com/keroro824/HashingDeepLearning 
 
 #include "Node.h"
-#include "Config.h"
 
 using namespace std;
 
-Node::Node(int dim, int nodeID, int layerID, NodeType type, int batchsize, float *weights, float bias, float *adamAvgMom, float *adamAvgVel)
+Node::Node(int dim, int nodeID, int layerID, NodeType type, int batchsize, bool useAdamOt, float *weights, float bias, float *adamAvgMom, float *adamAvgVel)
 {
 	_dim = dim;
 	_IDinLayer = nodeID;
 	_type = type;
 	_layerNum = layerID;
     _currentBatchsize = batchsize;
+    use_adam=useAdamOt;
 
-	if (ADAM)
+	if (use_adam)
 	{
 		_adamAvgMom = adamAvgMom;
 		_adamAvgVel = adamAvgVel;
@@ -30,6 +30,14 @@ Node::Node(int dim, int nodeID, int layerID, NodeType type, int batchsize, float
 
 }
 
+Node* Node::createNodeArray(int size, bool useAdamOt){
+	Node* nodes=new Node[size];
+	for (int i=0;i<size;i++){
+		nodes[i].use_adam=useAdamOt;
+	}
+	return nodes;
+}
+
 void Node::Update(int dim, int nodeID, int layerID, NodeType type, int batchsize, float *weights, float bias, float *adamAvgMom, float *adamAvgVel, train* train_blob)
 {
     _dim = dim;
@@ -38,7 +46,7 @@ void Node::Update(int dim, int nodeID, int layerID, NodeType type, int batchsize
     _layerNum = layerID;
     _currentBatchsize = batchsize;
 
-    if (ADAM)
+    if (use_adam)
     {
         _adamAvgMom = adamAvgMom;
         _adamAvgVel = adamAvgVel;
@@ -162,7 +170,7 @@ float Node::backPropagate(Node* previousNodes, int* previousLayerActiveNodeIds, 
 
 		float grad_t = _train[inputID]._lastDeltaforBPs * prev_node->getLastActivation(inputID);
 		total_grad+=abs(_train[inputID]._lastDeltaforBPs);
-		if (ADAM)
+		if (use_adam)
 		{
 			_t[previousLayerActiveNodeIds[i]] += grad_t;
 		}
@@ -172,7 +180,7 @@ float Node::backPropagate(Node* previousNodes, int* previousLayerActiveNodeIds, 
 		}
 	}
 
-	if (ADAM)
+	if (use_adam)
 	{
 		float biasgrad_t = _train[inputID]._lastDeltaforBPs;
 		// float biasgrad_tsq = biasgrad_t * biasgrad_t; //unused
@@ -203,7 +211,7 @@ float Node::backPropagateFirstLayer(int* nnzindices, float* nnzvalues, int nnzSi
 		float grad_t = _train[inputID]._lastDeltaforBPs * nnzvalues[i];
 		total_grad+=abs(_train[inputID]._lastDeltaforBPs);
 		// float grad_tsq = grad_t * grad_t; // unused
-		if (ADAM)
+		if (use_adam)
 		{
 			_t[nnzindices[i]] += grad_t;
 		}
@@ -213,7 +221,7 @@ float Node::backPropagateFirstLayer(int* nnzindices, float* nnzvalues, int nnzSi
 		}
 	}
 
-	if (ADAM)
+	if (use_adam)
 	{
 		float biasgrad_t = _train[inputID]._lastDeltaforBPs;
 		//float biasgrad_tsq = biasgrad_t * biasgrad_t; // unused
@@ -256,7 +264,7 @@ Node::~Node()
 	delete[] _indicesInTables;
 	delete[] _indicesInBuckets;
 
-	if (ADAM)
+	if (use_adam)
 	{
 		delete[] _adamAvgMom;
 		delete[] _adamAvgVel;

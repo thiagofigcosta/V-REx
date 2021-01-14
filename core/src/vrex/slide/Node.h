@@ -75,7 +75,8 @@ class Node
 private:
 	int _activeInputs;
     NodeType _type;
-
+	bool use_adam;
+	Node(){};
 
 public:
 	train* _train;
@@ -95,8 +96,7 @@ public:
 	float _adamAvgVelbias=0;
 	float _mirrorbias =0;
 
-	Node(){};
-	Node(int dim, int nodeID, int layerID, NodeType type, int batchsize, float *weights, float bias, float *adamAvgMom, float *adamAvgVel);
+	Node(int dim, int nodeID, int layerID, NodeType type, int batchsize, bool useAdamOt, float *weights, float bias, float *adamAvgMom, float *adamAvgVel);
 	void Update(int dim, int nodeID, int layerID, NodeType type, int batchsize, float *weights, float bias, float *adamAvgMom, float *adamAvgVel, train* train_blob);
 	void updateWeights(float* newWeights, float newbias);
 	float getLastActivation(int inputID);
@@ -109,6 +109,7 @@ public:
 	float backPropagate(Node* previousNodes,int* previousLayerActiveNodeIds, int previousLayerActiveNodeSize, float learningRate, int inputID);
 	float backPropagateFirstLayer(int* nnzindices, float* nnzvalues, int nnzSize, float learningRate, int inputID);
     float calcBackPropagateGrad(int previousLayerActiveNodeSize, int inputID);
+    static Node* createNodeArray(int size, bool useAdamOt);
 	~Node();
 
     void * operator new(size_t size){

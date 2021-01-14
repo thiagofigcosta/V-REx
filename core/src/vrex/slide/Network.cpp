@@ -1,7 +1,6 @@
 // SLIDE: https://github.com/keroro824/HashingDeepLearning 
 
 #include "Network.h"
-#include "Config.h"
 
 using namespace std;
 
