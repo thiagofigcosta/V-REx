@@ -123,7 +123,6 @@ pair<int,vector<vector<pair<int,float>>>> Network::predictClass(int **inputIndic
 
 
 float Network::ProcessInput(int **inputIndices, float **inputValues, int *lengths, int **labels, int *labelsize, int iter, bool rehash, bool rebuild) {
-
     // float logloss = 0.0; // not used
     int* avg_retrieval = new int[_numberOfLayers]();
 

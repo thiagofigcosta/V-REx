@@ -213,6 +213,7 @@ vector<pair<vector<int>, vector<float>>> Utils::encodeDatasetLabels(const vector
 
     switch(enc){
         case DataEncoder::BINARY:
+        case DataEncoder::BINARY_PLUS_ONE:
             output_neurons=ceil(log2(max+1));
             break;
         case DataEncoder::SPARSE:
@@ -248,6 +249,9 @@ vector<pair<vector<int>, vector<float>>> Utils::encodeDatasetLabels(const vector
                     break;
                 case DataEncoder::EXPONENTIAL:
                     array.push_back(pow(2,l+1));
+                    break;
+                case DataEncoder::BINARY_PLUS_ONE:
+                    array.push_back(((l+1) >> i) & 1);
                     break;
             }
         }

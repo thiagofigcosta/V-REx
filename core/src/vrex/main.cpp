@@ -24,9 +24,13 @@ void exceptionHandler(int signum) {
     ::raise(SIGABRT);
 }
 
-int main() {
+void setup(){
     ::signal(SIGSEGV, &exceptionHandler);
     ::signal(SIGABRT, &exceptionHandler);
+}
+
+int main() {
+    setup();
     test();
     return 0;
 }

@@ -156,7 +156,7 @@ void Node::ComputeExtaStatsForSoftMax(float normalizationConstant, int inputID, 
 			}
 			break;
 		case SlideLabelEncoding::NEURON_BY_NEURON:
-			_train[inputID]._lastDeltaforBPs = ( label[_IDinLayer] - _train[inputID]._lastActivations ) / _currentBatchsize;
+			_train[inputID]._lastDeltaforBPs = ( label[_IDinLayer] - _train[inputID]._lastActivations ) / (_currentBatchsize*labelsize);
 			_train[inputID]._lastActivations /= normalizationConstant + Slide::SOFTMAX_LINEAR_CONSTANT;
 			break;
 	}
