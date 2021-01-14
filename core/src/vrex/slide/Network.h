@@ -10,6 +10,8 @@
 #include <math.h>
 #include <algorithm>
 
+class Layer;
+
 #include "Layer.h"
 #include "LSH.h"
 #include "../Slide.hpp"

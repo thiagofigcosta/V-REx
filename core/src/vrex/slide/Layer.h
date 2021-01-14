@@ -13,6 +13,7 @@
 #include <climits>
 
 class Slide;
+class LSH;
 
 #include "Node.h"
 #include "WtaHash.h"
