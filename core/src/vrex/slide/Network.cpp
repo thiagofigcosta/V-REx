@@ -23,11 +23,10 @@ Network::Network(int *sizesOfLayers, NodeType *layersTypes, int noOfLayers, int 
     for (int i = 0; i < noOfLayers; i++) {
         #pragma GCC diagnostic push 
         #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
-        float* weight, *bias, *adamAvgMom, *adamAvgVel;
         if (i != 0) {
-            _hiddenlayers[i] = new Layer(sizesOfLayers[i], sizesOfLayers[i - 1], i, _layersTypes[i], _currentBatchSize,  K[i], L[i], RangePow[i], Sparsity[i],mode,hash_func, weight, bias, adamAvgMom, adamAvgVel);
+            _hiddenlayers[i] = new Layer(sizesOfLayers[i], sizesOfLayers[i - 1], i, _layersTypes[i], _currentBatchSize,  K[i], L[i], RangePow[i], Sparsity[i],mode,hash_func, nullptr, nullptr, nullptr, nullptr);
         } else {
-            _hiddenlayers[i] = new Layer(sizesOfLayers[i], inputdim, i, _layersTypes[i], _currentBatchSize, K[i], L[i], RangePow[i], Sparsity[i],mode,hash_func, weight, bias, adamAvgMom, adamAvgVel);
+            _hiddenlayers[i] = new Layer(sizesOfLayers[i], inputdim, i, _layersTypes[i], _currentBatchSize, K[i], L[i], RangePow[i], Sparsity[i],mode,hash_func, nullptr, nullptr, nullptr, nullptr);
         }
         #pragma GCC diagnostic pop
     }
@@ -263,9 +262,9 @@ float Network::ProcessInput(int **inputIndices, float **inputValues, int *length
                 if(hash_func==SlideHashingFunction::WTA) {
                     hashes = _hiddenlayers[l]->_wtaHasher->getHash(local_weights);
                 }else if (hash_func==SlideHashingFunction::DENSIFIED_WTA){
-                    hashes = _hiddenlayers[l]->_dwtaHasher->getHashEasy(local_weights, dim, TOPK);
+                    hashes = _hiddenlayers[l]->_dwtaHasher->getHashEasy(local_weights, dim, Slide::TOPK_HASH_TOPK);
                 }else if (hash_func==SlideHashingFunction::TOPK_MIN_HASH){
-                    hashes = _hiddenlayers[l]->_MinHasher->getHashEasy(_hiddenlayers[l]->_binids, local_weights, dim, TOPK);
+                    hashes = _hiddenlayers[l]->_MinHasher->getHashEasy(_hiddenlayers[l]->_binids, local_weights, dim, Slide::TOPK_HASH_TOPK);
                 }else if (hash_func==SlideHashingFunction::SIMHASH){
                     hashes = _hiddenlayers[l]->_srp->getHash(local_weights, dim);
                 }

@@ -4,6 +4,16 @@ const float Slide::ADAM_OT_BETA1=0.9;
 const float Slide::ADAM_OT_BETA2=0.999;
 const float Slide::ADAM_OT_EPSILON=0.00000001;
 
+const int Slide::BUCKET_SIZE=128;
+
+const int Slide::TOPK_HASH_TOPK=30;
+const int Slide::SIMHASH_RATIO=3;
+const int Slide::WTA_BIN_SIZE=8; // binsize is the number of times the range is larger than the total number of hashes we need.
+
+const int Slide::TOPK_THRESHOLD_SECONDS=2;
+
+const bool Slide::FIFO_INSTEAD_OF_RESERVOIR_SAMPLING=true;
+
 Slide::Slide(int numLayer, int *sizesOfLayers, NodeType* layerTypes, int InputDim, float Lr, int Batchsize, bool useAdamOt, int *RangePow,
             int *KValues,int *LValues,float *Sparsity, int Rehash, int Rebuild, int Stepsize, SlideMode Mode,SlideHashingFunction HashFunc, 
             bool printDeltas) {

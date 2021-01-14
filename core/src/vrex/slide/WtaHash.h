@@ -14,6 +14,8 @@
 #include <algorithm>
 #include <map>
 
+class Slide;
+
 #include "MurmurHash.h"
 
 /*

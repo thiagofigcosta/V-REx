@@ -2,6 +2,7 @@
 
 #include "DensifiedWtaHash.h"
 #include "Config.h"
+#include "../Slide.hpp"
 
 using namespace std;
 
@@ -15,7 +16,7 @@ DensifiedWtaHash::DensifiedWtaHash(int numHashes, int noOfBitsToHash)
     std::random_device rd;
     std::mt19937 gen(rd());
 
-    _permute = ceil(_numhashes * binsize * 1.0 / noOfBitsToHash);
+    _permute = ceil(_numhashes * Slide::WTA_BIN_SIZE * 1.0 / noOfBitsToHash);
 
     int* n_array = new int[_rangePow];
     _indices = new int[_rangePow * _permute];
@@ -28,8 +29,8 @@ DensifiedWtaHash::DensifiedWtaHash(int numHashes, int noOfBitsToHash)
     for (int p = 0; p < _permute ;p++) {
         std::shuffle(n_array, n_array + _rangePow, rd);
         for (int j = 0; j < _rangePow; j++) {
-            _indices[p * _rangePow + n_array[j]] = (p * _rangePow + j) / binsize;
-            _pos[p * _rangePow + n_array[j]] = (p * _rangePow + j)%binsize;
+            _indices[p * _rangePow + n_array[j]] = (p * _rangePow + j) / Slide::WTA_BIN_SIZE;
+            _pos[p * _rangePow + n_array[j]] = (p * _rangePow + j)%Slide::WTA_BIN_SIZE;
         }
     }
     delete [] n_array;

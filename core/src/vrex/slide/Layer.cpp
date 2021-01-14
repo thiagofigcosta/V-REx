@@ -2,6 +2,7 @@
 
 #include "Layer.h"
 #include "Config.h"
+#include "../Slide.hpp"
 
 using namespace std;
 
@@ -41,10 +42,10 @@ Layer::Layer(size_t noOfNodes, int previousLayerNumOfNodes, int layerID, NodeTyp
         _MinHasher = new DensifiedMinhash(_K * _L, previousLayerNumOfNodes);
         _MinHasher->getMap(previousLayerNumOfNodes, _binids);
     } else if (hash_func == SlideHashingFunction::SIMHASH) {
-        _srp = new SparseRandomProjection(previousLayerNumOfNodes, _K * _L, Ratio);
+        _srp = new SparseRandomProjection(previousLayerNumOfNodes, _K * _L, Slide::SIMHASH_RATIO);
     }
 
-    if (LOADWEIGHT) {
+    if ((weights != nullptr && bias != nullptr) || (weights != NULL && bias != NULL) ) {
         _weights = weights;
         _bias = bias;
 
@@ -109,7 +110,7 @@ void Layer::updateTable()
         _MinHasher->getMap(_previousLayerNumOfNodes, _binids);
     } else if (hash_func == SlideHashingFunction::SIMHASH) {
 
-        _srp = new SparseRandomProjection(_previousLayerNumOfNodes, _K * _L, Ratio);
+        _srp = new SparseRandomProjection(_previousLayerNumOfNodes, _K * _L, Slide::SIMHASH_RATIO);
 
     }
 }
@@ -128,9 +129,9 @@ void Layer::addtoHashTable(float* weights, int length, float bias, int ID)
     if(hash_func==SlideHashingFunction::WTA) {
         hashes = _wtaHasher->getHash(weights);
     }else if (hash_func==SlideHashingFunction::DENSIFIED_WTA) {
-        hashes = _dwtaHasher->getHashEasy(weights, length, TOPK);
+        hashes = _dwtaHasher->getHashEasy(weights, length, Slide::TOPK_HASH_TOPK);
     }else if (hash_func== SlideHashingFunction::TOPK_MIN_HASH) {
-        hashes = _MinHasher->getHashEasy(_binids, weights, length, TOPK);
+        hashes = _MinHasher->getHashEasy(_binids, weights, length, Slide::TOPK_HASH_TOPK);
     }else if (hash_func==SlideHashingFunction::SIMHASH) {
         hashes = _srp->getHash(weights, length);
     }
@@ -235,7 +236,7 @@ int Layer::queryActiveNodeandComputeActivations(int** activenodesperlayer, float
                 hashes = _dwtaHasher->getHash(activenodesperlayer[layerIndex], activeValuesperlayer[layerIndex],
                                               lengths[layerIndex]);
             } else if (hash_func == SlideHashingFunction::TOPK_MIN_HASH) {
-                hashes = _MinHasher->getHashEasy(_binids, activeValuesperlayer[layerIndex], lengths[layerIndex], TOPK);
+                hashes = _MinHasher->getHashEasy(_binids, activeValuesperlayer[layerIndex], lengths[layerIndex], Slide::TOPK_HASH_TOPK);
             } else if (hash_func == SlideHashingFunction::SIMHASH) {
                 hashes = _srp->getHashSparse(activenodesperlayer[layerIndex], activeValuesperlayer[layerIndex], lengths[layerIndex]);
             }
@@ -257,7 +258,7 @@ int Layer::queryActiveNodeandComputeActivations(int** activenodesperlayer, float
                 if (actives[i] == NULL) {
                     continue;
                 } else {
-                    for (int j = 0; j < BUCKETSIZE; j++) {
+                    for (int j = 0; j < Slide::BUCKET_SIZE; j++) {
                         int tempID = actives[i][j] - 1;
                         if (tempID >= 0) {
                             counts[tempID] += 1;
@@ -271,7 +272,7 @@ int Layer::queryActiveNodeandComputeActivations(int** activenodesperlayer, float
             //thresholding
             vector<int> vect;
             for (auto &&x : counts){
-                if (x.second>THRESH){
+                if (x.second>(unsigned int)Slide::TOPK_THRESHOLD_SECONDS){
                     vect.push_back(x.first);
                 }
             }
@@ -301,7 +302,7 @@ int Layer::queryActiveNodeandComputeActivations(int** activenodesperlayer, float
                 hashes = _dwtaHasher->getHash(activenodesperlayer[layerIndex], activeValuesperlayer[layerIndex],
                                               lengths[layerIndex]);
             } else if (hash_func == SlideHashingFunction::TOPK_MIN_HASH) {
-                hashes = _MinHasher->getHashEasy(_binids, activeValuesperlayer[layerIndex], lengths[layerIndex], TOPK);
+                hashes = _MinHasher->getHashEasy(_binids, activeValuesperlayer[layerIndex], lengths[layerIndex], Slide::TOPK_HASH_TOPK);
             } else if (hash_func == SlideHashingFunction::SIMHASH) {
                 hashes = _srp->getHashSparse(activenodesperlayer[layerIndex], activeValuesperlayer[layerIndex], lengths[layerIndex]);
             }
@@ -323,7 +324,7 @@ int Layer::queryActiveNodeandComputeActivations(int** activenodesperlayer, float
                     continue;
                 } else {
                     // copy sparse array into (dense) map
-                    for (int j = 0; j < BUCKETSIZE; j++) {
+                    for (int j = 0; j < Slide::BUCKET_SIZE; j++) {
                         int tempID = actives[i][j] - 1;
                         if (tempID >= 0) {
                             counts[tempID] += 1;
@@ -383,7 +384,7 @@ int Layer::queryActiveNodeandComputeActivations(int** activenodesperlayer, float
             lengths[layerIndex + 1] = len;
             activenodesperlayer[layerIndex + 1] = new int[len];
 
-            bitset <MAPLEN> bs;
+            bitset <Slide_MAPLEN> bs; // boost/dynamic_bitset can be slower than bitset
             int tmpsize = 0;
             if (_type == NodeType::Softmax) {
                 if (labelsize > 0) {

@@ -2,6 +2,7 @@
 
 #include "LSH.h"
 #include "Config.h"
+#include "../Slide.hpp"
 
 using namespace std;
 
@@ -78,7 +79,7 @@ int* LSH::hashesToIndex(int * hashes)
 				index += h<<(_K-1-j);
 			}else if ((hash_func==SlideHashingFunction::WTA) | (hash_func==SlideHashingFunction::DENSIFIED_WTA)){
                 unsigned int h = hashes[_K*i + j];
-                index += h<<((_K-1-j)*(int)floor(log(binsize)));
+                index += h<<((_K-1-j)*(int)floor(log(Slide::WTA_BIN_SIZE)));
 
             }else {
                 unsigned int h = rand1[_K*i + j];

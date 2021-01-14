@@ -12,6 +12,8 @@
 #include <vector>
 #include <climits>
 
+class Slide;
+
 #include "Node.h"
 #include "WtaHash.h"
 #include "DensifiedMinhash.h"

@@ -8,6 +8,8 @@
 #include <iostream>
 #include <random>
 
+class Slide;
+
 #include "Bucket.h"
 
 enum class SlideMode { TOPK_THRESHOLD=1, SAMPLING=4, UNKNOWN_MODE1=2, UNKNOWN_MODE2=3 }; // TODO find out mode names

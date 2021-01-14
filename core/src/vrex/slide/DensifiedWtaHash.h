@@ -13,6 +13,8 @@
 #include <algorithm>
 #include <map>
 
+class Slide;
+
 #include "MurmurHash.h"
 /*
 *  Algorithm from the paper Densified Winner Take All (WTA) Hashing for Sparse Datasets. Beidi Chen, Anshumali Shrivastava

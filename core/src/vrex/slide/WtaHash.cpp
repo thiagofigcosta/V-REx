@@ -2,6 +2,7 @@
 
 #include "WtaHash.h"
 #include "Config.h"
+#include "../Slide.hpp"
 
 using namespace std;
 
@@ -15,7 +16,7 @@ WtaHash::WtaHash(int numHashes, int noOfBitsToHash)
     std::random_device rd;
     std::mt19937 gen(rd());
 
-    int permute = ceil(_numhashes*binsize*1.0/noOfBitsToHash);
+    int permute = ceil(_numhashes*Slide::WTA_BIN_SIZE*1.0/noOfBitsToHash);
 
     int* n_array = new int[_rangePow];
     _indices = new int[_rangePow*permute];
@@ -48,10 +49,10 @@ int * WtaHash::getHash(float* data)
 
     for (int i = 0; i < _numhashes; i++)
     {
-        for (int j=0; j< binsize; j++){
-            if (values[i] < data[_indices[i*binsize+j]]) {
-                values[i] = data[i*binsize+j];
-                hashes[i] = _indices[i*binsize+j];
+        for (int j=0; j< Slide::WTA_BIN_SIZE; j++){
+            if (values[i] < data[_indices[i*Slide::WTA_BIN_SIZE+j]]) {
+                values[i] = data[i*Slide::WTA_BIN_SIZE+j];
+                hashes[i] = _indices[i*Slide::WTA_BIN_SIZE+j];
             }
         }
 

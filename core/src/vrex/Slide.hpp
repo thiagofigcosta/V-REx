@@ -10,6 +10,8 @@ class Network;
 #include "slide/Network.h"
 #include "Utils.hpp"
 
+#define Slide_MAPLEN 325056
+
 using namespace std;
 
 class Slide{
@@ -36,6 +38,12 @@ class Slide{
         static const float ADAM_OT_BETA1;
         static const float ADAM_OT_BETA2;
         static const float ADAM_OT_EPSILON;
+        static const int BUCKET_SIZE;
+        static const int TOPK_HASH_TOPK;
+        static const int SIMHASH_RATIO;
+        static const int WTA_BIN_SIZE;
+        static const int TOPK_THRESHOLD_SECONDS;
+        static const bool FIFO_INSTEAD_OF_RESERVOIR_SAMPLING;
 
     private:
         // variables
