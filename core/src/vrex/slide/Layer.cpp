@@ -7,7 +7,7 @@
 using namespace std;
 
 
-Layer::Layer(size_t noOfNodes, int previousLayerNumOfNodes, int layerID, NodeType type, int batchsize,  int K, int L, int RangePow, float Sparsity,SlideMode Mode,SlideHashingFunction hashFunc, float* weights, float* bias, float *adamAvgMom, float *adamAvgVel) {
+Layer::Layer(size_t noOfNodes, int previousLayerNumOfNodes, int layerID, NodeType type, int batchsize,  int K, int L, int RangePow, float Sparsity,SlideMode Mode, SlideHashingFunction hashFunc, bool useAdamOt, float* weights, float* bias, float *adamAvgMom, float *adamAvgVel) {
     _layerID = layerID;
     _noOfNodes = noOfNodes;
     _Nodes = new Node[noOfNodes];
@@ -20,6 +20,7 @@ Layer::Layer(size_t noOfNodes, int previousLayerNumOfNodes, int layerID, NodeTyp
     _previousLayerNumOfNodes = previousLayerNumOfNodes;
     hash_func=hashFunc;
     mode=Mode;
+    use_adam=useAdamOt;
 
 // create a list of random nodes just in case not enough nodes from hashtable for active nodes.
     _randNode = new int[_noOfNodes];
@@ -49,7 +50,7 @@ Layer::Layer(size_t noOfNodes, int previousLayerNumOfNodes, int layerID, NodeTyp
         _weights = weights;
         _bias = bias;
 
-        if (ADAM){
+        if (use_adam){
             _adamAvgMom = adamAvgMom;
             _adamAvgVel = adamAvgVel;
         }
@@ -65,7 +66,7 @@ Layer::Layer(size_t noOfNodes, int previousLayerNumOfNodes, int layerID, NodeTyp
         generate(_bias, _bias + _noOfNodes, [&] () { return distribution(dre); });
 
 
-        if (ADAM)
+        if (use_adam)
         {
             _adamAvgMom = new float[_noOfNodes * previousLayerNumOfNodes]();
             _adamAvgVel = new float[_noOfNodes * previousLayerNumOfNodes]();

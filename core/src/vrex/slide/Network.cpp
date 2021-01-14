@@ -24,9 +24,9 @@ Network::Network(int *sizesOfLayers, NodeType *layersTypes, int noOfLayers, int 
         #pragma GCC diagnostic push 
         #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
         if (i != 0) {
-            _hiddenlayers[i] = new Layer(sizesOfLayers[i], sizesOfLayers[i - 1], i, _layersTypes[i], _currentBatchSize,  K[i], L[i], RangePow[i], Sparsity[i],mode,hash_func, nullptr, nullptr, nullptr, nullptr);
+            _hiddenlayers[i] = new Layer(sizesOfLayers[i], sizesOfLayers[i - 1], i, _layersTypes[i], _currentBatchSize,  K[i], L[i], RangePow[i], Sparsity[i],mode,hash_func, use_adam, nullptr, nullptr, nullptr, nullptr);
         } else {
-            _hiddenlayers[i] = new Layer(sizesOfLayers[i], inputdim, i, _layersTypes[i], _currentBatchSize, K[i], L[i], RangePow[i], Sparsity[i],mode,hash_func, nullptr, nullptr, nullptr, nullptr);
+            _hiddenlayers[i] = new Layer(sizesOfLayers[i], inputdim, i, _layersTypes[i], _currentBatchSize, K[i], L[i], RangePow[i], Sparsity[i],mode,hash_func, use_adam, nullptr, nullptr, nullptr, nullptr);
         }
         #pragma GCC diagnostic pop
     }
