@@ -6,11 +6,12 @@
 using namespace std;
 
 
-Layer::Layer(size_t noOfNodes, int previousLayerNumOfNodes, int layerID, NodeType type, int batchsize,  int K, int L, int RangePow, float Sparsity,SlideMode Mode, SlideHashingFunction hashFunc, bool useAdamOt, float* weights, float* bias, float *adamAvgMom, float *adamAvgVel) {
+Layer::Layer(size_t noOfNodes, int previousLayerNumOfNodes, int layerID, NodeType type, int batchsize,  int K, int L, int RangePow, float Sparsity,SlideMode Mode, SlideHashingFunction hashFunc, bool useAdamOt,SlideLabelEncoding labelType, float* weights, float* bias, float *adamAvgMom, float *adamAvgVel) {
     _layerID = layerID;
     _noOfNodes = noOfNodes;
     use_adam=useAdamOt;
-    _Nodes = Node::createNodeArray(noOfNodes,use_adam);
+    label_type=labelType;
+    _Nodes = Node::createNodeArray(noOfNodes,use_adam,labelType);
     _type = type;
     _noOfActive = floor(_noOfNodes * Sparsity);
     _K = K;

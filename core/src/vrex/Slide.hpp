@@ -7,6 +7,7 @@
 class Network;
 enum class SlideMode { TOPK_THRESHOLD=1, SAMPLING=4, UNKNOWN_MODE1=2, UNKNOWN_MODE2=3 }; // TODO find out mode names
 enum class SlideHashingFunction { WTA=1, DENSIFIED_WTA=2, TOPK_MIN_HASH=3, SIMHASH=4 };
+enum class SlideLabelEncoding { INT_CLASS, NEURON_BY_NEURON };
 
 #include "slide/Node.h"
 #include "slide/Network.h"
@@ -19,9 +20,9 @@ using namespace std;
 class Slide{
     public:
         // constructors and destructor
-        Slide(int numLayer, int *sizesOfLayers, NodeType* layerTypes, int InputDim, float Lr, int Batchsize, bool useAdamOt,int *RangePow,
-            int *KValues,int *LValues,float *Sparsity, int Rehash, int Rebuild, int Stepsize, SlideMode Mode=SlideMode::SAMPLING,
-            SlideHashingFunction HashFunc=SlideHashingFunction::DENSIFIED_WTA, bool printDeltas=false);
+        Slide(int numLayer, int *sizesOfLayers, NodeType* layerTypes, int InputDim, float Lr, int Batchsize, bool useAdamOt, 
+            SlideLabelEncoding labelType,int *RangePow, int *KValues,int *LValues,float *Sparsity, int Rehash, int Rebuild, 
+            int Stepsize, SlideMode Mode=SlideMode::SAMPLING, SlideHashingFunction HashFunc=SlideHashingFunction::DENSIFIED_WTA, bool printDeltas=false);
         Slide(const Slide& orig);
         virtual ~Slide();
 
@@ -46,6 +47,7 @@ class Slide{
         static const int WTA_BIN_SIZE;
         static const int TOPK_THRESHOLD_SECONDS;
         static const bool FIFO_INSTEAD_OF_RESERVOIR_SAMPLING;
+        static const float SOFTMAX_LINEAR_CONSTANT;
 
     private:
         // variables
@@ -68,4 +70,5 @@ class Slide{
         SlideHashingFunction hash_function;
         bool print_deltas;
         bool use_adam;
+        SlideLabelEncoding label_type;
 };

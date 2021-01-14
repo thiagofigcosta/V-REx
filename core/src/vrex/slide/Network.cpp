@@ -4,7 +4,7 @@
 
 using namespace std;
 
-Network::Network(int *sizesOfLayers, NodeType *layersTypes, int noOfLayers, int batchSize, float lr, int inputdim,  int* K, int* L, int* RangePow, float* Sparsity,SlideMode Mode,SlideHashingFunction hashFunc, bool useAdamOt) {
+Network::Network(int *sizesOfLayers, NodeType *layersTypes, int noOfLayers, int batchSize, float lr, int inputdim,  int* K, int* L, int* RangePow, float* Sparsity,SlideMode Mode,SlideHashingFunction hashFunc, bool useAdamOt,SlideLabelEncoding labelType) {
     _numberOfLayers = noOfLayers;
     _hiddenlayers = new Layer *[noOfLayers];
     _sizesOfLayers = sizesOfLayers;
@@ -19,13 +19,14 @@ Network::Network(int *sizesOfLayers, NodeType *layersTypes, int noOfLayers, int 
     hash_func=hashFunc;
     mode=Mode;
     use_adam=useAdamOt;
+    label_type=labelType;
     for (int i = 0; i < noOfLayers; i++) {
         #pragma GCC diagnostic push 
         #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
         if (i != 0) {
-            _hiddenlayers[i] = new Layer(sizesOfLayers[i], sizesOfLayers[i - 1], i, _layersTypes[i], _currentBatchSize,  K[i], L[i], RangePow[i], Sparsity[i],mode,hash_func, use_adam, nullptr, nullptr, nullptr, nullptr);
+            _hiddenlayers[i] = new Layer(sizesOfLayers[i], sizesOfLayers[i - 1], i, _layersTypes[i], _currentBatchSize,  K[i], L[i], RangePow[i], Sparsity[i],mode,hash_func, use_adam,label_type, nullptr, nullptr, nullptr, nullptr);
         } else {
-            _hiddenlayers[i] = new Layer(sizesOfLayers[i], inputdim, i, _layersTypes[i], _currentBatchSize, K[i], L[i], RangePow[i], Sparsity[i],mode,hash_func, use_adam, nullptr, nullptr, nullptr, nullptr);
+            _hiddenlayers[i] = new Layer(sizesOfLayers[i], inputdim, i, _layersTypes[i], _currentBatchSize, K[i], L[i], RangePow[i], Sparsity[i],mode,hash_func, use_adam,label_type, nullptr, nullptr, nullptr, nullptr);
         }
         #pragma GCC diagnostic pop
     }
@@ -40,14 +41,14 @@ void Network::setWeights(map<string, vector<float>> loadedData){
             adamAvgMom = &loadedData["am_layer_"+to_string(i)][0];
             adamAvgVel = &loadedData["av_layer_"+to_string(i)][0];
             delete _hiddenlayers[i];
-            _hiddenlayers[i] = new Layer(_sizesOfLayers[i], _sizesOfLayers[i - 1], i, _layersTypes[i], _currentBatchSize,  _K[i], _L[i], _RangePow[i], _Sparsity[i],mode,hash_func, weight, bias, adamAvgMom, adamAvgVel);
+            _hiddenlayers[i] = new Layer(_sizesOfLayers[i], _sizesOfLayers[i - 1], i, _layersTypes[i], _currentBatchSize,  _K[i], _L[i], _RangePow[i], _Sparsity[i],mode,hash_func, use_adam,label_type, weight, bias, adamAvgMom, adamAvgVel);
         } else {
             weight = &loadedData["w_layer_"+to_string(i)][0];
             bias = &loadedData["b_layer_"+to_string(i)][0];
             adamAvgMom = &loadedData["am_layer_"+to_string(i)][0];
             adamAvgVel = &loadedData["av_layer_"+to_string(i)][0];
             delete _hiddenlayers[i];
-            _hiddenlayers[i] = new Layer(_sizesOfLayers[i], _inputDim, i, _layersTypes[i], _currentBatchSize, _K[i], _L[i], _RangePow[i], _Sparsity[i],mode,hash_func, weight, bias, adamAvgMom, adamAvgVel);
+            _hiddenlayers[i] = new Layer(_sizesOfLayers[i], _inputDim, i, _layersTypes[i], _currentBatchSize, _K[i], _L[i], _RangePow[i], _Sparsity[i],mode,hash_func, use_adam,label_type, weight, bias, adamAvgMom, adamAvgVel);
         }
     }
 }
@@ -178,6 +179,7 @@ float Network::ProcessInput(int **inputIndices, float **inputValues, int *length
                 Node* node = layer->getNodebyID(activeNodesPerBatch[i][j + 1][k]);
                 if (j == _numberOfLayers - 1) {
                     //TODO: Compute Extra stats: labels[i];
+                    // calculate loss
                     node->ComputeExtaStatsForSoftMax(layer->getNomalizationConstant(i), i, labels[i], labelsize[i]);
                 }
                 if (j != 0) {
@@ -307,6 +309,7 @@ float Network::evalInput(int** inputIndices, float** inputValues, int* lengths, 
         activenodesperlayer[0] = inputIndices[i];  // inputs parsed from training data file
         activeValuesperlayer[0] = inputValues[i];
         sizes[0] = lengths[i];
+        // Forward propagation
         for (int j = 0; j < _numberOfLayers; j++) {
             _hiddenlayers[j]->queryActiveNodeandComputeActivations(activenodesperlayer, activeValuesperlayer, sizes, j, i, labels[i], 0,
                     _Sparsity[j], -1);
@@ -322,6 +325,7 @@ float Network::evalInput(int** inputIndices, float** inputValues, int* lengths, 
                 Node* node = layer->getNodebyID(activeNodesPerBatch[i][j + 1][k]);
                 if (j == _numberOfLayers - 1) {
                     //TODO: Compute Extra stats: labels[i];
+                    // Calc loss
                     node->ComputeExtaStatsForSoftMax(layer->getNomalizationConstant(i), i, labels[i], labelsize[i]);
                 }
                 grads[i]+=node->calcBackPropagateGrad(sizesPerBatch[i][j], i);

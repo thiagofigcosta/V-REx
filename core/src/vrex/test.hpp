@@ -11,4 +11,5 @@ using namespace std;
 void test();
 void testCsvRead();
 void testMongo();
-void testSlide();
+void testSlide_IntLabel();
+void testSlide_NeuronByNeuronLabel();

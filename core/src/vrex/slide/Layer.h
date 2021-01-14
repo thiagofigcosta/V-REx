@@ -14,6 +14,7 @@
 
 class Slide;
 class LSH;
+class Node;
 
 #include "Node.h"
 #include "WtaHash.h"
@@ -36,6 +37,7 @@ private:
 	SlideMode mode;
 	SlideHashingFunction hash_func;
 	bool use_adam;
+	SlideLabelEncoding label_type;
 
 public:
 	int _layerID, _noOfActive;
@@ -50,7 +52,7 @@ public:
     SparseRandomProjection *_srp;
     DensifiedWtaHash *_dwtaHasher;
 	int * _binids;
-	Layer(size_t _numNodex, int previousLayerNumOfNodes, int layerID, NodeType type, int batchsize, int K, int L, int RangePow, float Sparsity,SlideMode Mode,SlideHashingFunction hashFunc, bool useAdamOt, float* weights=NULL, float* bias=NULL, float *adamAvgMom=NULL, float *adamAvgVel=NULL);
+	Layer(size_t _numNodex, int previousLayerNumOfNodes, int layerID, NodeType type, int batchsize, int K, int L, int RangePow, float Sparsity,SlideMode Mode,SlideHashingFunction hashFunc, bool useAdamOt,SlideLabelEncoding labelType, float* weights=NULL, float* bias=NULL, float *adamAvgMom=NULL, float *adamAvgVel=NULL);
 	Node* getNodebyID(size_t nodeID);
 	Node* getAllNodes();
 	int getNodeCount();

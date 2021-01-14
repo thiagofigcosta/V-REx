@@ -36,9 +36,10 @@ private:
 	SlideHashingFunction hash_func;
 	SlideMode mode;
 	bool use_adam;
+	SlideLabelEncoding label_type;
 
 public:
-	Network(int* sizesOfLayers, NodeType* layersTypes, int noOfLayers, int batchsize, float lr, int inputdim, int* K, int* L, int* RangePow, float* Sparsity,SlideMode Mode,SlideHashingFunction hashFunc, bool useAdamOt);
+	Network(int* sizesOfLayers, NodeType* layersTypes, int noOfLayers, int batchsize, float lr, int inputdim, int* K, int* L, int* RangePow, float* Sparsity,SlideMode Mode,SlideHashingFunction hashFunc, bool useAdamOt,SlideLabelEncoding labelType);
 	void setWeights(map<string, vector<float>> loadedData);
 	Layer* getLayer(int LayerID);
 	pair<int,vector<vector<pair<int,float>>>> predictClass(int ** inputIndices, float ** inputValues, int * length, int ** labels, int *labelsize);

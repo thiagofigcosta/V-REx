@@ -30,10 +30,11 @@ Node::Node(int dim, int nodeID, int layerID, NodeType type, int batchsize, bool 
 
 }
 
-Node* Node::createNodeArray(int size, bool useAdamOt){
+Node* Node::createNodeArray(int size, bool useAdamOt,SlideLabelEncoding labelType){
 	Node* nodes=new Node[size];
 	for (int i=0;i<size;i++){
 		nodes[i].use_adam=useAdamOt;
+		nodes[i].label_type=labelType;
 	}
 	return nodes;
 }
@@ -142,16 +143,25 @@ void Node::ComputeExtaStatsForSoftMax(float normalizationConstant, int inputID, 
 	assert(("Input Not Active but still called !! BUG", _train[inputID]._ActiveinputIds ==1));
 	#pragma GCC diagnostic pop 
 
-	_train[inputID]._lastActivations /= normalizationConstant + 0.0000001;
-
-	//TODO:check  gradient
 	_train[inputID]._lastGradients = 1;
-	if (find (label, label+labelsize, _IDinLayer)!= label+labelsize) {
-	    _train[inputID]._lastDeltaforBPs = (1.0/labelsize - _train[inputID]._lastActivations) / _currentBatchsize;
+	switch(label_type){
+		case SlideLabelEncoding::INT_CLASS:
+			_train[inputID]._lastActivations /= normalizationConstant + Slide::SOFTMAX_LINEAR_CONSTANT;
+			//TODO:check  gradient
+			if (find (label, label+labelsize, _IDinLayer)!= label+labelsize) {
+				_train[inputID]._lastDeltaforBPs = (1.0/labelsize - _train[inputID]._lastActivations) / _currentBatchsize;
+			}
+			else {
+				_train[inputID]._lastDeltaforBPs = (-_train[inputID]._lastActivations) / _currentBatchsize;
+			}
+			break;
+		case SlideLabelEncoding::NEURON_BY_NEURON:
+			_train[inputID]._lastDeltaforBPs = ( label[_IDinLayer] - _train[inputID]._lastActivations ) / _currentBatchsize;
+			_train[inputID]._lastActivations /= normalizationConstant + Slide::SOFTMAX_LINEAR_CONSTANT;
+			break;
 	}
-	else {
-	    _train[inputID]._lastDeltaforBPs = (-_train[inputID]._lastActivations) / _currentBatchsize;
-	}
+	// string debug="Id: "+to_string(inputID)+" Label idx: "+to_string(_IDinLayer)+" - Neuron: "+to_string(_train[inputID]._lastActivations)+" Expected: "+to_string(label[_IDinLayer])+" Error: "+to_string(_train[inputID]._lastDeltaforBPs)+"\n";
+	// cout<<debug;
 }
 
 

@@ -14,9 +14,11 @@ const int Slide::TOPK_THRESHOLD_SECONDS=2;
 
 const bool Slide::FIFO_INSTEAD_OF_RESERVOIR_SAMPLING=true;
 
-Slide::Slide(int numLayer, int *sizesOfLayers, NodeType* layerTypes, int InputDim, float Lr, int Batchsize, bool useAdamOt, int *RangePow,
-            int *KValues,int *LValues,float *Sparsity, int Rehash, int Rebuild, int Stepsize, SlideMode Mode,SlideHashingFunction HashFunc, 
-            bool printDeltas) {
+const float Slide::SOFTMAX_LINEAR_CONSTANT=0.0000001;
+
+Slide::Slide(int numLayer, int *sizesOfLayers, NodeType* layerTypes, int InputDim, float Lr, int Batchsize, bool useAdamOt, 
+            SlideLabelEncoding labelType, int *RangePow, int *KValues,int *LValues,float *Sparsity, int Rehash, int Rebuild, 
+            int Stepsize, SlideMode Mode,SlideHashingFunction HashFunc, bool printDeltas) {
         range_pow=RangePow;
         K=KValues;
         L=LValues;
@@ -35,8 +37,9 @@ Slide::Slide(int numLayer, int *sizesOfLayers, NodeType* layerTypes, int InputDi
         hash_function=HashFunc;
         print_deltas=printDeltas;
         use_adam=useAdamOt;
+        label_type=labelType;
 
-        slide_network=new Network(layer_sizes, layer_types, amount_layers, batch_size, learning_rate, input_dim, K, L, range_pow, sparsity,mode,hash_function,use_adam);
+        slide_network=new Network(layer_sizes, layer_types, amount_layers, batch_size, learning_rate, input_dim, K, L, range_pow, sparsity,mode,hash_function,use_adam,label_type);
 }
 
 Slide::Slide(const Slide& orig) {

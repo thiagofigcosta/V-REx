@@ -61,7 +61,8 @@ void testMongo(){
     mongo.getCollection(mongo.getDB("tests"),"cxx").insert_one(view);
 }
 
-void testSlide(){
+void testSlide_IntLabel(){
+    cout<<"Using int label"<<endl;
     bool print_data=false;
     pair<vector<pair<int, vector<float>>>,map<string,int>> enumfied = Utils::enumfyDataset(Utils::readLabeledCsvDataset(Utils::getResourcePath("iris.data")));
     vector<pair<vector<int>, vector<float>>> dataset = Utils::encodeDatasetLabels(enumfied.first,DataEncoder::INCREMENTAL);
@@ -149,6 +150,7 @@ void testSlide(){
     int epochs=5;
     float alpha=0.01;
     int batch_size=5;
+    SlideLabelEncoding label_type=SlideLabelEncoding::INT_CLASS;
     int *layer_sizes=new int[layers]{(int)train_data[0].first.size()};
     bool adam=true;
     int *range_pow=new int[layers]{6};
@@ -159,7 +161,7 @@ void testSlide(){
     int rebuild=128000;
     int step_size=10;
     bool print_deltas=true;
-    Slide slide=Slide(layers, layer_sizes, Slide::getStdLayerTypes(layers), train_data[0].second.size(), alpha, batch_size, adam, 
+    Slide slide=Slide(layers, layer_sizes, Slide::getStdLayerTypes(layers), train_data[0].second.size(), alpha, batch_size, adam, label_type,
     range_pow, K, L, sparcity, rehash, rebuild, step_size, SlideMode::SAMPLING, SlideHashingFunction::DENSIFIED_WTA, print_deltas);
     vector<float>train_losses=slide.train(train_data,epochs);
     for (float loss:train_losses){
@@ -186,8 +188,57 @@ void testSlide(){
     }
 }
 
+void testSlide_NeuronByNeuronLabel(){
+    cout<<endl<<"Using neuron label"<<endl;
+    pair<vector<pair<int, vector<float>>>,map<string,int>> enumfied = Utils::enumfyDataset(Utils::readLabeledCsvDataset(Utils::getResourcePath("iris.data")));
+    vector<pair<vector<int>, vector<float>>> dataset = Utils::encodeDatasetLabels(enumfied.first,DataEncoder::BINARY);
+    // vector<pair<vector<int>, vector<float>>> dataset = Utils::encodeDatasetLabels(enumfied.first,DataEncoder::SPARSE);
+    enumfied.first.clear(); // free
+  
+    map<string,int> equivalence = enumfied.second;
+    dataset=Utils::shuffleDataset(dataset);
+
+
+    float train_percentage=.7;
+    pair<vector<pair<vector<int>, vector<float>>>,vector<pair<vector<int>, vector<float>>>> dividedData=
+        Utils::divideDataSet(dataset, train_percentage);
+    vector<pair<vector<int>, vector<float>>> train_data=dividedData.first;
+    vector<pair<vector<int>, vector<float>>> test_data=dividedData.second;
+
+    int layers=1;
+    int epochs=150;
+    float alpha=0.1;
+    int batch_size=15;
+    SlideLabelEncoding label_type=SlideLabelEncoding::NEURON_BY_NEURON;
+    int *layer_sizes=new int[layers]{(int)train_data[0].first.size()};
+    bool adam=true;
+    int *range_pow=new int[layers]{6};
+    int *K=new int[layers]{2};
+    int *L=new int[layers]{20};
+    float *sparcity=new float[layers]{1};
+    int rehash=6400;
+    int rebuild=128000;
+    int step_size=10;
+    bool print_deltas=true;
+    Slide slide=Slide(layers, layer_sizes, Slide::getStdLayerTypes(layers), train_data[0].second.size(), alpha, batch_size, adam, label_type,
+    range_pow, K, L, sparcity, rehash, rebuild, step_size, SlideMode::SAMPLING, SlideHashingFunction::DENSIFIED_WTA, print_deltas);
+    vector<float>train_losses=slide.train(train_data,epochs);
+    float total_loss=0;
+    for (float loss:train_losses){
+       total_loss+=loss;
+    }
+    cout<<"Avg Train loss: "<<total_loss/train_losses.size()<<endl;
+    float test_loss=slide.evalLoss(test_data);
+    cout<<"Test loss: "<<test_loss<<endl;
+
+    pair<int,vector<vector<pair<int,float>>>> predicted = slide.evalData(test_data);
+    cout<<"Test size: "<<test_data.size()<<endl;
+    cout<<"Correct values: "<<predicted.first<<endl;
+}
+
 void test() {
     // testCsvRead();
     // testMongo();
-    testSlide();
+    testSlide_IntLabel();
+    testSlide_NeuronByNeuronLabel();
 }

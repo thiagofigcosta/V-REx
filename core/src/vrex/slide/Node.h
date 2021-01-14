@@ -15,12 +15,7 @@
 #include <chrono>
 #include <algorithm>
 
-
-using namespace std;
-
-enum NodeType
-{ ReLU, Softmax};
-
+enum class NodeType { ReLU, Softmax};
 struct train {
     float _lastDeltaforBPs;
     float _lastActivations;
@@ -70,12 +65,17 @@ struct train {
 
 } __attribute__ ((aligned (64)));
 
+#include "../Slide.hpp"
+
+using namespace std;
+
 class Node
 {
 private:
 	int _activeInputs;
     NodeType _type;
 	bool use_adam;
+    SlideLabelEncoding label_type;
 	Node(){};
 
 public:
@@ -109,7 +109,7 @@ public:
 	float backPropagate(Node* previousNodes,int* previousLayerActiveNodeIds, int previousLayerActiveNodeSize, float learningRate, int inputID);
 	float backPropagateFirstLayer(int* nnzindices, float* nnzvalues, int nnzSize, float learningRate, int inputID);
     float calcBackPropagateGrad(int previousLayerActiveNodeSize, int inputID);
-    static Node* createNodeArray(int size, bool useAdamOt);
+    static Node* createNodeArray(int size, bool useAdamOt,SlideLabelEncoding labelType);
 	~Node();
 
     void * operator new(size_t size){
