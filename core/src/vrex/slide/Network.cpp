@@ -145,7 +145,7 @@ float Network::ProcessInput(int **inputIndices, float **inputValues, int *length
     int*** activeNodesPerBatch = new int**[_currentBatchSize];
     float*** activeValuesPerBatch = new float**[_currentBatchSize];
     int** sizesPerBatch = new int*[_currentBatchSize];
-    float* grads = new float[_currentBatchSize];
+    float* metric = new float[_currentBatchSize];
 #pragma omp parallel for
     for (int i = 0; i < _currentBatchSize; i++) {
         int **activenodesperlayer = new int *[_numberOfLayers + 1]();
@@ -169,7 +169,7 @@ float Network::ProcessInput(int **inputIndices, float **inputValues, int *length
 
         //Now backpropagate.
         // layers
-        grads[i]=0;
+        metric[i]=0;
         for (int j = _numberOfLayers - 1; j >= 0; j--) {
             Layer* layer = _hiddenlayers[j];
             Layer* prev_layer = _hiddenlayers[j - 1];
@@ -179,12 +179,19 @@ float Network::ProcessInput(int **inputIndices, float **inputValues, int *length
                 if (j == _numberOfLayers - 1) {
                     //TODO: Compute Extra stats: labels[i];
                     // calculate loss
-                    node->ComputeExtaStatsForSoftMax(layer->getNomalizationConstant(i), i, labels[i], labelsize[i]);
+                    float error=node->ComputeExtaStatsForSoftMax(layer->getNomalizationConstant(i), i, labels[i], labelsize[i]);
+                    if(Slide::MEAN_ERROR_INSTEAD_OF_GRADS_SUM){
+                        metric[i]+=abs(error);
+                    }
                 }
+                float grads_i;
                 if (j != 0) {
-                    grads[i]+=node->backPropagate(prev_layer->getAllNodes(), activeNodesPerBatch[i][j], sizesPerBatch[i][j], tmplr, i);
+                    grads_i=node->backPropagate(prev_layer->getAllNodes(), activeNodesPerBatch[i][j], sizesPerBatch[i][j], tmplr, i);
                 } else {
-                    grads[i]+=node->backPropagateFirstLayer(inputIndices[i], inputValues[i], lengths[i], tmplr, i);
+                    grads_i=node->backPropagateFirstLayer(inputIndices[i], inputValues[i], lengths[i], tmplr, i);
+                }
+                if(!Slide::MEAN_ERROR_INSTEAD_OF_GRADS_SUM){
+                    metric[i]+=grads_i;
                 }
             }
         }
@@ -284,18 +291,18 @@ float Network::ProcessInput(int **inputIndices, float **inputValues, int *length
         }
     }
 
-    float total_grads=0;
+    float total_metrics=0;
     for (size_t i=0;i<(size_t)_currentBatchSize;i++){
-        total_grads+=grads[i];
+        total_metrics+=metric[i];
     }
 
-    return total_grads/_currentBatchSize;
+    return total_metrics/_currentBatchSize;
 }
 
 float Network::evalInput(int** inputIndices, float** inputValues, int* lengths, int ** labels, int *labelsize){
     int*** activeNodesPerBatch = new int**[_currentBatchSize];
     int** sizesPerBatch = new int*[_currentBatchSize];
-    float* grads = new float[_currentBatchSize];
+    float* metric = new float[_currentBatchSize];
 #pragma omp parallel for
     for (int i = 0; i < _currentBatchSize; i++) {
         int **activenodesperlayer = new int *[_numberOfLayers + 1]();
@@ -316,7 +323,7 @@ float Network::evalInput(int** inputIndices, float** inputValues, int* lengths, 
 
         //Now backpropagate.
         // layers
-        grads[i]=0;
+        metric[i]=0;
         for (int j = _numberOfLayers - 1; j >= 0; j--) {
             Layer* layer = _hiddenlayers[j];
             // nodes
@@ -325,9 +332,14 @@ float Network::evalInput(int** inputIndices, float** inputValues, int* lengths, 
                 if (j == _numberOfLayers - 1) {
                     //TODO: Compute Extra stats: labels[i];
                     // Calc loss
-                    node->ComputeExtaStatsForSoftMax(layer->getNomalizationConstant(i), i, labels[i], labelsize[i]);
+                    float error=node->ComputeExtaStatsForSoftMax(layer->getNomalizationConstant(i), i, labels[i], labelsize[i]);
+                    if(Slide::MEAN_ERROR_INSTEAD_OF_GRADS_SUM){
+                        metric[i]+=abs(error);
+                    }
                 }
-                grads[i]+=node->calcBackPropagateGrad(sizesPerBatch[i][j], i);
+                if(!Slide::MEAN_ERROR_INSTEAD_OF_GRADS_SUM){
+                    metric[i]+=node->calcBackPropagateGrad(sizesPerBatch[i][j], i);
+                }
             }
         }
     }
@@ -341,11 +353,11 @@ float Network::evalInput(int** inputIndices, float** inputValues, int* lengths, 
     }
     delete[] activeNodesPerBatch;
     delete[] sizesPerBatch;
-    float total_grads=0;
+    float total_metrics=0;
     for (size_t i=0;i<(size_t)_currentBatchSize;i++){
-        total_grads+=grads[i];
+        total_metrics+=metric[i];
     }
-    return total_grads/_currentBatchSize;
+    return total_metrics/_currentBatchSize;
 }
 
 map<string, vector<float>> Network::mapfyWeights()

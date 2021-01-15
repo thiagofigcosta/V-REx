@@ -1,5 +1,7 @@
 #include "Slide.hpp"
 
+const bool Slide::MEAN_ERROR_INSTEAD_OF_GRADS_SUM=true;
+
 const float Slide::ADAM_OT_BETA1=0.9;
 const float Slide::ADAM_OT_BETA2=0.999;
 const float Slide::ADAM_OT_EPSILON=0.00000001;

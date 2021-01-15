@@ -136,13 +136,12 @@ float Node::getActivation(int* indices, float* values, int length, int inputID)
 }
 
 
-void Node::ComputeExtaStatsForSoftMax(float normalizationConstant, int inputID, int* label, int labelsize)
+float Node::ComputeExtaStatsForSoftMax(float normalizationConstant, int inputID, int* label, int labelsize)
 {
 	#pragma GCC diagnostic push 
     #pragma GCC diagnostic ignored "-Wunused-value"
 	assert(("Input Not Active but still called !! BUG", _train[inputID]._ActiveinputIds ==1));
 	#pragma GCC diagnostic pop 
-
 	_train[inputID]._lastGradients = 1;
 	switch(label_type){
 		case SlideLabelEncoding::INT_CLASS:
@@ -162,6 +161,7 @@ void Node::ComputeExtaStatsForSoftMax(float normalizationConstant, int inputID, 
 	}
 	// string debug="Id: "+to_string(inputID)+" Label idx: "+to_string(_IDinLayer)+" - Neuron: "+to_string(_train[inputID]._lastActivations)+" Expected: "+to_string(label[_IDinLayer])+" Error: "+to_string(_train[inputID]._lastDeltaforBPs)+"\n";
 	// cout<<debug;
+	return _train[inputID]._lastDeltaforBPs;
 }
 
 

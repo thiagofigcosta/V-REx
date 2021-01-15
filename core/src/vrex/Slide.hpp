@@ -38,6 +38,7 @@ class Slide{
         void deallocSlideDataset(float **values, int *sizes, int **records, int **labels, int *labelsize);
 
         // variables
+        static const bool MEAN_ERROR_INSTEAD_OF_GRADS_SUM;
         static const float ADAM_OT_BETA1;
         static const float ADAM_OT_BETA2;
         static const float ADAM_OT_EPSILON;

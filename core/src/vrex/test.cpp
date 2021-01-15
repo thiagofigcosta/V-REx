@@ -242,6 +242,9 @@ void testSlide_NeuronByNeuronLabel(){
        total_loss+=loss;
     }
     cout<<"Avg Train loss: "<<total_loss/train_losses.size()<<endl;
+    // for (float loss:train_losses){
+    //     cout<<"Train loss: "<<loss<<endl;
+    // }
     float test_loss=slide.evalLoss(test_data);
     cout<<"Test loss: "<<test_loss<<endl;
 
