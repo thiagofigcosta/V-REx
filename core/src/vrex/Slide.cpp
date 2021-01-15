@@ -32,7 +32,6 @@ Slide::Slide(int numLayer, int *sizesOfLayers, NodeType* layerTypes, int InputDi
         learning_rate=Lr;
         layer_sizes=sizesOfLayers;
         amount_layers=numLayer;
-        slide_network=NULL;
         layer_types=layerTypes;
         mode=Mode;
         hash_function=HashFunc;
