@@ -20,7 +20,7 @@ const float Slide::SOFTMAX_LINEAR_CONSTANT=0.0000001;
 
 Slide::Slide(int numLayer, int *sizesOfLayers, NodeType* layerTypes, int InputDim, float Lr, int Batchsize, bool useAdamOt, 
             SlideLabelEncoding labelType, int *RangePow, int *KValues,int *LValues,float *Sparsity, int Rehash, int Rebuild, 
-            int Stepsize, SlideMode Mode,SlideHashingFunction HashFunc, bool printDeltas) {
+            SlideMode Mode,SlideHashingFunction HashFunc, bool printDeltas) {
         range_pow=RangePow;
         K=KValues;
         L=LValues;
@@ -30,7 +30,6 @@ Slide::Slide(int numLayer, int *sizesOfLayers, NodeType* layerTypes, int InputDi
         rebuild=Rebuild;
         input_dim=InputDim;
         learning_rate=Lr;
-        step_size=Stepsize;
         layer_sizes=sizesOfLayers;
         amount_layers=numLayer;
         slide_network=NULL;

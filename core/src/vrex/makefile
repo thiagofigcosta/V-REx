@@ -28,6 +28,12 @@ link:
 run:
 	./$(EXEC)
 
+# to run type > r
+# to add break point type > break full_file_path/file.cpp:line_number
+# to get stack trace type > where
+debug: 
+	gdb ./$(EXEC)
+
 compileAndLink: compile link
 
 compileLinkAndRun: compile link run

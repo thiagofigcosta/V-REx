@@ -22,7 +22,7 @@ class Slide{
         // constructors and destructor
         Slide(int numLayer, int *sizesOfLayers, NodeType* layerTypes, int InputDim, float Lr, int Batchsize, bool useAdamOt, 
             SlideLabelEncoding labelType,int *RangePow, int *KValues,int *LValues,float *Sparsity, int Rehash, int Rebuild, 
-            int Stepsize, SlideMode Mode=SlideMode::SAMPLING, SlideHashingFunction HashFunc=SlideHashingFunction::DENSIFIED_WTA, bool printDeltas=false);
+            SlideMode Mode=SlideMode::SAMPLING, SlideHashingFunction HashFunc=SlideHashingFunction::DENSIFIED_WTA, bool printDeltas=false);
         Slide(const Slide& orig);
         virtual ~Slide();
 
@@ -64,7 +64,6 @@ class Slide{
         int input_dim;
         float learning_rate;
         int epochs;
-        int step_size;
         int *layer_sizes;
         int amount_layers;
         SlideMode mode;

@@ -158,7 +158,6 @@ void testSlide_IntLabel(){
     // float *sparcity=new float[layers]{1,1};
     // int rehash=6400;
     // int rebuild=128000;
-    // int step_size=10;
     // bool print_deltas=true;
 
     int layers=1;
@@ -174,10 +173,9 @@ void testSlide_IntLabel(){
     float *sparcity=new float[layers]{1};
     int rehash=6400;
     int rebuild=128000;
-    int step_size=10;
     bool print_deltas=true;
     Slide slide=Slide(layers, layer_sizes, Slide::getStdLayerTypes(layers), train_data[0].second.size(), alpha, batch_size, adam, label_type,
-    range_pow, K, L, sparcity, rehash, rebuild, step_size, SlideMode::SAMPLING, SlideHashingFunction::DENSIFIED_WTA, print_deltas);
+    range_pow, K, L, sparcity, rehash, rebuild, SlideMode::SAMPLING, SlideHashingFunction::DENSIFIED_WTA, print_deltas);
     vector<float>train_losses=slide.train(train_data,epochs);
     for (float loss:train_losses){
         cout<<"Train loss: "<<loss<<endl;
@@ -232,10 +230,9 @@ void testSlide_NeuronByNeuronLabel(){
     float *sparcity=new float[layers]{1};
     int rehash=6400;
     int rebuild=128000;
-    int step_size=10;
     bool print_deltas=true;
     Slide slide=Slide(layers, layer_sizes, Slide::getStdLayerTypes(layers), train_data[0].second.size(), alpha, batch_size, adam, label_type,
-    range_pow, K, L, sparcity, rehash, rebuild, step_size, SlideMode::SAMPLING, SlideHashingFunction::DENSIFIED_WTA, print_deltas);
+    range_pow, K, L, sparcity, rehash, rebuild, SlideMode::SAMPLING, SlideHashingFunction::DENSIFIED_WTA, print_deltas);
     vector<float>train_losses=slide.train(train_data,epochs);
     float total_loss=0;
     for (float loss:train_losses){
