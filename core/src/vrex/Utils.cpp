@@ -263,3 +263,37 @@ vector<pair<vector<int>, vector<float>>> Utils::encodeDatasetLabels(const vector
     }
     return encoded_data;
 }
+
+pair<vector<pair<float,float>>,vector<pair<vector<int>, vector<float>>>> Utils::normalizeDataset(const vector<pair<vector<int>, vector<float>>> &vec){
+    vector<pair<vector<int>, vector<float>>> normalized;
+    vector<pair<float,float>> scale;
+    vector<float> min;
+    vector<float> max;
+    for (auto& dummy:vec[0].second){
+        (void) dummy;
+        min.push_back(numeric_limits<float>::max());
+        max.push_back(numeric_limits<float>::min());
+    }
+    for(pair<vector<int>, vector<float>> entry:vec){
+        for (size_t i=0;i<entry.second.size();i++){
+            if (entry.second[i]<min[i]){
+                min[i]=entry.second[i];
+            }
+            if (entry.second[i]>max[i]){
+                max[i]=entry.second[i];
+            }
+        }
+    }
+    for (size_t i=0;i<vec[0].second.size();i++){
+        scale.push_back(pair<float,float>(min[i],(max[i]-min[i])));
+    }
+    
+    for(pair<vector<int>, vector<float>> entry:vec){
+        vector<float> normalized_entry_labels;
+        for (size_t i=0;i<entry.second.size();i++){
+            normalized_entry_labels.push_back( (entry.second[i]-scale[i].first)/scale[i].second );
+        }
+        normalized.push_back(pair<vector<int>, vector<float>>(entry.first,normalized_entry_labels));
+    }
+    return pair<vector<pair<float,float>>,vector<pair<vector<int>, vector<float>>>>(scale,normalized);
+}

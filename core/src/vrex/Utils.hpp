@@ -51,6 +51,7 @@ class Utils{
         static vector<pair<vector<int>, vector<float>>> encodeDatasetLabels(const vector<pair<int, vector<float>>> &vec, DataEncoder enc);
         static vector<pair<vector<int>, vector<float>>> shuffleDataset(const vector<pair<vector<int>, vector<float>>> &vec);
         static pair<vector<pair<vector<int>, vector<float>>>,vector<pair<vector<int>, vector<float>>>> divideDataSet(const vector<pair<vector<int>, vector<float>>> &vec, float percentageOfFirst);
+        static pair<vector<pair<float,float>>,vector<pair<vector<int>, vector<float>>>> normalizeDataset(const vector<pair<vector<int>, vector<float>>> &vec);
 
     private:
         // variables

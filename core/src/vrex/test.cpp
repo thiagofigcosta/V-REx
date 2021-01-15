@@ -81,10 +81,25 @@ void testSlide_IntLabel(){
         }
         cout<<"----------------------------"<<endl;
     }
+    dataset=Utils::normalizeDataset(dataset).second;
+    if (print_data){
+        cout << "Raw encoded normalized data:"<<endl;
+        for(pair<vector<int>, vector<float>> data:dataset){
+            for (int el : data.first){
+                cout<<el;
+            }
+            cout<<": ";
+            for (float el : data.second){
+                cout<<el<<",";
+            }
+            cout << endl;
+        }
+        cout<<"----------------------------"<<endl;
+    }
     map<string,int> equivalence = enumfied.second;
     dataset=Utils::shuffleDataset(dataset);
     if (print_data){
-        cout << "Raw encoded randomized data:"<<endl;
+        cout << "Raw encoded normalized randomized data:"<<endl;
         for(pair<vector<int>, vector<float>> data:dataset){
             for (int el : data.first){
                 cout<<el;
@@ -195,9 +210,8 @@ void testSlide_NeuronByNeuronLabel(){
     // vector<pair<vector<int>, vector<float>>> dataset = Utils::encodeDatasetLabels(enumfied.first,DataEncoder::SPARSE);
     enumfied.first.clear(); // free
   
-    map<string,int> equivalence = enumfied.second;
     dataset=Utils::shuffleDataset(dataset);
-
+    dataset=Utils::normalizeDataset(dataset).second;
 
     float train_percentage=.7;
     pair<vector<pair<vector<int>, vector<float>>>,vector<pair<vector<int>, vector<float>>>> dividedData=
