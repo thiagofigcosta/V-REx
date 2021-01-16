@@ -53,10 +53,14 @@ class Utils{
         static pair<vector<pair<vector<int>, vector<float>>>,vector<pair<vector<int>, vector<float>>>> divideDataSet(const vector<pair<vector<int>, vector<float>>> &vec, float percentageOfFirst);
         static pair<vector<pair<float,float>>,vector<pair<vector<int>, vector<float>>>> normalizeDataset(const vector<pair<vector<int>, vector<float>>> &vec);
 
+        // variables
+        static mt19937_64 RNG;
+
     private:
+        // methods
+        static mt19937_64 getRandomGenerator();
         // variables
         static const string RESOURCES_FOLDER;
         static const string FILE_SEPARATOR;
-        static default_random_engine RNG;
         
 };

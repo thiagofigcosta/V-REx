@@ -9,7 +9,7 @@
   const string Utils::FILE_SEPARATOR="/";
 #endif
 const string Utils::RESOURCES_FOLDER="../../res";
-default_random_engine Utils::RNG = default_random_engine{};
+mt19937_64 Utils::RNG = Utils::getRandomGenerator();
 
 Utils::Utils() {
 }
@@ -20,6 +20,11 @@ Utils::Utils(const Utils& orig) {
 Utils::~Utils() {
 }
 
+mt19937_64 Utils::getRandomGenerator(){
+    random_device rd;
+    mt19937_64 mt(rd());
+    return mt;
+}
 
 vector<string> Utils::splitString(string str, string token){
     vector<string> result;
