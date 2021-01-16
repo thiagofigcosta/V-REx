@@ -15,7 +15,7 @@
 #include <chrono>
 #include <algorithm>
 
-enum class NodeType { ReLU, Softmax};
+enum class NodeType { ReLU, Softmax, Sigmoid};
 struct train {
     float _lastDeltaforBPs;
     float _lastActivations;

@@ -125,7 +125,9 @@ float Node::getActivation(int* indices, float* values, int length, int inputID)
 		}
 		break;
 	case NodeType::Softmax:
-
+		break;
+	case NodeType::Sigmoid:
+		_train[inputID]._lastActivations = 1/(1+exp(-_train[inputID]._lastActivations));
 		break;
 	default:
 		cout << "Invalid Node type from Constructor" <<endl;
