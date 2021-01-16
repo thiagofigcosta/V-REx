@@ -69,15 +69,15 @@ NodeType* Slide::getStdLayerTypes(const int amount_layers){
 vector<float> Slide::train(vector<pair<vector<int>, vector<float>>> &train_data,int epochs){
     vector<pair<vector<int>, vector<float>>> validation_data;
     vector<pair<float,float>> losses = train(train_data,validation_data,epochs);
-    vector<float> log_loss;
+    vector<float> loss;
     for (pair<float,float> ll:losses){
-        log_loss.push_back(ll.first);
+        loss.push_back(ll.first);
     }
-    return log_loss;
+    return loss;
 }
 
 vector<pair<float,float>> Slide::train(vector<pair<vector<int>, vector<float>>> &train_data,vector<pair<vector<int>, vector<float>>> &validation_data,int epochs){
-    vector<pair<float,float>> log_losses; // train / validation
+    vector<pair<float,float>> losses; // train / validation
     chrono::high_resolution_clock::time_point t1,t2;
     if (print_deltas) {
         t1 = chrono::high_resolution_clock::now();
@@ -119,13 +119,13 @@ vector<pair<float,float>> Slide::train(vector<pair<vector<int>, vector<float>>> 
         if (validation_data.size()>0){
             val_loss=evalLoss(validation_data);
         }
-        log_losses.push_back(pair<float,float>(train_loss,val_loss));
+        losses.push_back(pair<float,float>(train_loss,val_loss));
     }
     if (print_deltas) {
         t2 = chrono::high_resolution_clock::now();
         cout<<"Training takes: "<<chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count()<<" ms"<<endl;
     }
-    return log_losses;
+    return losses;
 }
 
 float Slide::evalLoss(vector<pair<vector<int>, vector<float>>> &eval_data){

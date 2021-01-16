@@ -7,7 +7,7 @@
 class Network;
 enum class SlideMode { TOPK_THRESHOLD=1, SAMPLING=4, UNKNOWN_MODE1=2, UNKNOWN_MODE2=3 }; // TODO find out mode names
 enum class SlideHashingFunction { WTA=1, DENSIFIED_WTA=2, TOPK_MIN_HASH=3, SIMHASH=4 };
-enum class SlideLabelEncoding { INT_CLASS, NEURON_BY_NEURON };
+enum class SlideLabelEncoding { INT_CLASS, NEURON_BY_NEURON, NEURON_BY_N_LOG_LOSS };
 
 #include "slide/Node.h"
 #include "slide/Network.h"
