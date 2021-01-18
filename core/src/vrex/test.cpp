@@ -264,7 +264,7 @@ void testStdGeneticsOnMath(){
     bool search_maximum=false;
     int max_notables=5;
     HallOfFame elite_min=HallOfFame(max_notables, search_maximum);
-    StandardGenetic ga = StandardGenetic(mutation_rate, sex_rate, StdGeneticRankType::RELATIVE);
+    StandardGenetic ga = StandardGenetic(mutation_rate, sex_rate);
     PopulationManager population=PopulationManager(ga, space, [](pair<vector<int>,vector<float>> dna) -> float {return
         // https://www.sfu.ca/~ssurjano/egg.html // minimum -> x1=512 | x2=404.2319 -> y(x1,x2)=-959.6407
         -(dna.second[1]+47)*sin(sqrt(abs(dna.second[1]+(dna.second[0]/2)+47)))-dna.second[0]*sin(sqrt(abs(dna.second[0]-(dna.second[1]+47))));}
@@ -290,7 +290,7 @@ void testStdGeneticsOnMath(){
     search_maximum=true;
     max_notables=5;
     HallOfFame elite_max=HallOfFame(max_notables, search_maximum);
-    ga = StandardGenetic(mutation_rate, sex_rate, StdGeneticRankType::RELATIVE);
+    ga = StandardGenetic(mutation_rate, sex_rate);
     PopulationManager population2=PopulationManager(ga, space2, [](pair<vector<int>,vector<float>> dna) -> float {return
         // https://www.sfu.ca/~ssurjano/easom.html TIME MINUS ONE // maximum -> x1=x2=pi -> y(x1,x2)=1
         -(-cos(dna.second[0])*cos(dna.second[1])*exp(-(pow(dna.second[0]-M_PI,2)+pow(dna.second[1]-M_PI,2))));}

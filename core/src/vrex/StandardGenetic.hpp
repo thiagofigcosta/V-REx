@@ -15,7 +15,7 @@ enum class StdGeneticRankType { RELATIVE, ABSOLUTE };
 class StandardGenetic : public GeneticAlgorithm{ 
     public:
         // constructors and destructor
-        StandardGenetic(float mutationRate, float sexRate, StdGeneticRankType rankType);
+        StandardGenetic(float mutationRate, float sexRate, StdGeneticRankType rankType=StdGeneticRankType::RELATIVE);
         StandardGenetic(const StandardGenetic& orig);
         virtual ~StandardGenetic();
 
