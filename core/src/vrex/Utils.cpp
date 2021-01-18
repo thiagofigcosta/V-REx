@@ -10,6 +10,7 @@
 #endif
 const string Utils::RESOURCES_FOLDER="../../res";
 mt19937_64 Utils::RNG = Utils::getRandomGenerator();
+uniform_real_distribution<float> Utils::dist_zero_one=uniform_real_distribution<float>(0,nextafter(1, numeric_limits<float>::max()));
 
 Utils::Utils() {
 }
@@ -301,4 +302,8 @@ pair<vector<pair<float,float>>,vector<pair<vector<int>, vector<float>>>> Utils::
         normalized.push_back(pair<vector<int>, vector<float>>(entry.first,normalized_entry_labels));
     }
     return pair<vector<pair<float,float>>,vector<pair<vector<int>, vector<float>>>>(scale,normalized);
+}
+
+float Utils::getRandomBetweenZeroAndOne(){
+    return dist_zero_one(Utils::RNG);
 }

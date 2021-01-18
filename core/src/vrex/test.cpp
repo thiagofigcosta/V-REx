@@ -250,9 +250,63 @@ void testSlide_NeuronByNeuronLabel(){
     cout<<"Correct values: "<<predicted.first<<endl;
 }
 
+void testStdGeneticsOnMath(){
+    cout<<"Minimization:"<<endl;
+    FLOAT_SPACE_SEARCH x = FLOAT_SPACE_SEARCH(-512,512);
+    vector<FLOAT_SPACE_SEARCH> limits;
+    limits.push_back(x);
+    limits.push_back(x);
+    SPACE_SEARCH space=SPACE_SEARCH(vector<INT_SPACE_SEARCH>(),limits);
+    int population_size=300;
+    int max_gens=100;
+    float mutation_rate=0.2;
+    float sex_rate=0.6;
+    bool search_maximum=false;
+    int max_notables=5;
+    HallOfFame elite_min=HallOfFame(max_notables, search_maximum);
+    StandardGenetic ga = StandardGenetic(mutation_rate, sex_rate, StdGeneticRankType::RELATIVE);
+    PopulationManager population=PopulationManager(ga, space, [](pair<vector<int>,vector<float>> dna) -> float {return
+        // https://www.sfu.ca/~ssurjano/egg.html // minimum -> x1=512 | x2=404.2319 -> y(x1,x2)=-959.6407
+        -(dna.second[1]+47)*sin(sqrt(abs(dna.second[1]+(dna.second[0]/2)+47)))-dna.second[0]*sin(sqrt(abs(dna.second[0]-(dna.second[1]+47))));}
+        ,population_size, search_maximum);
+    population.setHallOfFame(elite_min);
+    population.naturalSelection(max_gens);
+    for (Genome individual: elite_min.getNotables()){
+        cout<<individual.to_string()<<endl;
+    }
+    cout<<"Expected: y(512,404.2319) = -959.6407"<<endl;
+    cout<<endl<<endl;
+
+    cout<<"Maximization:"<<endl;
+    FLOAT_SPACE_SEARCH x2 = FLOAT_SPACE_SEARCH(-100,100);
+    limits.clear();
+    limits.push_back(x2);
+    limits.push_back(x2);
+    SPACE_SEARCH space2=SPACE_SEARCH(vector<INT_SPACE_SEARCH>(),limits);
+    population_size=100;
+    max_gens=100;
+    mutation_rate=0.1;
+    sex_rate=0.7;
+    search_maximum=true;
+    max_notables=5;
+    HallOfFame elite_max=HallOfFame(max_notables, search_maximum);
+    ga = StandardGenetic(mutation_rate, sex_rate, StdGeneticRankType::RELATIVE);
+    PopulationManager population2=PopulationManager(ga, space2, [](pair<vector<int>,vector<float>> dna) -> float {return
+        // https://www.sfu.ca/~ssurjano/easom.html TIME MINUS ONE // maximum -> x1=x2=pi -> y(x1,x2)=1
+        -(-cos(dna.second[0])*cos(dna.second[1])*exp(-(pow(dna.second[0]-M_PI,2)+pow(dna.second[1]-M_PI,2))));}
+        ,population_size, search_maximum);
+    population2.setHallOfFame(elite_max);
+    population2.naturalSelection(max_gens);
+    for (Genome individual: elite_max.getNotables()){
+        cout<<individual.to_string()<<endl;
+    }
+    cout<<"Expected: y(3.141592,3.141592) = 1"<<endl;
+}
+
 void test() {
     // testCsvRead();
     // testMongo();
-    testSlide_IntLabel();
-    testSlide_NeuronByNeuronLabel();
+    // testSlide_IntLabel();
+    // testSlide_NeuronByNeuronLabel();
+    testStdGeneticsOnMath();
 }

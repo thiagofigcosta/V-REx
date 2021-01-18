@@ -17,10 +17,16 @@
 #include <map>
 #include <limits>
 #include <cmath>
+#include <memory>
 
 using namespace std;
 
 enum class DataEncoder { BINARY, SPARSE, INCREMENTAL, INCREMENTAL_PLUS_ONE, EXPONENTIAL, DISTINCT_SPARSE, BINARY_PLUS_ONE };
+
+template <typename T, typename... Args>
+std::unique_ptr<T> make_unique(Args&&... args){ // this is from C++14
+  return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
+}
 
 class Utils{
     public:
@@ -52,6 +58,7 @@ class Utils{
         static vector<pair<vector<int>, vector<float>>> shuffleDataset(const vector<pair<vector<int>, vector<float>>> &vec);
         static pair<vector<pair<vector<int>, vector<float>>>,vector<pair<vector<int>, vector<float>>>> divideDataSet(const vector<pair<vector<int>, vector<float>>> &vec, float percentageOfFirst);
         static pair<vector<pair<float,float>>,vector<pair<vector<int>, vector<float>>>> normalizeDataset(const vector<pair<vector<int>, vector<float>>> &vec);
+        static float getRandomBetweenZeroAndOne();
 
         // variables
         static mt19937_64 RNG;
@@ -59,8 +66,8 @@ class Utils{
     private:
         // methods
         static mt19937_64 getRandomGenerator();
+        static uniform_real_distribution<float> dist_zero_one;
         // variables
         static const string RESOURCES_FOLDER;
         static const string FILE_SEPARATOR;
-        
 };
