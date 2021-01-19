@@ -307,3 +307,11 @@ pair<vector<pair<float,float>>,vector<pair<vector<int>, vector<float>>>> Utils::
 float Utils::getRandomBetweenZeroAndOne(){
     return dist_zero_one(Utils::RNG);
 }
+
+boost::uuids::uuid Utils::genRandomUUID(){
+    return boost::uuids::random_generator()();
+}
+
+string Utils::genRandomUUIDStr(){
+    return boost::uuids::to_string(Utils::genRandomUUID());
+}

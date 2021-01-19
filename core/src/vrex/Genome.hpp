@@ -27,10 +27,13 @@ class Genome{
         pair<vector<int>,vector<float>> getDna();
         void setDna(pair<vector<int>,vector<float>> new_dna);
         string to_string();
+        boost::uuids::uuid getMtDna();
+        void resetMtDna();
 
     private:
         // variables
         pair<vector<int>,vector<float>> dna;
+        boost::uuids::uuid mt_dna;
         SPACE_SEARCH limits;
         float fitness;
         float output;

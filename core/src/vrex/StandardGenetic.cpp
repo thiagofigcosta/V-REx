@@ -11,6 +11,7 @@ StandardGenetic::StandardGenetic(const StandardGenetic& orig){
     mutation_rate=orig.mutation_rate;
     sex_rate=orig.sex_rate;
     rank_type=orig.rank_type;
+    looking_highest_fitness=orig.looking_highest_fitness;
 }
 
 StandardGenetic::~StandardGenetic(){

@@ -18,3 +18,4 @@ void testMongo();
 void testSlide_IntLabel();
 void testSlide_NeuronByNeuronLabel();
 void testStdGeneticsOnMath();
+void testEnchancedGeneticsOnMath();

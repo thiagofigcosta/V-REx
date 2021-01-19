@@ -9,13 +9,10 @@ using namespace std;
 class Genome;
 class HallOfFame;
 
-typedef pair<int,int> INT_SPACE_SEARCH;
-typedef pair<float,float> FLOAT_SPACE_SEARCH;
-typedef pair<vector<INT_SPACE_SEARCH>,vector<FLOAT_SPACE_SEARCH>> SPACE_SEARCH;
-
-#include "Genome.hpp"
 #include "GeneticAlgorithm.hpp"
+#include "Genome.hpp"
 #include "HallOfFame.hpp"
+#include "EnchancedGenetic.hpp"
 
 
 class PopulationManager{
@@ -25,13 +22,16 @@ class PopulationManager{
         PopulationManager(const PopulationManager& orig);
         virtual ~PopulationManager();
 
+        // methods
         void setHallOfFame(HallOfFame &hallOfFame);
         void naturalSelection(int gens);
         vector<Genome> getPopulation();
 
     private:
+        // variables
         unique_ptr<GeneticAlgorithm> ga;
         vector<Genome> population;
         bool looking_highest_fitness;
         HallOfFame *hall_of_fame;
+        static const int mt_dna_validity;
 };

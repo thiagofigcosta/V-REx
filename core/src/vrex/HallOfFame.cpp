@@ -3,6 +3,13 @@
 HallOfFame::HallOfFame(int maxNotables, bool lookingHighestFitness) {
     looking_highest_fitness=lookingHighestFitness;
     max_notables=maxNotables;
+    float starting_point;
+    if (looking_highest_fitness){
+        starting_point=numeric_limits<float>::min();
+    }else{
+        starting_point=numeric_limits<float>::max();
+    }
+    best=pair<float,int>(starting_point,-1);
 }
 
 HallOfFame::HallOfFame(const HallOfFame& orig) {
@@ -11,23 +18,31 @@ HallOfFame::HallOfFame(const HallOfFame& orig) {
 HallOfFame::~HallOfFame() {
 }
 
-void HallOfFame::update(vector<Genome> candidates){
+void HallOfFame::update(vector<Genome> candidates, int gen){
     vector<string> extras;
-    update(candidates,extras);
+    update(candidates,extras,gen);
 }
 
-void HallOfFame::update(vector<Genome> candidates, vector<string> extraCandidatesArguments){
+void HallOfFame::update(vector<Genome> candidates, vector<string> extraCandidatesArguments, int gen){
     vector<pair<Genome,string>> candidatesWithExtra=joinGenomeVector(candidates,extraCandidatesArguments);
     for (pair<Genome,string> entry:candidatesWithExtra){
         notables.push_back(entry);
     }
     // notables.insert(notables.end(),candidatesWithExtra.begin(),candidatesWithExtra.end());
     sort(notables.begin(),notables.end(),[&](pair<Genome,string> &lhs, pair<Genome,string> &rhs){
-        return lhs.first.getFitness() > rhs.first.getFitness(); // descending
+        if (looking_highest_fitness){
+            return lhs.first.getOutput() > rhs.first.getOutput(); // descending
+        }else{
+            return lhs.first.getOutput() < rhs.first.getOutput(); // ascending
+        }
     });
     // if (notables.size()>(size_t)max_notables){notables.resize(max_notables);}
     while(notables.size()>(size_t)max_notables){
         notables.pop_back();
+    }
+    if ((looking_highest_fitness && notables[0].first.getOutput()>best.first) || (!looking_highest_fitness && notables[0].first.getOutput()<best.first)){
+        best.first=notables[0].first.getOutput();
+        best.second=gen;
     }
 }
 
@@ -58,4 +73,8 @@ vector<Genome> HallOfFame::splitGenomeVector(vector<pair<Genome,string>> genomeV
         out.push_back(notable.first);
     }
     return out;
+}
+
+pair<float,int> HallOfFame::getBest(){
+    return best;
 }

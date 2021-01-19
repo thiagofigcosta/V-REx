@@ -13,9 +13,11 @@ Genome::Genome(SPACE_SEARCH space, function<float(pair<vector<int>,vector<float>
     output=0;
     limits=space;
     evaluate_cb=callback;
+    resetMtDna();
 }
 
 Genome::Genome(const Genome& orig, pair<vector<int>,vector<float>> new_dna) {
+    mt_dna=orig.mt_dna;
     dna=new_dna;
     limits=orig.limits;
     fitness=0;
@@ -24,6 +26,10 @@ Genome::Genome(const Genome& orig, pair<vector<int>,vector<float>> new_dna) {
 }
 
 Genome::~Genome() {
+}
+
+void Genome::resetMtDna(){
+    mt_dna=Utils::genRandomUUID();
 }
 
 float Genome::getFitness(){
@@ -89,4 +95,8 @@ string Genome::to_string(){
         }
     }
     return out;
+}
+
+boost::uuids::uuid Genome::getMtDna(){
+    return mt_dna;
 }

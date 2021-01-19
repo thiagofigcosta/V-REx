@@ -18,6 +18,9 @@
 #include <limits>
 #include <cmath>
 #include <memory>
+#include <boost/uuid/uuid.hpp>            
+#include <boost/uuid/uuid_generators.hpp> 
+#include <boost/uuid/uuid_io.hpp>         
 
 using namespace std;
 
@@ -59,6 +62,8 @@ class Utils{
         static pair<vector<pair<vector<int>, vector<float>>>,vector<pair<vector<int>, vector<float>>>> divideDataSet(const vector<pair<vector<int>, vector<float>>> &vec, float percentageOfFirst);
         static pair<vector<pair<float,float>>,vector<pair<vector<int>, vector<float>>>> normalizeDataset(const vector<pair<vector<int>, vector<float>>> &vec);
         static float getRandomBetweenZeroAndOne();
+        static boost::uuids::uuid genRandomUUID();
+        static string genRandomUUIDStr();
 
         // variables
         static mt19937_64 RNG;

@@ -300,7 +300,65 @@ void testStdGeneticsOnMath(){
     for (Genome individual: elite_max.getNotables()){
         cout<<individual.to_string()<<endl;
     }
-    cout<<"Expected: y(3.141592,3.141592) = 1"<<endl;
+    cout<<"Expected: y(3.141592,3.141592) = 1"<<endl<<endl<<endl;
+}
+
+void testEnchancedGeneticsOnMath(){
+    cout<<"Enchanced vs Standard:"<<endl;
+    FLOAT_SPACE_SEARCH x = FLOAT_SPACE_SEARCH(-512,512);
+    vector<FLOAT_SPACE_SEARCH> limits;
+    limits.push_back(x);
+    limits.push_back(x);
+    SPACE_SEARCH space=SPACE_SEARCH(vector<INT_SPACE_SEARCH>(),limits);
+    int population_start_size=300;
+    int max_gens=100;
+    int max_age=10;
+    int max_children=4;
+    float mutation_rate=0.2;
+    float recycle_rate=0.2;
+    float sex_rate=0.6;
+    bool search_maximum=false;
+    int max_notables=5;
+
+    int tests=50;
+    vector<pair<pair<float,int>,pair<float,int>>> results;
+
+    for (int i=0;i<tests;i++){
+        HallOfFame enchanced_elite=HallOfFame(max_notables, search_maximum);
+        EnchancedGenetic en_ga = EnchancedGenetic(max_children,max_age,mutation_rate,sex_rate,recycle_rate);
+        PopulationManager enchanced_population=PopulationManager(en_ga, space, [](pair<vector<int>,vector<float>> dna) -> float {return
+            // https://www.sfu.ca/~ssurjano/egg.html // minimum -> x1=512 | x2=404.2319 -> y(x1,x2)=-959.6407
+            -(dna.second[1]+47)*sin(sqrt(abs(dna.second[1]+(dna.second[0]/2)+47)))-dna.second[0]*sin(sqrt(abs(dna.second[0]-(dna.second[1]+47))));}
+            ,population_start_size, search_maximum);
+        enchanced_population.setHallOfFame(enchanced_elite);
+        enchanced_population.naturalSelection(max_gens);
+        pair<float,int> enchanced_result=enchanced_elite.getBest();
+
+        HallOfFame std_elite=HallOfFame(max_notables, search_maximum);
+        StandardGenetic std_ga = StandardGenetic(mutation_rate, sex_rate);
+        PopulationManager std_population=PopulationManager(std_ga, space, [](pair<vector<int>,vector<float>> dna) -> float {return
+            // https://www.sfu.ca/~ssurjano/egg.html // minimum -> x1=512 | x2=404.2319 -> y(x1,x2)=-959.6407
+            -(dna.second[1]+47)*sin(sqrt(abs(dna.second[1]+(dna.second[0]/2)+47)))-dna.second[0]*sin(sqrt(abs(dna.second[0]-(dna.second[1]+47))));}
+            ,population_start_size, search_maximum);
+        std_population.setHallOfFame(std_elite);
+        std_population.naturalSelection(max_gens);
+        pair<float,int> std_result=std_elite.getBest();
+        results.push_back(pair<pair<float,int>,pair<float,int>>(enchanced_result,std_result));
+    }
+    pair<float,float> enchanced_mean=pair<float,float>(0,0);
+    pair<float,float> std_mean=pair<float,float>(0,0);
+    for (pair<pair<float,int>,pair<float,int>> result:results){
+        enchanced_mean.first+=result.first.first;
+        enchanced_mean.second+=result.first.second;
+        std_mean.first+=result.second.first;
+        std_mean.second+=result.second.second;
+        cout<<"Enchanced Best ("<<result.first.second<<"): "<<result.first.first<<" | Std Best ("<<result.second.second<<"): "<<result.second.first<<endl;
+    }
+    enchanced_mean.first/=tests;
+    enchanced_mean.second/=tests;
+    std_mean.first/=tests;
+    std_mean.second/=tests;
+    cout<<endl<<endl<<"Enchanced Mean ("<<enchanced_mean.second<<"): "<<enchanced_mean.first<<" | Std Mean ("<<std_mean.second<<"): "<<std_mean.first<<endl;
 }
 
 void test() {
@@ -308,5 +366,6 @@ void test() {
     // testMongo();
     // testSlide_IntLabel();
     // testSlide_NeuronByNeuronLabel();
-    testStdGeneticsOnMath();
+    // testStdGeneticsOnMath();
+    testEnchancedGeneticsOnMath();
 }
