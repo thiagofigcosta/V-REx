@@ -405,9 +405,8 @@ void testGeneticallyTunedNeuralNetwork(){
             cout << "oi rs\n";
         }
         if (dynamic_cast<NeuralGenome*>(self)) {
-            cout << "CUUUU rs\n";
+            cout << "rs\n";
         }
-        dynamic_cast<NeuralGenome*>(self)->weights["oi"]=vector<float>();
         return 0;
     };
 

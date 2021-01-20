@@ -13,10 +13,9 @@ PopulationManager::PopulationManager(GeneticAlgorithm &galg, SPACE_SEARCH space,
     }
     for (int i=0;i<startPopulationSize;i++){
         if (useNeuralGenome){
-            cout<<"hey\n";
-            population.push_back(new NeuralGenome(space,callback));
+            population.push_back(NeuralGenome(space,callback));
         }else{
-            population.push_back(new Genome(space,callback));
+            population.push_back(Genome(space,callback));
         }
     }
     hall_of_fame=NULL;
@@ -27,9 +26,6 @@ PopulationManager::PopulationManager(const PopulationManager& orig) {
 
 PopulationManager::~PopulationManager() {
     ga.release();
-    for (Genome* g:population){
-        delete g;
-    }
 }
 
 void PopulationManager::setHallOfFame(HallOfFame &hallOfFame){
@@ -62,7 +58,7 @@ void PopulationManager::naturalSelection(int gens){
     }
 }
 
-vector<Genome*> PopulationManager::getPopulation(){
+vector<Genome> PopulationManager::getPopulation(){
     return population;
 }
 

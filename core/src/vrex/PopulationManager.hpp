@@ -25,7 +25,7 @@ class PopulationManager{
         // methods
         void setHallOfFame(HallOfFame &hallOfFame);
         void naturalSelection(int gens);
-        vector<Genome*> getPopulation();
+        vector<Genome> getPopulation();
         static SPACE_SEARCH buildSlideNeuralNetworkSpaceSearch(INT_SPACE_SEARCH amount_of_layers,INT_SPACE_SEARCH epoachs,FLOAT_SPACE_SEARCH alpha,
                             INT_SPACE_SEARCH batch_size,INT_SPACE_SEARCH layer_size,INT_SPACE_SEARCH range_pow,INT_SPACE_SEARCH k_values,INT_SPACE_SEARCH l_values,
                             FLOAT_SPACE_SEARCH sparcity,INT_SPACE_SEARCH activation_funcs);
@@ -33,7 +33,7 @@ class PopulationManager{
     private:
         // variables
         unique_ptr<GeneticAlgorithm> ga;
-        vector<Genome*> population;
+        vector<Genome> population;
         bool looking_highest_fitness;
         HallOfFame *hall_of_fame;
         static const int mt_dna_validity;
