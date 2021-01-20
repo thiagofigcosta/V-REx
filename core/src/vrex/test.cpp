@@ -429,6 +429,6 @@ void test() {
     // testSlide_IntLabel();
     // testSlide_NeuronByNeuronLabel();
     // testStdGeneticsOnMath();
-    // testEnchancedGeneticsOnMath();
-    testGeneticallyTunedNeuralNetwork();
+    testEnchancedGeneticsOnMath();
+    // testGeneticallyTunedNeuralNetwork();
 }

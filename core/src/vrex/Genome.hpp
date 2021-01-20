@@ -13,8 +13,10 @@ using namespace std;
 class Genome{
     public:
         // constructors and destructor
+        Genome(){};
         Genome(SPACE_SEARCH space, function<float(Genome *self)> callback);
         Genome(const Genome& orig, pair<vector<int>,vector<float>> new_dna);
+        Genome(const Genome& orig);
         virtual ~Genome();
         void evaluate();
 
@@ -30,7 +32,7 @@ class Genome{
         boost::uuids::uuid getMtDna();
         void resetMtDna();
 
-    private:
+    protected:
         // variables
         pair<vector<int>,vector<float>> dna;
         boost::uuids::uuid mt_dna;

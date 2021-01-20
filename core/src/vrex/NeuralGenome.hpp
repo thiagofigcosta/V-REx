@@ -15,7 +15,8 @@ class NeuralGenome : public Genome{
     public:
         // constructors and destructor
         NeuralGenome(SPACE_SEARCH space, function<float(Genome *self)> callback);
-        NeuralGenome(const Genome& orig, pair<vector<int>,vector<float>> new_dna);
+        NeuralGenome(const NeuralGenome& orig, pair<vector<int>,vector<float>> new_dna);
+        NeuralGenome(const NeuralGenome& orig);
         virtual ~NeuralGenome();
 
         // methods

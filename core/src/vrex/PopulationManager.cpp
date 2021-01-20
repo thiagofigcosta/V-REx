@@ -13,9 +13,9 @@ PopulationManager::PopulationManager(GeneticAlgorithm &galg, SPACE_SEARCH space,
     }
     for (int i=0;i<startPopulationSize;i++){
         if (useNeuralGenome){
-            population.push_back(NeuralGenome(space,callback));
+            population.push_back(new NeuralGenome(space,callback));
         }else{
-            population.push_back(Genome(space,callback));
+            population.push_back(new Genome(space,callback));
         }
     }
     hall_of_fame=NULL;
@@ -26,6 +26,9 @@ PopulationManager::PopulationManager(const PopulationManager& orig) {
 
 PopulationManager::~PopulationManager() {
     ga.release();
+    for (Genome* g:population){
+        delete g;
+    }
 }
 
 void PopulationManager::setHallOfFame(HallOfFame &hallOfFame){
@@ -37,28 +40,29 @@ const int PopulationManager::mt_dna_validity=15;
 void PopulationManager::naturalSelection(int gens){
     ga->setLookingHighestFitness(looking_highest_fitness);
     for (int g=0;g<gens;){
-        for(Genome &individual:population){ // evaluate output
-            individual.evaluate();
+        for(Genome *individual:population){ // evaluate output
+            individual->evaluate();
         }
-        population=ga->fit(population); // calculate fitness
+        ga->fit(population); // calculate fitness
         if (hall_of_fame!=NULL){
             hall_of_fame->update(population,g); // store best on hall of fame
         }
         if (++g<gens){
-            population=ga->select(population); // selection + sex
-            population=ga->mutate(population);  // mutation + age if aged algorithm
+            ga->select(population); // selection + sex
+            ga->mutate(population);  // mutation + age if aged algorithm
             if (g>0&&g%mt_dna_validity==0){
-                for(Genome &individual:population){
-                    individual.resetMtDna();
+                for(Genome *individual:population){
+                    individual->resetMtDna();
                 }
             }
         }else{
             sort(population.begin(),population.end());
         }
+        // cout<<"Gen: "<<g<<" Size: "<<population.size()<<endl;
     }
 }
 
-vector<Genome> PopulationManager::getPopulation(){
+vector<Genome*> PopulationManager::getPopulation(){
     return population;
 }
 

@@ -22,10 +22,10 @@ class EnchancedGenetic : public GeneticAlgorithm{
         void setMaxPopulation(int maxPopulation);
 
         //methods override
-        vector<Genome> select(vector<Genome> &currentGen);
-        vector<Genome> fit(vector<Genome> &currentGen);
-        vector<Genome> sex(Genome father, Genome mother);
-        vector<Genome> mutate(vector<Genome> &individuals);
+        void select(vector<Genome*> &currentGen);
+        void fit(vector<Genome*> &currentGen);
+        vector<Genome*> sex(Genome* father, Genome* mother);
+        void mutate(vector<Genome*> &individuals);
         unique_ptr<GeneticAlgorithm> clone();
         SPACE_SEARCH enrichSpace(SPACE_SEARCH &space);
 
@@ -45,12 +45,12 @@ class EnchancedGenetic : public GeneticAlgorithm{
         static const float recycle_threshold_percent;
 
         //methods 
-        pair<bool,Genome> age(Genome &individual, int cur_population_size);
-        Genome mutate(Genome &individual);
-        bool isRelative(Genome &father, Genome &mother);
+        Genome* age(Genome *individual, int cur_population_size);
+        Genome* mutate(Genome *individual);
+        bool isRelative(Genome *father, Genome *mother);
         float randomize();
-        int getLifeLeft(Genome &individual);
-        pair<bool,vector<Genome>> recycleBadIndividuals(vector<Genome> &individuals);
+        int getLifeLeft(Genome *individual);
+        bool recycleBadIndividuals(vector<Genome*> &individuals);
         float calcBirthRate(int cur_population_size);
 
 };

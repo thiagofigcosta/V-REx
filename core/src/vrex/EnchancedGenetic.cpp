@@ -1,5 +1,5 @@
 #include "EnchancedGenetic.hpp"
-
+#include "NeuralGenome.hpp"
 
 const float EnchancedGenetic::will_of_D_percent=0.05;
 const float EnchancedGenetic::recycle_threshold_percent=0.1;
@@ -34,28 +34,28 @@ void EnchancedGenetic::setMaxPopulation(int maxPopulation){
     max_population=maxPopulation;
 }
 
-vector<Genome> EnchancedGenetic::select(vector<Genome> &currentGen){
+void EnchancedGenetic::select(vector<Genome*> &currentGen){
     // roulette wheel
     sort(currentGen.begin(),currentGen.end());
-    float min=currentGen[0].getFitness();
+    float min=currentGen[0]->getFitness();
     float offset=0;
     float fitness_sum=0;
     if (min<=0){
         offset=abs(min);
     }
-    for (Genome &g:currentGen){
-        fitness_sum+=g.getFitness()+offset;
+    for (Genome *g:currentGen){
+        fitness_sum+=g->getFitness()+offset;
     }
-    vector<Genome> nxt_gen;
+    vector<Genome*> nxt_gen;
     uniform_real_distribution<float> roulette(0,fitness_sum);
     for (size_t i=0;i<currentGen.size()/2;i++){
-        vector<Genome> parents;
+        vector<Genome*> parents;
         int backup=-1;
         for (int c=0;c<2;c++){
             float sorted=roulette(Utils::RNG);
             float roulette_val=0;
             for(size_t g=0;g<currentGen.size();g++){
-                roulette_val+=(currentGen[g].getFitness()+offset);
+                roulette_val+=(currentGen[g]->getFitness()+offset);
                 if (sorted<=roulette_val){
                     if ( parents.size()<1 || !isRelative(parents[0],currentGen[g])){
                         parents.push_back(currentGen[g]);
@@ -66,7 +66,7 @@ vector<Genome> EnchancedGenetic::select(vector<Genome> &currentGen){
                 }
             }
         }
-        vector<Genome> children;
+        vector<Genome*> children;
         if (parents.size()==2){
             current_population_size=currentGen.size();
             children=sex(parents[0],parents[1]);
@@ -76,10 +76,12 @@ vector<Genome> EnchancedGenetic::select(vector<Genome> &currentGen){
             nxt_gen.push_back(currentGen[backup]);
         }
     }
-    return nxt_gen;
+    currentGen.clear();
+    currentGen.insert(currentGen.end(),nxt_gen.begin(),nxt_gen.end());
+    nxt_gen.clear();
 }
 
-vector<Genome> EnchancedGenetic::fit(vector<Genome> &currentGen){
+void EnchancedGenetic::fit(vector<Genome*> &currentGen){
     int signal=1;
     if (!looking_highest_fitness){
         signal=-1;
@@ -87,17 +89,15 @@ vector<Genome> EnchancedGenetic::fit(vector<Genome> &currentGen){
     int i=0;
     bool recycled=false;
     while (i<1||recycled){
-        for (Genome &g:currentGen){
-            g.setFitness(g.getOutput()*signal);
+        for (Genome *g:currentGen){
+            g->setFitness(g->getOutput()*signal);
         }
         sort(currentGen.begin(),currentGen.end());
         for (size_t i=0;i<currentGen.size();i++){
-            currentGen[i].setFitness(i+1);
+            currentGen[i]->setFitness(i+1);
         }
         if (i++<1){
-            pair<bool,vector<Genome>> out=recycleBadIndividuals(currentGen);
-            recycled=out.first;
-            currentGen=out.second;
+            recycled=recycleBadIndividuals(currentGen);
         }else{
             recycled=false;
             size_t cutout_limit=max_population*1.5;
@@ -106,14 +106,13 @@ vector<Genome> EnchancedGenetic::fit(vector<Genome> &currentGen){
             }
         }
     }
-    return currentGen;
 }
 
-vector<Genome> EnchancedGenetic::sex(Genome father, Genome mother){
-    vector<Genome> family;
+vector<Genome*> EnchancedGenetic::sex(Genome* father, Genome* mother){
+    vector<Genome*> family;
     if (Utils::getRandomBetweenZeroAndOne()<sex_rate){
-        pair<vector<int>,vector<float>> father_dna=father.getDna();
-        pair<vector<int>,vector<float>> mother_dna=mother.getDna();
+        pair<vector<int>,vector<float>> father_dna=father->getDna();
+        pair<vector<int>,vector<float>> mother_dna=mother->getDna();
         float child_rnd=Utils::getRandomBetweenZeroAndOne();
         int childs=child_rnd*father_dna.first[index_max_children]+(1-child_rnd)*mother_dna.first[index_max_children];
         childs=ceil(childs*calcBirthRate(current_population_size));
@@ -141,7 +140,11 @@ vector<Genome> EnchancedGenetic::sex(Genome father, Genome mother){
                     child.second.push_back(gene_share*father_dna.second[i]+(1-gene_share)*mother_dna.second[i]);
                 }
             }
-            family.push_back(Genome(mother,child));
+            if (dynamic_cast<NeuralGenome*>(mother)){
+                family.push_back(new NeuralGenome(*((NeuralGenome*)mother),child));
+            }else{
+                family.push_back(new Genome(*mother,child));
+            }
         }
     }
     family.push_back(father);
@@ -149,30 +152,35 @@ vector<Genome> EnchancedGenetic::sex(Genome father, Genome mother){
     return family;
 }
 
-pair<bool,Genome> EnchancedGenetic::age(Genome &individual, int cur_population_size){
-    pair<vector<int>,vector<float>> dna=individual.getDna();
+Genome* EnchancedGenetic::age(Genome* individual, int cur_population_size){
+    pair<vector<int>,vector<float>> dna=individual->getDna();
     dna.first[index_age]++;
-    individual.setDna(dna);
+    individual->setDna(dna);
     if (dna.first[index_age]>dna.first[index_max_age]){
-        if (individual.getFitness()<=(1-will_of_D_percent)*cur_population_size){
-            return pair<bool,Genome>(false,individual); // dead
+        if (individual->getFitness()<=(1-will_of_D_percent)*cur_population_size){
+            delete individual;
+            return nullptr; // dead
         }else{
-            individual.resetMtDna();
+            individual->resetMtDna();
         }
     }
-    return pair<bool,Genome>(true,individual);
+    return individual;
 }
 
-vector<Genome> EnchancedGenetic::mutate(vector<Genome> &individuals){
-    vector<Genome> xmen;
+void EnchancedGenetic::mutate(vector<Genome*> &individuals){
+    vector<Genome*> cemetery;
     int cur_pop_size=individuals.size();
-    for (Genome &g:individuals){
-        pair<bool,Genome> out=age(g,cur_pop_size);
-        if (out.first){
-            xmen.push_back(mutate(out.second));
+    for (Genome *g:individuals){
+        Genome* out=age(g,cur_pop_size);
+        if (out){
+            mutate(out);
+        }else{
+            cemetery.push_back(g); // dead elements
         }
     }
-    return xmen;
+    for (Genome *g:cemetery){
+        remove(individuals.begin(),individuals.end(),g); // need to remove them from population
+    }
 }
 
 unique_ptr<GeneticAlgorithm> EnchancedGenetic::clone(){
@@ -214,57 +222,57 @@ float EnchancedGenetic::randomize(){
     return r;
 }
 
-Genome EnchancedGenetic::mutate(Genome &individual){
-    pair<vector<int>,vector<float>> dna=individual.getDna();
-    for(size_t i=0;i<dna.first.size();i++){
+Genome* EnchancedGenetic::mutate(Genome *individual){
+    pair<vector<int>,vector<float>> xmen_dna=individual->getDna();
+    for(size_t i=0;i<xmen_dna.first.size();i++){
         if (i != index_age && i!= index_max_age && i != index_max_children) {
             if (Utils::getRandomBetweenZeroAndOne()<mutation_rate){
-                dna.first[i]*=randomize();
+                xmen_dna.first[i]*=randomize();
             }
         }
     }
-    for(size_t i=0;i<dna.second.size();i++){
+    for(size_t i=0;i<xmen_dna.second.size();i++){
         if (Utils::getRandomBetweenZeroAndOne()<mutation_rate){
-            dna.second[i]*=randomize();
+            xmen_dna.second[i]*=randomize();
         }
     }
-    individual.setDna(dna);
+    individual->setDna(xmen_dna);
 
-    int age=dna.first[index_age];
-    individual.checkLimits();
+    int age=xmen_dna.first[index_age];
+    individual->checkLimits();
 
-    dna=individual.getDna();
-    dna.first[index_age]=age;
-    individual.setDna(dna);
+    xmen_dna=individual->getDna();
+    xmen_dna.first[index_age]=age;
+    individual->setDna(xmen_dna);
     return individual;
 }
 
-bool EnchancedGenetic::isRelative(Genome &father, Genome &mother){
-    return father.getMtDna()==mother.getMtDna();
+bool EnchancedGenetic::isRelative(Genome *father, Genome *mother){
+    return father->getMtDna()==mother->getMtDna();
 }
 
-int EnchancedGenetic::getLifeLeft(Genome &individual){
-    return individual.getDna().first[index_max_age]-individual.getDna().first[index_age];
+int EnchancedGenetic::getLifeLeft(Genome *individual){
+    return individual->getDna().first[index_max_age]-individual->getDna().first[index_age];
 }
 
-pair<bool,vector<Genome>> EnchancedGenetic::recycleBadIndividuals(vector<Genome> &individuals){
+bool EnchancedGenetic::recycleBadIndividuals(vector<Genome*> &individuals){
     int threshold=(int)individuals.size()*recycle_threshold_percent;
     bool recycled=false;
     sort(individuals.begin(),individuals.end());
-    for (Genome &g:individuals){
-        if (g.getFitness()<threshold){
+    for (Genome *g:individuals){
+        if (g->getFitness()<threshold){
             if (Utils::getRandomBetweenZeroAndOne()<recycle_rate){
                 int idx_mirror=individuals.size()-(will_of_D_percent*individuals.size()*Utils::getRandomBetweenZeroAndOne())-1; // exploit
-                g.setDna(individuals[idx_mirror].getDna());
+                g->setDna(individuals[idx_mirror]->getDna());
                 g=mutate(g); // explore
-                g.evaluate();
+                g->evaluate();
                 recycled=true;
             }
         }else{
             break;
         }
     }
-    return pair<bool,vector<Genome>>(recycled,individuals);
+    return recycled;
 }
 
 
