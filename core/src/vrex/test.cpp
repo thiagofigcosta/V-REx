@@ -401,21 +401,24 @@ void testGeneticallyTunedNeuralNetwork(){
 
     auto train_callback = [](Genome *self) -> float {
         cout <<"placebo\n";
-        if (typeid(self) == typeid(NeuralGenome)){
-            cout << "oi rs\n";
-        }
-        if (dynamic_cast<NeuralGenome*>(self)) {
-            cout << "rs\n";
+        auto self_neural=dynamic_cast<NeuralGenome*>(self);
+        if (self_neural) {
+            cout << "NeuralGenome - 2\n";
+            ((NeuralGenome*) self)->weights["a"]=vector<float>();
         }
         return 0;
     };
 
-    HallOfFame elite=HallOfFame(max_notables, search_maximum);
-    EnchancedGenetic en_ga = EnchancedGenetic(max_children,max_age,mutation_rate,sex_rate,recycle_rate);
-    PopulationManager enchanced_population=PopulationManager(en_ga,space,train_callback,population_start_size,search_maximum,use_neural_genome);
-    enchanced_population.setHallOfFame(elite);
-    enchanced_population.naturalSelection(max_gens);
-    pair<float,int> enchanced_result=elite.getBest();
+    Genome* test=new NeuralGenome(space,train_callback);
+    test->evaluate();
+
+
+    // HallOfFame elite=HallOfFame(max_notables, search_maximum);
+    // EnchancedGenetic en_ga = EnchancedGenetic(max_children,max_age,mutation_rate,sex_rate,recycle_rate);
+    // PopulationManager enchanced_population=PopulationManager(en_ga,space,train_callback,population_start_size,search_maximum,use_neural_genome);
+    // enchanced_population.setHallOfFame(elite);
+    // enchanced_population.naturalSelection(max_gens);
+    // pair<float,int> enchanced_result=elite.getBest();
 
 
 }
