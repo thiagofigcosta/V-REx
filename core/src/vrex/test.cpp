@@ -428,7 +428,7 @@ void test() {
     // testMongo();
     // testSlide_IntLabel();
     // testSlide_NeuronByNeuronLabel();
-    // testStdGeneticsOnMath();
-    // testEnchancedGeneticsOnMath();
+    testStdGeneticsOnMath();
+    testEnchancedGeneticsOnMath();
     testGeneticallyTunedNeuralNetwork();
 }
