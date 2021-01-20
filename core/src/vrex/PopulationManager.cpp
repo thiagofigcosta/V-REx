@@ -1,6 +1,7 @@
 #include "PopulationManager.hpp"
+#include "NeuralGenome.hpp"
 
-PopulationManager::PopulationManager(GeneticAlgorithm &galg, SPACE_SEARCH space, function<float(pair<vector<int>,vector<float>> dna)> callback,int startPopulationSize, bool searchHighestFitness){
+PopulationManager::PopulationManager(GeneticAlgorithm &galg, SPACE_SEARCH space, function<float(Genome *self)> callback,int startPopulationSize, bool searchHighestFitness, bool useNeuralGenome){
     ga=galg.clone();
     looking_highest_fitness=searchHighestFitness;
     if (typeid(*ga) == typeid(EnchancedGenetic)){
@@ -11,7 +12,12 @@ PopulationManager::PopulationManager(GeneticAlgorithm &galg, SPACE_SEARCH space,
         space=ga->enrichSpace(space);
     }
     for (int i=0;i<startPopulationSize;i++){
-        population.push_back(Genome(space,callback));
+        if (useNeuralGenome){
+            cout<<"hey\n";
+            population.push_back(new NeuralGenome(space,callback));
+        }else{
+            population.push_back(new Genome(space,callback));
+        }
     }
     hall_of_fame=NULL;
 }
@@ -21,6 +27,9 @@ PopulationManager::PopulationManager(const PopulationManager& orig) {
 
 PopulationManager::~PopulationManager() {
     ga.release();
+    for (Genome* g:population){
+        delete g;
+    }
 }
 
 void PopulationManager::setHallOfFame(HallOfFame &hallOfFame){
@@ -53,6 +62,38 @@ void PopulationManager::naturalSelection(int gens){
     }
 }
 
-vector<Genome> PopulationManager::getPopulation(){
+vector<Genome*> PopulationManager::getPopulation(){
     return population;
+}
+
+
+SPACE_SEARCH PopulationManager::buildSlideNeuralNetworkSpaceSearch(INT_SPACE_SEARCH amount_of_layers,INT_SPACE_SEARCH epoachs,FLOAT_SPACE_SEARCH alpha,
+                            INT_SPACE_SEARCH batch_size,INT_SPACE_SEARCH layer_size,INT_SPACE_SEARCH range_pow,INT_SPACE_SEARCH k_values,INT_SPACE_SEARCH l_values,
+                            FLOAT_SPACE_SEARCH sparcity,INT_SPACE_SEARCH activation_funcs){
+    vector<INT_SPACE_SEARCH> int_dna;
+    vector<FLOAT_SPACE_SEARCH> float_dna;
+    float_dna.push_back(alpha);
+    int_dna.push_back(epoachs);
+    int_dna.push_back(batch_size);
+    int_dna.push_back(amount_of_layers);
+    int max_layer_size=amount_of_layers.second;
+    for(int i=0;i<max_layer_size;i++){
+        int_dna.push_back(layer_size);
+    }
+    for(int i=0;i<max_layer_size;i++){
+        int_dna.push_back(range_pow);
+    }
+    for(int i=0;i<max_layer_size;i++){
+        int_dna.push_back(k_values);
+    }
+    for(int i=0;i<max_layer_size;i++){
+        int_dna.push_back(l_values);
+    }
+    for(int i=0;i<max_layer_size-1;i++){
+        float_dna.push_back(sparcity);
+    }
+    for(int i=0;i<max_layer_size-1;i++){
+        int_dna.push_back(activation_funcs);
+    }
+    return SPACE_SEARCH(int_dna,float_dna);
 }

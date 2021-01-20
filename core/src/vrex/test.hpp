@@ -9,6 +9,7 @@
 #include "PopulationManager.hpp"
 #include "HallOfFame.hpp"
 #include "StandardGenetic.hpp"
+#include "NeuralGenome.hpp"
 
 using namespace std;
 
@@ -19,3 +20,4 @@ void testSlide_IntLabel();
 void testSlide_NeuronByNeuronLabel();
 void testStdGeneticsOnMath();
 void testEnchancedGeneticsOnMath();
+void testGeneticallyTunedNeuralNetwork();

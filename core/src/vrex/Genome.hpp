@@ -13,7 +13,7 @@ using namespace std;
 class Genome{
     public:
         // constructors and destructor
-        Genome(SPACE_SEARCH space, function<float(pair<vector<int>,vector<float>> dna)> callback);
+        Genome(SPACE_SEARCH space, function<float(Genome *self)> callback);
         Genome(const Genome& orig, pair<vector<int>,vector<float>> new_dna);
         virtual ~Genome();
         void evaluate();
@@ -37,5 +37,5 @@ class Genome{
         SPACE_SEARCH limits;
         float fitness;
         float output;
-        function<float(pair<vector<int>,vector<float>> dna)> evaluate_cb; //float (*evaluate_cb)(pair<vector<int>,vector<float>> dna)
+        function<float(Genome *self)> evaluate_cb; //float (*evaluate_cb)(pair<vector<int>,vector<float>> dna)
 };

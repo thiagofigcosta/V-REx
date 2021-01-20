@@ -1,6 +1,6 @@
 #include "Genome.hpp"
 
-Genome::Genome(SPACE_SEARCH space, function<float(pair<vector<int>,vector<float>> dna)> callback) {
+Genome::Genome(SPACE_SEARCH space, function<float(Genome *self)> callback) {
     for (pair<int,int> limit:space.first){
         uniform_int_distribution<int> random(limit.first,limit.second);
         dna.first.push_back(random(Utils::RNG));
@@ -37,7 +37,7 @@ float Genome::getFitness(){
 }
 
 void Genome::evaluate(){
-    output=evaluate_cb(dna);
+    output=evaluate_cb(this);
 }
 
 bool Genome::operator< (Genome& o){

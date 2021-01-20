@@ -265,9 +265,10 @@ void testStdGeneticsOnMath(){
     int max_notables=5;
     HallOfFame elite_min=HallOfFame(max_notables, search_maximum);
     StandardGenetic ga = StandardGenetic(mutation_rate, sex_rate);
-    PopulationManager population=PopulationManager(ga, space, [](pair<vector<int>,vector<float>> dna) -> float {return
+    PopulationManager population=PopulationManager(ga, space, [](Genome *self) -> float {
         // https://www.sfu.ca/~ssurjano/egg.html // minimum -> x1=512 | x2=404.2319 -> y(x1,x2)=-959.6407
-        -(dna.second[1]+47)*sin(sqrt(abs(dna.second[1]+(dna.second[0]/2)+47)))-dna.second[0]*sin(sqrt(abs(dna.second[0]-(dna.second[1]+47))));}
+        pair<vector<int>,vector<float>> dna=self->getDna();
+        return -(dna.second[1]+47)*sin(sqrt(abs(dna.second[1]+(dna.second[0]/2)+47)))-dna.second[0]*sin(sqrt(abs(dna.second[0]-(dna.second[1]+47))));}
         ,population_size, search_maximum);
     population.setHallOfFame(elite_min);
     population.naturalSelection(max_gens);
@@ -291,9 +292,10 @@ void testStdGeneticsOnMath(){
     max_notables=5;
     HallOfFame elite_max=HallOfFame(max_notables, search_maximum);
     ga = StandardGenetic(mutation_rate, sex_rate);
-    PopulationManager population2=PopulationManager(ga, space2, [](pair<vector<int>,vector<float>> dna) -> float {return
+    PopulationManager population2=PopulationManager(ga, space2, [](Genome *self) -> float {
         // https://www.sfu.ca/~ssurjano/easom.html TIME MINUS ONE // maximum -> x1=x2=pi -> y(x1,x2)=1
-        -(-cos(dna.second[0])*cos(dna.second[1])*exp(-(pow(dna.second[0]-M_PI,2)+pow(dna.second[1]-M_PI,2))));}
+        pair<vector<int>,vector<float>> dna=self->getDna();
+        return -(-cos(dna.second[0])*cos(dna.second[1])*exp(-(pow(dna.second[0]-M_PI,2)+pow(dna.second[1]-M_PI,2))));}
         ,population_size, search_maximum);
     population2.setHallOfFame(elite_max);
     population2.naturalSelection(max_gens);
@@ -326,9 +328,10 @@ void testEnchancedGeneticsOnMath(){
     for (int i=0;i<tests;i++){
         HallOfFame enchanced_elite=HallOfFame(max_notables, search_maximum);
         EnchancedGenetic en_ga = EnchancedGenetic(max_children,max_age,mutation_rate,sex_rate,recycle_rate);
-        PopulationManager enchanced_population=PopulationManager(en_ga, space, [](pair<vector<int>,vector<float>> dna) -> float {return
+        PopulationManager enchanced_population=PopulationManager(en_ga, space, [](Genome *self) -> float {
             // https://www.sfu.ca/~ssurjano/egg.html // minimum -> x1=512 | x2=404.2319 -> y(x1,x2)=-959.6407
-            -(dna.second[1]+47)*sin(sqrt(abs(dna.second[1]+(dna.second[0]/2)+47)))-dna.second[0]*sin(sqrt(abs(dna.second[0]-(dna.second[1]+47))));}
+            pair<vector<int>,vector<float>> dna=self->getDna();
+            return -(dna.second[1]+47)*sin(sqrt(abs(dna.second[1]+(dna.second[0]/2)+47)))-dna.second[0]*sin(sqrt(abs(dna.second[0]-(dna.second[1]+47))));}
             ,population_start_size, search_maximum);
         enchanced_population.setHallOfFame(enchanced_elite);
         enchanced_population.naturalSelection(max_gens);
@@ -336,9 +339,10 @@ void testEnchancedGeneticsOnMath(){
 
         HallOfFame std_elite=HallOfFame(max_notables, search_maximum);
         StandardGenetic std_ga = StandardGenetic(mutation_rate, sex_rate);
-        PopulationManager std_population=PopulationManager(std_ga, space, [](pair<vector<int>,vector<float>> dna) -> float {return
+        PopulationManager std_population=PopulationManager(std_ga, space, [](Genome *self) -> float {
             // https://www.sfu.ca/~ssurjano/egg.html // minimum -> x1=512 | x2=404.2319 -> y(x1,x2)=-959.6407
-            -(dna.second[1]+47)*sin(sqrt(abs(dna.second[1]+(dna.second[0]/2)+47)))-dna.second[0]*sin(sqrt(abs(dna.second[0]-(dna.second[1]+47))));}
+            pair<vector<int>,vector<float>> dna=self->getDna();
+            return -(dna.second[1]+47)*sin(sqrt(abs(dna.second[1]+(dna.second[0]/2)+47)))-dna.second[0]*sin(sqrt(abs(dna.second[0]-(dna.second[1]+47))));}
             ,population_start_size, search_maximum);
         std_population.setHallOfFame(std_elite);
         std_population.naturalSelection(max_gens);
@@ -361,11 +365,68 @@ void testEnchancedGeneticsOnMath(){
     cout<<endl<<endl<<"Enchanced Mean ("<<enchanced_mean.second<<"): "<<enchanced_mean.first<<" | Std Mean ("<<std_mean.second<<"): "<<std_mean.first<<endl;
 }
 
+void testGeneticallyTunedNeuralNetwork(){
+    const bool use_neural_genome=true;
+    const int output_size=2;
+    const bool adam_optimizer=true;
+    const SlideLabelEncoding label_encoding=SlideLabelEncoding::INT_CLASS;
+    const int rehash=6400;
+    const int rebuild=128000;
+    const int border_sparsity=1; // first and last layers
+
+    INT_SPACE_SEARCH amount_of_layers = INT_SPACE_SEARCH(1,1);
+    // INT_SPACE_SEARCH amount_of_layers = INT_SPACE_SEARCH(1,4); // Too heavy for my computer :(
+    INT_SPACE_SEARCH epoachs = INT_SPACE_SEARCH(100,250);
+    FLOAT_SPACE_SEARCH alpha = FLOAT_SPACE_SEARCH(0.0001,0.1);
+    INT_SPACE_SEARCH batch_size = INT_SPACE_SEARCH(5,15);
+    INT_SPACE_SEARCH layer_size = INT_SPACE_SEARCH(3,10);
+    INT_SPACE_SEARCH range_pow = INT_SPACE_SEARCH(4,20);
+    INT_SPACE_SEARCH k_values = INT_SPACE_SEARCH(2,10);
+    INT_SPACE_SEARCH l_values = INT_SPACE_SEARCH(20,50);
+    FLOAT_SPACE_SEARCH sparcity = FLOAT_SPACE_SEARCH(0.005,1);
+    INT_SPACE_SEARCH activation_funcs = INT_SPACE_SEARCH(0,2);
+
+    SPACE_SEARCH space = PopulationManager::buildSlideNeuralNetworkSpaceSearch(amount_of_layers,epoachs,alpha,batch_size,
+                                                layer_size,range_pow,k_values,l_values,sparcity,activation_funcs);
+
+    int population_start_size=30;
+    int max_gens=10;
+    int max_age=10;
+    int max_children=4;
+    float mutation_rate=0.1;
+    float recycle_rate=0.2;
+    float sex_rate=0.7;
+    bool search_maximum=false;
+    int max_notables=5;
+
+    auto train_callback = [](Genome *self) -> float {
+        cout <<"placebo\n";
+        if (typeid(self) == typeid(NeuralGenome)){
+            cout << "oi rs\n";
+        }
+        if (dynamic_cast<NeuralGenome*>(self)) {
+            cout << "CUUUU rs\n";
+        }
+        dynamic_cast<NeuralGenome*>(self)->weights["oi"]=vector<float>();
+        return 0;
+    };
+
+    HallOfFame elite=HallOfFame(max_notables, search_maximum);
+    EnchancedGenetic en_ga = EnchancedGenetic(max_children,max_age,mutation_rate,sex_rate,recycle_rate);
+    PopulationManager enchanced_population=PopulationManager(en_ga,space,train_callback,population_start_size,search_maximum,use_neural_genome);
+    enchanced_population.setHallOfFame(elite);
+    enchanced_population.naturalSelection(max_gens);
+    pair<float,int> enchanced_result=elite.getBest();
+
+
+}
+
 void test() {
     // testCsvRead();
     // testMongo();
     // testSlide_IntLabel();
     // testSlide_NeuronByNeuronLabel();
     // testStdGeneticsOnMath();
-    testEnchancedGeneticsOnMath();
+    // testEnchancedGeneticsOnMath();
+    testGeneticallyTunedNeuralNetwork();
 }
