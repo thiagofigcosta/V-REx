@@ -20,7 +20,7 @@ StandardGenetic::~StandardGenetic(){
 
 void StandardGenetic::select(vector<Genome*> &currentGen){
     // roulette wheel
-    sort(currentGen.begin(),currentGen.end());
+    sort(currentGen.begin(),currentGen.end(),Genome::compare);
     float min=currentGen[0]->getFitness();
     float offset=0;
     float fitness_sum=0;
@@ -48,6 +48,9 @@ void StandardGenetic::select(vector<Genome*> &currentGen){
         vector<Genome*> children=sex(parents[0],parents[1]);
         nxt_gen.insert(nxt_gen.end(),children.begin(),children.end());
     }
+    for (Genome *g:currentGen){
+        delete g;
+    }
     currentGen.clear();
     currentGen.insert(currentGen.end(),nxt_gen.begin(),nxt_gen.end());
     nxt_gen.clear();
@@ -67,7 +70,7 @@ void StandardGenetic::fit(vector<Genome*> &currentGen){
         }
     }
     if (rank_type==StdGeneticRankType::RELATIVE){
-        sort(currentGen.begin(),currentGen.end());
+        sort(currentGen.begin(),currentGen.end(),Genome::compare);
         for (size_t i=0;i<currentGen.size();i++){
             currentGen[i]->setFitness(100.0/(currentGen.size()-i+2));
         }
@@ -99,11 +102,14 @@ vector<Genome*> StandardGenetic::sex(Genome* father, Genome* mother){
             children.push_back(new Genome(*mother,child_1));
             children.push_back(new Genome(*mother,child_2));
         }
-        delete mother;
-        delete father;
     }else{
-        children.push_back(father);
-        children.push_back(mother);
+        if (dynamic_cast<NeuralGenome*>(mother)){
+            children.push_back(new NeuralGenome(*((NeuralGenome*)mother)));
+            children.push_back(new NeuralGenome(*((NeuralGenome*)father)));
+        }else{
+            children.push_back(new Genome(*mother));
+            children.push_back(new Genome(*father));
+        }
     }
     return children;
 }

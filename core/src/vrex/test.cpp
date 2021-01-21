@@ -275,7 +275,9 @@ void testStdGeneticsOnMath(){
     for (Genome individual: elite_min.getNotables()){
         cout<<individual.to_string()<<endl;
     }
+    pair<float,int> min_result=elite_min.getBest();
     cout<<"Expected: y(512,404.2319) = -959.6407"<<endl;
+    cout<<"Min Best ("<<min_result.second<<"): "<<min_result.first<<endl;
     cout<<endl<<endl;
 
     cout<<"Maximization:"<<endl;
@@ -302,7 +304,8 @@ void testStdGeneticsOnMath(){
     for (Genome individual: elite_max.getNotables()){
         cout<<individual.to_string()<<endl;
     }
-    cout<<"Expected: y(3.141592,3.141592) = 1"<<endl<<endl<<endl;
+    pair<float,int> max_result=elite_max.getBest();
+    cout<<"Expected: y(3.141592,3.141592) = 1"<<endl<<"Max Best ("<<max_result.second<<"): "<<max_result.first<<endl<<endl;
 }
 
 void testEnchancedGeneticsOnMath(){
@@ -386,7 +389,7 @@ void testGeneticallyTunedNeuralNetwork(){
     FLOAT_SPACE_SEARCH sparcity = FLOAT_SPACE_SEARCH(0.005,1);
     INT_SPACE_SEARCH activation_funcs = INT_SPACE_SEARCH(0,2);
 
-    SPACE_SEARCH space = PopulationManager::buildSlideNeuralNetworkSpaceSearch(amount_of_layers,epoachs,alpha,batch_size,
+    SPACE_SEARCH space = NeuralGenome::buildSlideNeuralNetworkSpaceSearch(amount_of_layers,epoachs,alpha,batch_size,
                                                 layer_size,range_pow,k_values,l_values,sparcity,activation_funcs);
 
     int population_start_size=30;
@@ -428,7 +431,7 @@ void test() {
     // testMongo();
     // testSlide_IntLabel();
     // testSlide_NeuronByNeuronLabel();
-    // testStdGeneticsOnMath();
+    testStdGeneticsOnMath();
     testEnchancedGeneticsOnMath();
     // testGeneticallyTunedNeuralNetwork();
 }
