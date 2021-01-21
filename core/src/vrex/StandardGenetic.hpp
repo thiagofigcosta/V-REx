@@ -20,10 +20,10 @@ class StandardGenetic : public GeneticAlgorithm{
         virtual ~StandardGenetic();
 
         //methods override
-        vector<Genome> select(vector<Genome> &currentGen);
-        vector<Genome> fit(vector<Genome> &currentGen);
-        vector<Genome> sex(Genome father, Genome mother);
-        vector<Genome> mutate(vector<Genome> &individuals);
+        void select(vector<Genome*> &currentGen);
+        void fit(vector<Genome*> &currentGen);
+        vector<Genome*> sex(Genome* father, Genome* mother);
+        void mutate(vector<Genome*> &individuals);
         unique_ptr<GeneticAlgorithm> clone();
 
     private:
