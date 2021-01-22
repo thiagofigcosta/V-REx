@@ -406,7 +406,6 @@ void testGeneticallyTunedNeuralNetwork(){
     int max_notables=5;
 
     auto train_callback = [](Genome *self) -> float {
-        cout <<"placebo\n";
         auto self_neural=dynamic_cast<NeuralGenome*>(self);
         if (self_neural) {
             cout << "NeuralGenome - 2\n";
@@ -414,7 +413,6 @@ void testGeneticallyTunedNeuralNetwork(){
         }
         return 0;
     };
-
 
     HallOfFame elite=HallOfFame(max_notables, search_maximum);
     EnchancedGenetic en_ga = EnchancedGenetic(max_children,max_age,mutation_rate,sex_rate,recycle_rate);
@@ -430,6 +428,6 @@ void test() {
     // testSlide_IntLabel();
     // testSlide_NeuronByNeuronLabel();
     // testStdGeneticsOnMath();
-    testEnchancedGeneticsOnMath();
-    // testGeneticallyTunedNeuralNetwork();
+    // testEnchancedGeneticsOnMath();
+    testGeneticallyTunedNeuralNetwork();
 }
