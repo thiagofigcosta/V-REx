@@ -319,11 +319,12 @@ void testEnchancedGeneticsOnMath(){
     int max_gens=100;
     int max_age=10;
     int max_children=4;
-    float mutation_rate=0.2;
-    float recycle_rate=0.2;
-    float sex_rate=0.6;
+    float mutation_rate=0.1;
+    float recycle_rate=0.13;
+    float sex_rate=0.7;
     bool search_maximum=false;
     int max_notables=5;
+    bool print_deltas=true;
 
     int tests=50;
     vector<pair<pair<float,int>,pair<float,int>>> results;
@@ -335,8 +336,9 @@ void testEnchancedGeneticsOnMath(){
             // https://www.sfu.ca/~ssurjano/egg.html // minimum -> x1=512 | x2=404.2319 -> y(x1,x2)=-959.6407
             pair<vector<int>,vector<float>> dna=self->getDna();
             return -(dna.second[1]+47)*sin(sqrt(abs(dna.second[1]+(dna.second[0]/2)+47)))-dna.second[0]*sin(sqrt(abs(dna.second[0]-(dna.second[1]+47))));}
-            ,population_start_size, search_maximum);
+            ,population_start_size, search_maximum,false,print_deltas);
         enchanced_population.setHallOfFame(enchanced_elite);
+        cout<<"Enchanced: ";
         enchanced_population.naturalSelection(max_gens);
         pair<float,int> enchanced_result=enchanced_elite.getBest();
 
@@ -346,8 +348,9 @@ void testEnchancedGeneticsOnMath(){
             // https://www.sfu.ca/~ssurjano/egg.html // minimum -> x1=512 | x2=404.2319 -> y(x1,x2)=-959.6407
             pair<vector<int>,vector<float>> dna=self->getDna();
             return -(dna.second[1]+47)*sin(sqrt(abs(dna.second[1]+(dna.second[0]/2)+47)))-dna.second[0]*sin(sqrt(abs(dna.second[0]-(dna.second[1]+47))));}
-            ,population_start_size, search_maximum);
+            ,population_start_size, search_maximum,false,print_deltas);
         std_population.setHallOfFame(std_elite);
+        cout<<"Standard : ";
         std_population.naturalSelection(max_gens);
         pair<float,int> std_result=std_elite.getBest();
         results.push_back(pair<pair<float,int>,pair<float,int>>(enchanced_result,std_result));
@@ -397,7 +400,7 @@ void testGeneticallyTunedNeuralNetwork(){
     int max_age=10;
     int max_children=4;
     float mutation_rate=0.1;
-    float recycle_rate=0.2;
+    float recycle_rate=0.13;
     float sex_rate=0.7;
     bool search_maximum=false;
     int max_notables=5;
@@ -412,18 +415,13 @@ void testGeneticallyTunedNeuralNetwork(){
         return 0;
     };
 
-    Genome* test=new NeuralGenome(space,train_callback);
-    test->evaluate();
 
-
-    // HallOfFame elite=HallOfFame(max_notables, search_maximum);
-    // EnchancedGenetic en_ga = EnchancedGenetic(max_children,max_age,mutation_rate,sex_rate,recycle_rate);
-    // PopulationManager enchanced_population=PopulationManager(en_ga,space,train_callback,population_start_size,search_maximum,use_neural_genome);
-    // enchanced_population.setHallOfFame(elite);
-    // enchanced_population.naturalSelection(max_gens);
-    // pair<float,int> enchanced_result=elite.getBest();
-
-
+    HallOfFame elite=HallOfFame(max_notables, search_maximum);
+    EnchancedGenetic en_ga = EnchancedGenetic(max_children,max_age,mutation_rate,sex_rate,recycle_rate);
+    PopulationManager enchanced_population=PopulationManager(en_ga,space,train_callback,population_start_size,search_maximum,use_neural_genome);
+    enchanced_population.setHallOfFame(elite);
+    enchanced_population.naturalSelection(max_gens);
+    pair<float,int> enchanced_result=elite.getBest();
 }
 
 void test() {
@@ -431,7 +429,7 @@ void test() {
     // testMongo();
     // testSlide_IntLabel();
     // testSlide_NeuronByNeuronLabel();
-    testStdGeneticsOnMath();
+    // testStdGeneticsOnMath();
     testEnchancedGeneticsOnMath();
     // testGeneticallyTunedNeuralNetwork();
 }

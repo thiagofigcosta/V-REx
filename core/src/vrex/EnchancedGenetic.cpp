@@ -1,8 +1,8 @@
 #include "EnchancedGenetic.hpp"
 #include "NeuralGenome.hpp"
 
-const float EnchancedGenetic::will_of_D_percent=0.05;
-const float EnchancedGenetic::recycle_threshold_percent=0.1;
+const float EnchancedGenetic::will_of_D_percent=0.07;
+const float EnchancedGenetic::recycle_threshold_percent=0.03;
 
 EnchancedGenetic::EnchancedGenetic(int maxChildren, int maxAge, float mutationRate, float sexRate, float recycleRate){
     mutation_rate=mutationRate;
@@ -107,7 +107,7 @@ void EnchancedGenetic::fit(vector<Genome*> &currentGen){
             recycled=recycleBadIndividuals(currentGen);
         }else{
             recycled=false;
-            int cutout_limit=max_population*1.5;
+            int cutout_limit=max_population*1.3;
             int cutout_diff=(currentGen.size()-cutout_limit);
             if(cutout_diff>0){
                 for (size_t e=0;e<(size_t)cutout_diff;e++){
@@ -222,7 +222,7 @@ float EnchancedGenetic::randomize(){
     }else if (r<=0.9){
         uniform_real_distribution<float> random(0.1,0.27);
         r=random(Utils::RNG);
-    }else if (r<=0.96){
+    }else if (r<=0.97){
         uniform_real_distribution<float> random(0.23,0.30);
         r=random(Utils::RNG);
     }else{
@@ -277,12 +277,12 @@ bool EnchancedGenetic::recycleBadIndividuals(vector<Genome*> &individuals){
             if (Utils::getRandomBetweenZeroAndOne()<recycle_rate){
                 delete individuals[t];
                 int idx_mirror=individuals.size()-(will_of_D_percent*individuals.size()*Utils::getRandomBetweenZeroAndOne())-1; // exploit
+                pair<vector<int>,vector<float>> dna=individuals[idx_mirror]->getDna();
                 if (dynamic_cast<NeuralGenome*>(individuals[idx_mirror])){
-                    individuals[t]=new NeuralGenome(*((NeuralGenome*)individuals[idx_mirror]));
+                    individuals[t]=new NeuralGenome(*((NeuralGenome*)individuals[idx_mirror]),dna);
                 }else{
-                    individuals[t]=new Genome(*individuals[idx_mirror]);
+                    individuals[t]=new Genome(*individuals[idx_mirror],dna);
                 }
-                pair<vector<int>,vector<float>> dna=individuals[t]->getDna();
                 dna.first[index_age]=-1;
                 individuals[t]->setDna(dna);
                 mutate(individuals[t]); // explore
@@ -298,7 +298,8 @@ bool EnchancedGenetic::recycleBadIndividuals(vector<Genome*> &individuals){
 
 
 float EnchancedGenetic::calcBirthRate(int cur_population_size){
-    return ((max_population-cur_population_size)/(max_population/2.22))*abs(randomize());
+    float out=1-(cur_population_size/max_population)*0.22;
+    return out;
 }
 
 SPACE_SEARCH EnchancedGenetic::enrichSpace(SPACE_SEARCH &space){
