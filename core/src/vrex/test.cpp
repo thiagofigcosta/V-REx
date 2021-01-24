@@ -390,7 +390,7 @@ void testGeneticallyTunedNeuralNetwork(){
     pair<vector<pair<vector<int>, vector<float>>>,vector<pair<vector<int>, vector<float>>>> dividedData=Utils::divideDataSet(dataset, train_percentage);
     vector<pair<vector<int>, vector<float>>> train_data=dividedData.first;
     vector<pair<vector<int>, vector<float>>> test_data=dividedData.second;
-    NeuralGenome::setNeuralTrainData(train_data);
+    // NeuralGenome::setNeuralTrainData(train_data); // not necessary since we are using lambda [&]
 
 
     SPACE_SEARCH space = NeuralGenome::buildSlideNeuralNetworkSpaceSearch(amount_of_layers,epochs,alpha,batch_size,
@@ -407,7 +407,7 @@ void testGeneticallyTunedNeuralNetwork(){
     int max_notables=5;
     bool search_maximum=false;
 
-    auto train_callback = [](Genome *self) -> float {
+    auto train_callback = [&](Genome *self) -> float {
         const int input_size=4;
         const int output_size=2;
         const bool adam_optimizer=true;
@@ -425,12 +425,9 @@ void testGeneticallyTunedNeuralNetwork(){
         if (weights.size()>0){
             net.first->setWeights(weights);
         }
-        
-        cout<<"DNA EPOCH "<<self->getDna().first[0]<<endl;
-        cout<<"DNA BATCH "<<self->getDna().first[0]<<endl;
-        cout<<"epochs "<<net.second<<endl;
 
-        vector<float> loss=net.first->train(self_neural->getTrainData(),net.second);
+        vector<float> loss=net.first->train(train_data,net.second);
+        // vector<float> loss=net.first->train(self_neural->getTrainData(),net.second); // not necessary since we are using lambda [&] 
         self_neural->setWeights(net.first->getWeights());
         delete net.first;
         float output=0;
