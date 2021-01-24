@@ -21,6 +21,23 @@ Access the front-end container and use one of the following commands:
 
 Type `h` + enter for help
 
+### Example:
+```
+docker exec -it $(docker container ls | grep front-end | cut -f 1 -d' ') front
+```
+
+## To follow logs
+
+To follow logs type one of the commands below
+### Data Crawler
+```
+docker logs --follow $(docker container ls | grep data-crawler | cut -f 1 -d' ')
+```
+### Data Processor 
+```
+docker logs --follow $(docker container ls | grep data-processor | cut -f 1 -d' ')
+```
+
 ## Passwords location
 Inside .env file
 
