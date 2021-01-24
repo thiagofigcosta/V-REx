@@ -35,6 +35,7 @@ int Bucket::add(int id) {
         isInit += 1;
         int index = _counts & (Slide::BUCKET_SIZE - 1);
         _counts++;
+        #pragma omp single 
         arr[index] = id;
         return index;
     }

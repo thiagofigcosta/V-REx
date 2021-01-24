@@ -41,5 +41,7 @@ compileLinkAndRun: compile link run
 
 linkAndRun: link run
 
+compileLinkAndDebug: compile link debug
+
 clean:
 	rm -rf *.o obj/*.o $(EXEC)

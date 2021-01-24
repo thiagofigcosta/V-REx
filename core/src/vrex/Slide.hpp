@@ -39,16 +39,27 @@ class Slide{
 
         // variables
         static const bool MEAN_ERROR_INSTEAD_OF_GRADS_SUM;
+        #pragma omp threadprivate(MEAN_ERROR_INSTEAD_OF_GRADS_SUM)
         static const float ADAM_OT_BETA1;
+        #pragma omp threadprivate(ADAM_OT_BETA1)
         static const float ADAM_OT_BETA2;
+        #pragma omp threadprivate(ADAM_OT_BETA2)
         static const float ADAM_OT_EPSILON;
+        #pragma omp threadprivate(ADAM_OT_EPSILON)
         static const int BUCKET_SIZE;
+        #pragma omp threadprivate(BUCKET_SIZE)
         static const int TOPK_HASH_TOPK;
+        #pragma omp threadprivate(TOPK_HASH_TOPK)
         static const int SIMHASH_RATIO;
+        #pragma omp threadprivate(SIMHASH_RATIO)
         static const int WTA_BIN_SIZE;
+        #pragma omp threadprivate(WTA_BIN_SIZE)
         static const int TOPK_THRESHOLD_SECONDS;
+        #pragma omp threadprivate(TOPK_THRESHOLD_SECONDS)
         static const bool FIFO_INSTEAD_OF_RESERVOIR_SAMPLING;
+        #pragma omp threadprivate(FIFO_INSTEAD_OF_RESERVOIR_SAMPLING)
         static const float SOFTMAX_LINEAR_CONSTANT;
+        #pragma omp threadprivate(SOFTMAX_LINEAR_CONSTANT)
 
     private:
         // variables
