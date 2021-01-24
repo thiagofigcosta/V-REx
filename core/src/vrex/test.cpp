@@ -440,7 +440,7 @@ void testGeneticallyTunedNeuralNetwork(){
 
     HallOfFame elite=HallOfFame(max_notables, search_maximum);
     EnchancedGenetic en_ga = EnchancedGenetic(max_children,max_age,mutation_rate,sex_rate,recycle_rate);
-    PopulationManager enchanced_population=PopulationManager(en_ga,space,train_callback,population_start_size,search_maximum,use_neural_genome);
+    PopulationManager enchanced_population=PopulationManager(en_ga,space,train_callback,population_start_size,search_maximum,use_neural_genome,true);
     enchanced_population.setHallOfFame(elite);
     enchanced_population.naturalSelection(max_gens);
     cout<<"Best loss ("<<elite.getBest().second<<"): "<<elite.getBest().first<<endl;

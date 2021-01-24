@@ -112,6 +112,11 @@ docker run front-end:v1.0.0
 docker run core:v1.0.0
 ```
 
+To enable gdb debug use:
+```
+docker run --cap-add=SYS_PTRACE --security-opt seccomp=unconfined -it core:v1.0.0
+```
+
 ## Cleanup docker compose volumes
 ```
 sudo rm -rf docker_volumes
