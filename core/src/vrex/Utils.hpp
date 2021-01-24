@@ -73,6 +73,6 @@ class Utils{
         static mt19937_64 getRandomGenerator();
         static uniform_real_distribution<float> dist_zero_one;
         // variables
-        static const string RESOURCES_FOLDER;
+        static string RESOURCES_FOLDER;
         static const string FILE_SEPARATOR;
 };

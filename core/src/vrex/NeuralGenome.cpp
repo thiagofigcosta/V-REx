@@ -57,7 +57,7 @@ SPACE_SEARCH NeuralGenome::buildSlideNeuralNetworkSpaceSearch(INT_SPACE_SEARCH a
     return SPACE_SEARCH(int_dna,float_dna);
 }
 
-pair<Slide,int> NeuralGenome::buildSlide(pair<vector<int>,vector<float>> dna, int input_size, int output_size, SlideLabelEncoding label_encoding, int rehash, int rebuild, int border_sparsity, bool adam_optimizer){
+pair<Slide*,int> NeuralGenome::buildSlide(pair<vector<int>,vector<float>> dna, int input_size, int output_size, SlideLabelEncoding label_encoding, int rehash, int rebuild, int border_sparsity, bool adam_optimizer){
     vector<int> int_dna=dna.first;
     vector<float> float_dna=dna.second;
     int epochs=int_dna[0];
@@ -120,7 +120,7 @@ pair<Slide,int> NeuralGenome::buildSlide(pair<vector<int>,vector<float>> dna, in
         }
     }
 
-    return pair<Slide,int>(Slide(layers, layer_sizes, node_types, input_size, alpha, batch_size, adam_optimizer, label_encoding,
+    return pair<Slide*,int>(new Slide(layers, layer_sizes, node_types, input_size, alpha, batch_size, adam_optimizer, label_encoding,
     range_pow, K, L, sparcity, rehash, rebuild, SlideMode::SAMPLING, SlideHashingFunction::DENSIFIED_WTA, false),epochs);
 }
 

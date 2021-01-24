@@ -8,7 +8,7 @@
 #else // linux <3
   const string Utils::FILE_SEPARATOR="/";
 #endif
-const string Utils::RESOURCES_FOLDER="../../res";
+string Utils::RESOURCES_FOLDER="../../res";
 mt19937_64 Utils::RNG = Utils::getRandomGenerator();
 uniform_real_distribution<float> Utils::dist_zero_one=uniform_real_distribution<float>(0,nextafter(1, numeric_limits<float>::max()));
 
@@ -46,7 +46,7 @@ vector<string> Utils::splitString(string str, string token){
 vector<pair<string, vector<float>>> Utils::readLabeledCsvDataset(const string filename){
     vector<pair<string, vector<float>>> result;
     ifstream file(filename);
-    if(!file.is_open()) throw runtime_error("Could not open file");
+    if(!file.is_open()) throw runtime_error("Could not open file: "+filename);
     string line;
     while (getline(file, line)){
         if (!line.empty()){
@@ -97,11 +97,14 @@ string Utils::trim(string s) {
 }
 
 string Utils::getResourcesFolder(){
+    if (Utils::runningOnDockerContainer()){ 
+        Utils::RESOURCES_FOLDER="/vrex/res";
+    }
     return Utils::RESOURCES_FOLDER;
 }
 
 string Utils::getResourcePath(string filename){
-    return Utils::joinPath(Utils::RESOURCES_FOLDER,filename);
+    return Utils::joinPath(Utils::getResourcesFolder(),filename);
 }
 
 string Utils::joinPath(string base,string sufix){

@@ -1,6 +1,6 @@
 FORMAT=.cpp
-ifeq ($(g++-7 -v &>/dev/null && echo g++-7),g++-7)
-CXX=g++-7
+ifeq ($(g++-9 -v &>/dev/null && echo g++-9),g++-9)
+CXX=g++-9
 else 
 CXX=g++
 endif

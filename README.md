@@ -73,7 +73,8 @@ docker rmi -f $(docker images -f "dangling=true" -q) # cleanup <none> images
 
 #### Core
 ```
-docker build -t core:v1.0.0 core/  # build image
+docker build -f core/BaseImage.dockerfile -t ubuntu_2004_vrex_core_build core/ # build base image
+docker build -f core/Dockerfile -t core:v1.0.0 core/ # build image
 docker rmi -f $(docker images -f "dangling=true" -q) # cleanup <none> images
 ```
 

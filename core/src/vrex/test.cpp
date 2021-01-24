@@ -372,6 +372,8 @@ void testEnchancedGeneticsOnMath(){
 }
 
 void testGeneticallyTunedNeuralNetwork(){
+    omp_set_num_threads(1); 
+
     const bool use_neural_genome=true;
     const int input_size=4;
     const int output_size=2;
@@ -414,24 +416,29 @@ void testGeneticallyTunedNeuralNetwork(){
     vector<pair<vector<int>, vector<float>>> test_data=dividedData.second;
 
     auto train_callback = [&](Genome *self) -> float {
-        pair<Slide,int> net=NeuralGenome::buildSlide(self->getDna(),input_size,output_size,label_encoding,rehash,rebuild,border_sparsity,adam_optimizer);
+        pair<Slide*,int> net=NeuralGenome::buildSlide(self->getDna(),input_size,output_size,label_encoding,rehash,rebuild,border_sparsity,adam_optimizer);
         auto self_neural=dynamic_cast<NeuralGenome*>(self);
         if (self_neural) {
             map<string, vector<float>> weights=self_neural->getWeights();
             if (weights.size()>0){
-                net.first.setWeights(weights);
+                net.first->setWeights(weights);
             }
         }
+        
+        cout<<"DNA EPOCH "<<self->getDna().first[0]<<endl;
+        cout<<"DNA BATCH "<<self->getDna().first[0]<<endl;
+        cout<<"epochs "<<net.second<<endl;
 
-        vector<float> loss=net.first.train(train_data,net.second);
+        vector<float> loss=net.first->train(train_data,net.second);
         if (self_neural) {
-            self_neural->setWeights(net.first.getWeights());
+            self_neural->setWeights(net.first->getWeights());
         }
         float output=0;
         for(float l:loss){
             output+=l;
         }
         output/=loss.size();
+        delete net.first;
         return output;
     };
 
