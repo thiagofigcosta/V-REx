@@ -476,14 +476,13 @@ map<string, vector<float>> Layer::mapfyWeights()
         arr["b_layer_0"]=vector<float>(_bias, _bias + sizeof (_bias) / sizeof (_bias[0]));
         arr["am_layer_0"]=vector<float>(_adamAvgMom, _adamAvgMom + sizeof (_adamAvgMom) / sizeof (_adamAvgMom[0]));
         arr["av_layer_0"]=vector<float>(_adamAvgVel, _adamAvgVel + sizeof (_adamAvgVel) / sizeof (_adamAvgVel[0]));
-        cout<<"save for layer 0"<<endl;
     }else{
         arr["w_layer_"+ to_string(_layerID)]=vector<float>(_weights, _weights + sizeof (_weights) / sizeof (_weights[0]));
         arr["b_layer_"+ to_string(_layerID)]=vector<float>(_bias, _bias + sizeof (_bias) / sizeof (_bias[0]));
         arr["am_layer_"+ to_string(_layerID)]=vector<float>(_adamAvgMom, _adamAvgMom + sizeof (_adamAvgMom) / sizeof (_adamAvgMom[0]));
         arr["av_layer_"+ to_string(_layerID)]=vector<float>(_adamAvgVel, _adamAvgVel + sizeof (_adamAvgVel) / sizeof (_adamAvgVel[0]));
-        cout<<"save for layer "<<to_string(_layerID)<<endl;
     }
+    // cout<<"save for layer "<<to_string(_layerID)<<endl;
     #pragma GCC diagnostic pop 
     return arr;
 }

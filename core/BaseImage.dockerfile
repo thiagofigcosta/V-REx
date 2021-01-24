@@ -1,7 +1,7 @@
 FROM ubuntu:20.04 AS ubuntu_2004_vrex_core_build
 RUN apt-get update -y
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends tzdata
-RUN apt-get install -y --no-install-recommends gcc-9 g++-9 build-essential cmake libboost-stacktrace-dev libssl-dev libsasl2-dev python-dev
+RUN apt-get install -y --no-install-recommends gcc-9 g++-9 build-essential cmake libboost-stacktrace-dev libssl-dev libsasl2-dev python-dev gdb
 RUN apt-get install -y libgomp1
 
 RUN mkdir /cpp_libs
