@@ -41,10 +41,10 @@ const int PopulationManager::mt_dna_validity=15;
 void PopulationManager::naturalSelection(int gens){
     ga->setLookingHighestFitness(looking_highest_fitness);
     chrono::high_resolution_clock::time_point t1,t2;
-    if (print_deltas) {
-        t1 = chrono::high_resolution_clock::now();
-    }
     for (int g=0;g<gens;){
+        if (print_deltas) {
+            t1 = chrono::high_resolution_clock::now();
+        }
         for(Genome *individual:population){ // evaluate output
             individual->evaluate();
         }
@@ -63,10 +63,10 @@ void PopulationManager::naturalSelection(int gens){
         }else{
             sort(population.begin(),population.end(),Genome::compare);
         }
-    }
-    if (print_deltas) {
-        t2 = chrono::high_resolution_clock::now();
-        cout<<"Generation "<<(g+1)<<" of "<<gens<<" takes: "<<chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count()<<" ms"<<endl;
+        if (print_deltas) {
+            t2 = chrono::high_resolution_clock::now();
+            cout<<"Generation "<<(g+1)<<" of "<<gens<<" takes: "<<chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count()<<" ms"<<endl;
+        }
     }
 }
 
