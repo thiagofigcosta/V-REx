@@ -432,12 +432,12 @@ void testGeneticallyTunedNeuralNetwork(){
 
         vector<float> loss=net.first->train(self_neural->getTrainData(),net.second);
         self_neural->setWeights(net.first->getWeights());
+        delete net.first;
         float output=0;
         for(float l:loss){
             output+=l;
         }
         output/=loss.size();
-        delete net.first;
         return output;
     };
 

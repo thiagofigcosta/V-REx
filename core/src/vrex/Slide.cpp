@@ -82,7 +82,8 @@ vector<pair<float,float>> Slide::train(vector<pair<vector<int>, vector<float>>> 
     if (print_deltas) {
         t1 = chrono::high_resolution_clock::now();
     }
-    int num_batches=(train_data.size() + batch_size-1)/batch_size;
+    // int num_batches=(train_data.size() + batch_size-1)/batch_size; // ERROR, round UP causes segfault
+    int num_batches=train_data.size()/batch_size;
     for (size_t j=0;j<(size_t)epochs;j++){
         float train_loss=0;
         for (size_t i = 0; i <(size_t)num_batches; i++) {
@@ -129,7 +130,8 @@ vector<pair<float,float>> Slide::train(vector<pair<vector<int>, vector<float>>> 
 }
 
 float Slide::evalLoss(vector<pair<vector<int>, vector<float>>> &eval_data){
-    int num_batches=(eval_data.size() + batch_size-1)/batch_size;
+    // int num_batches=(eval_data.size() + batch_size-1)/batch_size; // ERROR, round UP causes segfault
+    int num_batches=eval_data.size()/batch_size;
     float loss=0;
     chrono::high_resolution_clock::time_point t1,t2;
     if (print_deltas) {
@@ -161,7 +163,8 @@ pair<int,vector<vector<pair<int,float>>>> Slide::evalData(vector<pair<vector<int
     if (print_deltas) {
         t1 = chrono::high_resolution_clock::now();
     }
-    int num_batches=(test_data.size() + batch_size-1)/batch_size;
+    // int num_batches=(test_data.size() + batch_size-1)/batch_size; // ERROR, round UP causes segfault
+    int num_batches=test_data.size()/batch_size;
     for (size_t i = 0; i <(size_t)num_batches; i++) {
         vector<pair<vector<int>, vector<float>>> batch_data=Utils::extractSubVector(test_data, i*batch_size, batch_size);
         float **values;
