@@ -372,17 +372,6 @@ void testEnchancedGeneticsOnMath(){
 }
 
 void testGeneticallyTunedNeuralNetwork(){
-    omp_set_num_threads(1); 
-
-    const bool use_neural_genome=true;
-    const int input_size=4;
-    const int output_size=2;
-    const bool adam_optimizer=true;
-    const SlideLabelEncoding label_encoding=SlideLabelEncoding::INT_CLASS;
-    const int rehash=6400;
-    const int rebuild=128000;
-    const int border_sparsity=1; // first and last layers
-
     INT_SPACE_SEARCH amount_of_layers = INT_SPACE_SEARCH(1,1);
     // INT_SPACE_SEARCH amount_of_layers = INT_SPACE_SEARCH(1,4); // Too heavy for my computer :(
     INT_SPACE_SEARCH epochs = INT_SPACE_SEARCH(100,250);
@@ -395,9 +384,19 @@ void testGeneticallyTunedNeuralNetwork(){
     FLOAT_SPACE_SEARCH sparcity = FLOAT_SPACE_SEARCH(0.005,1);
     INT_SPACE_SEARCH activation_funcs = INT_SPACE_SEARCH(0,2);
 
+    const float train_percentage=.7;
+    vector<pair<vector<int>, vector<float>>> dataset = Utils::encodeDatasetLabels(Utils::enumfyDataset(Utils::readLabeledCsvDataset(Utils::getResourcePath("iris.data"))).first,DataEncoder::INCREMENTAL);  
+    dataset=Utils::normalizeDataset(Utils::shuffleDataset(dataset)).second;
+    pair<vector<pair<vector<int>, vector<float>>>,vector<pair<vector<int>, vector<float>>>> dividedData=Utils::divideDataSet(dataset, train_percentage);
+    vector<pair<vector<int>, vector<float>>> train_data=dividedData.first;
+    vector<pair<vector<int>, vector<float>>> test_data=dividedData.second;
+    NeuralGenome::setNeuralTrainData(train_data);
+
+
     SPACE_SEARCH space = NeuralGenome::buildSlideNeuralNetworkSpaceSearch(amount_of_layers,epochs,alpha,batch_size,
                                                 layer_size,range_pow,k_values,l_values,sparcity,activation_funcs);
 
+    bool use_neural_genome=true;
     int population_start_size=30;
     int max_gens=10;
     int max_age=10;
@@ -405,34 +404,34 @@ void testGeneticallyTunedNeuralNetwork(){
     float mutation_rate=0.1;
     float recycle_rate=0.13;
     float sex_rate=0.7;
-    bool search_maximum=false;
     int max_notables=5;
+    bool search_maximum=false;
 
-    const float train_percentage=.7;
-    vector<pair<vector<int>, vector<float>>> dataset = Utils::encodeDatasetLabels(Utils::enumfyDataset(Utils::readLabeledCsvDataset(Utils::getResourcePath("iris.data"))).first,DataEncoder::INCREMENTAL);  
-    dataset=Utils::normalizeDataset(Utils::shuffleDataset(dataset)).second;
-    pair<vector<pair<vector<int>, vector<float>>>,vector<pair<vector<int>, vector<float>>>> dividedData=Utils::divideDataSet(dataset, train_percentage);
-    vector<pair<vector<int>, vector<float>>> train_data=dividedData.first;
-    vector<pair<vector<int>, vector<float>>> test_data=dividedData.second;
+    auto train_callback = [](Genome *self) -> float {
+        const int input_size=4;
+        const int output_size=2;
+        const bool adam_optimizer=true;
+        const SlideLabelEncoding label_encoding=SlideLabelEncoding::INT_CLASS;
+        const int rehash=6400;
+        const int rebuild=128000;
+        const int border_sparsity=1; // first and last layers
 
-    auto train_callback = [&](Genome *self) -> float {
         pair<Slide*,int> net=NeuralGenome::buildSlide(self->getDna(),input_size,output_size,label_encoding,rehash,rebuild,border_sparsity,adam_optimizer);
         auto self_neural=dynamic_cast<NeuralGenome*>(self);
-        if (self_neural) {
-            map<string, vector<float>> weights=self_neural->getWeights();
-            if (weights.size()>0){
-                net.first->setWeights(weights);
-            }
+        if (!self_neural) {
+            throw runtime_error("Error could not find an instance of NeuralGenome!\nhint: make useNeuralGenome=true on PopulationManager construtor!");
+        }
+        map<string, vector<float>> weights=self_neural->getWeights();
+        if (weights.size()>0){
+            net.first->setWeights(weights);
         }
         
         cout<<"DNA EPOCH "<<self->getDna().first[0]<<endl;
         cout<<"DNA BATCH "<<self->getDna().first[0]<<endl;
         cout<<"epochs "<<net.second<<endl;
 
-        vector<float> loss=net.first->train(train_data,net.second);
-        if (self_neural) {
-            self_neural->setWeights(net.first->getWeights());
-        }
+        vector<float> loss=net.first->train(self_neural->getTrainData(),net.second);
+        self_neural->setWeights(net.first->getWeights());
         float output=0;
         for(float l:loss){
             output+=l;

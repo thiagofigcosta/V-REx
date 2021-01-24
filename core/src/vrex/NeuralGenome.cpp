@@ -1,13 +1,16 @@
 #include "NeuralGenome.hpp"
 
+vector<pair<vector<int>, vector<float>>> NeuralGenome::static_train_data=vector<pair<vector<int>, vector<float>>> ();
+
 NeuralGenome::NeuralGenome(SPACE_SEARCH space, function<float(Genome *self)> callback)
     :Genome(space,callback){
-
+    train_data=vector<pair<vector<int>, vector<float>>>(NeuralGenome::static_train_data);
 }
 
 NeuralGenome::NeuralGenome(const NeuralGenome& orig, pair<vector<int>,vector<float>> new_dna)
     :Genome(orig,new_dna){
     weights=orig.weights;
+    train_data=orig.train_data;
 }
 
 NeuralGenome::NeuralGenome(const NeuralGenome& orig){
@@ -19,6 +22,7 @@ NeuralGenome::NeuralGenome(const NeuralGenome& orig){
     evaluate_cb=orig.evaluate_cb;
     weights=orig.weights;
     id=orig.id;
+    train_data=orig.train_data;
 }
 
 NeuralGenome::~NeuralGenome(){
@@ -130,4 +134,12 @@ map<string, vector<float>> NeuralGenome::getWeights(){
 
 void NeuralGenome::setWeights(map<string, vector<float>> Weights){
     weights=Weights;
+}
+
+void NeuralGenome::setNeuralTrainData(vector<pair<vector<int>, vector<float>>> data){
+    NeuralGenome::static_train_data=data;
+}
+
+vector<pair<vector<int>, vector<float>>>& NeuralGenome::getTrainData(){
+    return train_data;
 }
