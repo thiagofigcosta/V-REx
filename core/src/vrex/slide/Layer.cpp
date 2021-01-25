@@ -11,7 +11,7 @@ Layer::Layer(size_t noOfNodes, int previousLayerNumOfNodes, int layerID, NodeTyp
     _noOfNodes = noOfNodes;
     use_adam=useAdamOt;
     label_type=labelType;
-    _Nodes = Node::createNodeArray(noOfNodes,use_adam,labelType);
+    _Nodes = Node::createNodeArray(_noOfNodes,use_adam,labelType);
     _type = type;
     _noOfActive = floor(_noOfNodes * Sparsity);
     _K = K;
@@ -491,14 +491,14 @@ map<string, vector<float>> Layer::mapfyWeights()
 Layer::~Layer()
 {
     delete _hashTables;
-    for (size_t i = 0; i < _noOfNodes; i++)
-    {
-        if (_type == NodeType::Softmax)
-        {
-            delete[] _normalizationConstants;
-        }
+    if (_type == NodeType::Softmax){
+        delete[] _normalizationConstants;
+        delete[] _adamAvgMom;
+        delete[] _adamAvgVel;
     }
-    delete [] _Nodes;
+    for (size_t d=0;d<_noOfNodes;d++){
+        delete &_Nodes[d];
+    }
     delete [] _weights;
     delete [] _bias;
     delete [] _binids;

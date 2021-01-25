@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ulimit -s unlimited
-export OMP_STACKSIZE=2G
+export OMP_STACKSIZE=4G
 
 program_args=""
 

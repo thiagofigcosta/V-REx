@@ -283,8 +283,6 @@ Node::~Node()
 
 	if (use_adam)
 	{
-		delete[] _adamAvgMom;
-		delete[] _adamAvgVel;
 		delete[] _t;
 	}
 }

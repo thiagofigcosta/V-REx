@@ -174,16 +174,16 @@ void testSlide_IntLabel(){
     int rehash=6400;
     int rebuild=128000;
     bool print_deltas=true;
-    Slide slide=Slide(layers, layer_sizes, Slide::getStdLayerTypes(layers), train_data[0].second.size(), alpha, batch_size, adam, label_type,
+    Slide* slide=new Slide(layers, layer_sizes, Slide::getStdLayerTypes(layers), train_data[0].second.size(), alpha, batch_size, adam, label_type,
     range_pow, K, L, sparcity, rehash, rebuild, SlideMode::SAMPLING, SlideHashingFunction::DENSIFIED_WTA, print_deltas);
-    vector<float>train_losses=slide.train(train_data,epochs);
+    vector<float>train_losses=slide->train(train_data,epochs);
     for (float loss:train_losses){
         cout<<"Train loss: "<<loss<<endl;
     }
-    float test_loss=slide.evalLoss(test_data);
+    float test_loss=slide->evalLoss(test_data);
     cout<<"Test loss: "<<test_loss<<endl;
 
-    pair<int,vector<vector<pair<int,float>>>> predicted = slide.evalData(test_data);
+    pair<int,vector<vector<pair<int,float>>>> predicted = slide->evalData(test_data);
     cout<<"Test size: "<<test_data.size()<<endl;
     cout<<"Correct values: "<<predicted.first<<endl;
     if (print_data){
@@ -199,6 +199,7 @@ void testSlide_IntLabel(){
             cout << endl;
         }
     }
+    delete slide;
 }
 
 void testSlide_NeuronByNeuronLabel(){
@@ -231,9 +232,9 @@ void testSlide_NeuronByNeuronLabel(){
     int rehash=6400;
     int rebuild=128000;
     bool print_deltas=true;
-    Slide slide=Slide(layers, layer_sizes, Slide::getStdLayerTypes(layers), train_data[0].second.size(), alpha, batch_size, adam, label_type,
+    Slide* slide=new Slide(layers, layer_sizes, Slide::getStdLayerTypes(layers), train_data[0].second.size(), alpha, batch_size, adam, label_type,
     range_pow, K, L, sparcity, rehash, rebuild, SlideMode::SAMPLING, SlideHashingFunction::DENSIFIED_WTA, print_deltas);
-    vector<float>train_losses=slide.train(train_data,epochs);
+    vector<float>train_losses=slide->train(train_data,epochs);
     float total_loss=0;
     for (float loss:train_losses){
        total_loss+=loss;
@@ -242,12 +243,13 @@ void testSlide_NeuronByNeuronLabel(){
     // for (float loss:train_losses){
     //     cout<<"Train loss: "<<loss<<endl;
     // }
-    float test_loss=slide.evalLoss(test_data);
+    float test_loss=slide->evalLoss(test_data);
     cout<<"Test loss: "<<test_loss<<endl;
 
-    pair<int,vector<vector<pair<int,float>>>> predicted = slide.evalData(test_data);
+    pair<int,vector<vector<pair<int,float>>>> predicted = slide->evalData(test_data);
     cout<<"Test size: "<<test_data.size()<<endl;
     cout<<"Correct values: "<<predicted.first<<endl;
+    delete slide;
 }
 
 void testStdGeneticsOnMath(){
@@ -324,7 +326,7 @@ void testEnchancedGeneticsOnMath(){
     float sex_rate=0.7;
     bool search_maximum=false;
     int max_notables=5;
-    bool print_deltas=true;
+    bool print_deltas=false;
 
     int tests=50;
     vector<pair<pair<float,int>,pair<float,int>>> results;
@@ -338,7 +340,7 @@ void testEnchancedGeneticsOnMath(){
             return -(dna.second[1]+47)*sin(sqrt(abs(dna.second[1]+(dna.second[0]/2)+47)))-dna.second[0]*sin(sqrt(abs(dna.second[0]-(dna.second[1]+47))));}
             ,population_start_size, search_maximum,false,print_deltas);
         enchanced_population.setHallOfFame(enchanced_elite);
-        cout<<"Enchanced: ";
+        // cout<<"Enchanced: ";
         enchanced_population.naturalSelection(max_gens);
         pair<float,int> enchanced_result=enchanced_elite.getBest();
 
@@ -350,7 +352,7 @@ void testEnchancedGeneticsOnMath(){
             return -(dna.second[1]+47)*sin(sqrt(abs(dna.second[1]+(dna.second[0]/2)+47)))-dna.second[0]*sin(sqrt(abs(dna.second[0]-(dna.second[1]+47))));}
             ,population_start_size, search_maximum,false,print_deltas);
         std_population.setHallOfFame(std_elite);
-        cout<<"Standard : ";
+        // cout<<"Standard : ";
         std_population.naturalSelection(max_gens);
         pair<float,int> std_result=std_elite.getBest();
         results.push_back(pair<pair<float,int>,pair<float,int>>(enchanced_result,std_result));
@@ -397,10 +399,14 @@ void testGeneticallyTunedNeuralNetwork(){
                                                 layer_size,range_pow,k_values,l_values,sparcity,activation_funcs);
 
     bool use_neural_genome=true;
-    int population_start_size=1; // TODO: change back to 30
-    int max_gens=2; // TODO: change back to 10
-    int max_age=2; // TODO: change back to 10
-    int max_children=4; // TODO: change back to 1
+    int population_start_size=1;
+    int max_gens=2; 
+    int max_age=2; 
+    int max_children=1; 
+    // int population_start_size=30; // change to 1 for fast run
+    // int max_gens=10; // change to 2 for fast run
+    // int max_age=10; // change to 2 for fast run
+    // int max_children=4; // change to 1 for fast run
     float mutation_rate=0.1;
     float recycle_rate=0.13;
     float sex_rate=0.7;
@@ -475,9 +481,9 @@ void testGeneticallyTunedNeuralNetwork(){
 void test() {
     // testCsvRead();
     // testMongo();
-    // testSlide_IntLabel();
-    // testSlide_NeuronByNeuronLabel();
-    // testStdGeneticsOnMath();
-    // testEnchancedGeneticsOnMath();
+    testSlide_IntLabel();
+    testSlide_NeuronByNeuronLabel();
+    testStdGeneticsOnMath();
+    testEnchancedGeneticsOnMath();
     testGeneticallyTunedNeuralNetwork();
 }
