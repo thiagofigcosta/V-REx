@@ -35,19 +35,38 @@ Network::Network(int *sizesOfLayers, NodeType *layersTypes, int noOfLayers, int 
 void Network::setWeights(map<string, vector<float>> loadedData){
     for (int i = 0; i < _numberOfLayers; i++) {
         float* weight, *bias, *adamAvgMom, *adamAvgVel;
+        string str_i=to_string(i);
+        string cur_map_idx;
+
+        cur_map_idx="w_layer_"+str_i;
+        weight=new float[loadedData[cur_map_idx].size()];
+        for (int j=0;j<loadedData[cur_map_idx].size();j++){
+            weight[j]=loadedData[cur_map_idx][j];
+        }
+
+        cur_map_idx="b_layer_"+str_i;
+        bias=new float[loadedData[cur_map_idx].size()];
+        for (int j=0;j<loadedData[cur_map_idx].size();j++){
+            bias[j]=loadedData[cur_map_idx][j];
+        }
+
+        cur_map_idx="am_layer_"+str_i;
+        adamAvgMom=new float[loadedData[cur_map_idx].size()];
+        for (int j=0;j<loadedData[cur_map_idx].size();j++){
+            adamAvgMom[j]=loadedData[cur_map_idx][j];
+        }
+
+        cur_map_idx="av_layer_"+str_i;
+        adamAvgVel=new float[loadedData[cur_map_idx].size()];
+        for (int j=0;j<loadedData[cur_map_idx].size();j++){
+            adamAvgVel[j]=loadedData[cur_map_idx][j];
+        }
+
+        delete _hiddenlayers[i];
+        
         if (i != 0) {
-            weight = &loadedData["w_layer_"+to_string(i)][0];
-            bias = &loadedData["b_layer_"+to_string(i)][0];
-            adamAvgMom = &loadedData["am_layer_"+to_string(i)][0];
-            adamAvgVel = &loadedData["av_layer_"+to_string(i)][0];
-            delete _hiddenlayers[i];
             _hiddenlayers[i] = new Layer(_sizesOfLayers[i], _sizesOfLayers[i - 1], i, _layersTypes[i], _currentBatchSize,  _K[i], _L[i], _RangePow[i], _Sparsity[i],mode,hash_func, use_adam,label_type, weight, bias, adamAvgMom, adamAvgVel);
         } else {
-            weight = &loadedData["w_layer_"+to_string(i)][0];
-            bias = &loadedData["b_layer_"+to_string(i)][0];
-            adamAvgMom = &loadedData["am_layer_"+to_string(i)][0];
-            adamAvgVel = &loadedData["av_layer_"+to_string(i)][0];
-            delete _hiddenlayers[i];
             _hiddenlayers[i] = new Layer(_sizesOfLayers[i], _inputDim, i, _layersTypes[i], _currentBatchSize, _K[i], _L[i], _RangePow[i], _Sparsity[i],mode,hash_func, use_adam,label_type, weight, bias, adamAvgMom, adamAvgVel);
         }
     }

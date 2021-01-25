@@ -112,9 +112,14 @@ docker run front-end:v1.0.0
 docker run core:v1.0.0
 ```
 
-To enable gdb debug use:
+To enable gdb debug or profiling use:
 ```
 docker run --cap-add=SYS_PTRACE --security-opt seccomp=unconfined -it core:v1.0.0
+```
+
+To limit memoru usage use:
+```
+docker run --memory="25G" core:v1.0.0
 ```
 
 ## Cleanup docker compose volumes
