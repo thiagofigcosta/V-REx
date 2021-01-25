@@ -328,7 +328,7 @@ string Utils::msToHumanReadable(long timestamp){
 
     string out="";
     if (timestamp <= 0)
-        out="FINISHED";
+        out="0 ms";
     if (D > 0)
         out+=to_string(D)+" days ";
     if (D > 0 and MS == 0 and S == 0 and M == 0 and H > 0)

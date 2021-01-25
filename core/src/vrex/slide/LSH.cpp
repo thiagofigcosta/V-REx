@@ -38,10 +38,13 @@ void LSH::clear()
 {
     for (int i = 0; i < _L; i++)
     {
-    	delete[] _bucket[i];
+		if(_bucket&&_bucket[i]){
+    		delete[] _bucket[i];
+		}
     	_bucket[i] = new Bucket[1 << _RangePow];
 
     }
+	_bucket=nullptr;
 }
 
 
@@ -136,12 +139,12 @@ int LSH::retrieve(int table, int indices, int bucket)
 	return _bucket[table][indices].retrieve(bucket);
 }
 
-LSH::~LSH()
-{
+LSH::~LSH(){
 	delete [] rand1;
-	 for (int i = 0; i < _L; i++)
-	 {
-	 	delete[] _bucket[i];
-	 }
-	 delete[] _bucket;
+	for (int i = 0; i < _L; i++){
+		if(_bucket&&_bucket[i])
+			delete[] _bucket[i];
+	}
+	delete[] _bucket;
+	_bucket=nullptr;
 }

@@ -62,7 +62,7 @@ void Network::setWeights(map<string, vector<float>> loadedData){
             adamAvgVel[j]=loadedData[cur_map_idx][j];
         }
 
-        if (_hiddenlayers){
+        if (_hiddenlayers && _hiddenlayers[i]){
             delete _hiddenlayers[i];
         }
         if (i != 0) {
