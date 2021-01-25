@@ -95,7 +95,11 @@ pair<Slide*,int> NeuralGenome::buildSlide(pair<vector<int>,vector<float>> dna, i
     }
     for(i=0;i<max_layers;l++,i++){
         if (i<layers){
-            K[i]=int_dna[l];
+            int dna_value=int_dna[l]; 
+            if (dna_value>layer_sizes[i]){  // ??? K cannot be higher than layer size?
+                dna_value=layer_sizes[i];
+            }
+            K[i]=dna_value;
         }
     }
     for(i=0;i<max_layers;l++,i++){

@@ -374,7 +374,7 @@ void testEnchancedGeneticsOnMath(){
 void testGeneticallyTunedNeuralNetwork(){
     INT_SPACE_SEARCH amount_of_layers = INT_SPACE_SEARCH(1,1);
     // INT_SPACE_SEARCH amount_of_layers = INT_SPACE_SEARCH(1,4); // Too heavy for my computer :(
-    INT_SPACE_SEARCH epochs = INT_SPACE_SEARCH(100,250);
+    INT_SPACE_SEARCH epochs = INT_SPACE_SEARCH(20,40); // Per generation, so it is not a good idea to use large numbers such [100,250]
     FLOAT_SPACE_SEARCH alpha = FLOAT_SPACE_SEARCH(0.0001,0.1);
     INT_SPACE_SEARCH batch_size = INT_SPACE_SEARCH(5,15);
     INT_SPACE_SEARCH layer_size = INT_SPACE_SEARCH(3,10);
@@ -390,7 +390,7 @@ void testGeneticallyTunedNeuralNetwork(){
     pair<vector<pair<vector<int>, vector<float>>>,vector<pair<vector<int>, vector<float>>>> dividedData=Utils::divideDataSet(dataset, train_percentage);
     vector<pair<vector<int>, vector<float>>> train_data=dividedData.first;
     vector<pair<vector<int>, vector<float>>> test_data=dividedData.second;
-    NeuralGenome::setNeuralTrainData(train_data);
+    // NeuralGenome::setNeuralTrainData(train_data); // not necessary since we are using lambda [&]
 
 
     SPACE_SEARCH space = NeuralGenome::buildSlideNeuralNetworkSpaceSearch(amount_of_layers,epochs,alpha,batch_size,
@@ -407,15 +407,15 @@ void testGeneticallyTunedNeuralNetwork(){
     int max_notables=5;
     bool search_maximum=false;
 
-    auto train_callback = [](Genome *self) -> float {
-        const int input_size=4;
-        const int output_size=2;
-        const bool adam_optimizer=true;
-        const SlideLabelEncoding label_encoding=SlideLabelEncoding::INT_CLASS;
-        const int rehash=6400;
-        const int rebuild=128000;
-        const int border_sparsity=1; // first and last layers
+    const int input_size=4;
+    const int output_size=2;
+    const bool adam_optimizer=true;
+    const SlideLabelEncoding label_encoding=SlideLabelEncoding::INT_CLASS;
+    const int rehash=6400;
+    const int rebuild=128000;
+    const int border_sparsity=1; // first and last layers
 
+    auto train_callback = [&](Genome *self) -> float {
         pair<Slide*,int> net=NeuralGenome::buildSlide(self->getDna(),input_size,output_size,label_encoding,rehash,rebuild,border_sparsity,adam_optimizer);
         auto self_neural=dynamic_cast<NeuralGenome*>(self);
         if (!self_neural) {
@@ -425,28 +425,45 @@ void testGeneticallyTunedNeuralNetwork(){
         if (weights.size()>0){
             net.first->setWeights(weights);
         }
-        
-        cout<<"DNA EPOCH "<<self->getDna().first[0]<<endl;
-        cout<<"DNA BATCH "<<self->getDna().first[0]<<endl;
-        cout<<"epochs "<<net.second<<endl;
 
-        vector<float> loss=net.first->train(self_neural->getTrainData(),net.second);
+        vector<float> loss=net.first->train(train_data,net.second);
+        // vector<float> loss=net.first->train(self_neural->getTrainData(),net.second); // not necessary since we are using lambda [&] 
         self_neural->setWeights(net.first->getWeights());
+        delete net.first;
         float output=0;
         for(float l:loss){
             output+=l;
         }
         output/=loss.size();
-        delete net.first;
         return output;
     };
 
     HallOfFame elite=HallOfFame(max_notables, search_maximum);
     EnchancedGenetic en_ga = EnchancedGenetic(max_children,max_age,mutation_rate,sex_rate,recycle_rate);
-    PopulationManager enchanced_population=PopulationManager(en_ga,space,train_callback,population_start_size,search_maximum,use_neural_genome);
+    PopulationManager enchanced_population=PopulationManager(en_ga,space,train_callback,population_start_size,search_maximum,use_neural_genome,true);
     enchanced_population.setHallOfFame(elite);
     enchanced_population.naturalSelection(max_gens);
     cout<<"Best loss ("<<elite.getBest().second<<"): "<<elite.getBest().first<<endl;
+
+    auto test_callback = [&](Genome *self) {
+        pair<Slide*,int> net=NeuralGenome::buildSlide(self->getDna(),input_size,output_size,label_encoding,rehash,rebuild,border_sparsity,adam_optimizer);
+        auto self_neural=dynamic_cast<NeuralGenome*>(self);
+        if (!self_neural) {
+            throw runtime_error("Error could not find an instance of NeuralGenome!\nhint: make useNeuralGenome=true on PopulationManager construtor!");
+        }
+        map<string, vector<float>> weights=self_neural->getWeights();
+        if (weights.size()>0){
+            net.first->setWeights(weights);
+        }
+
+        pair<int,vector<vector<pair<int,float>>>> predicted = net.first->evalData(test_data);
+        cout<<"Test size: "<<test_data.size()<<endl;
+        cout<<"Correct values: "<<predicted.first<<endl;
+        delete net.first;
+    };
+
+    NeuralGenome best=(NeuralGenome&)(elite.getNotables()[0]);
+    test_callback(new NeuralGenome(best)); // test best of all times
 }
 
 void test() {
