@@ -4,8 +4,6 @@ Vulnerabilities' Risk of Exploitation
 Neural network with parts of the code from: 
 >- https://github.com/keroro824/HashingDeepLearning 
 >- https://github.com/kapilt/mongoqueue
->- https://github.com/sarthakpati/cnpy 
->- https://github.com/madler/zlib
 >- https://github.com/mongodb/mongo-cxx-driver
 >- https://github.com/mongodb/mongo-c-driver
 >- https://github.com/mnmlstc/core
