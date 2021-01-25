@@ -110,7 +110,7 @@ void Layer::updateTable()
         _MinHasher = new DensifiedMinhash(_K * _L, _previousLayerNumOfNodes);
         _MinHasher->getMap(_previousLayerNumOfNodes, _binids);
     } else if (hash_func == SlideHashingFunction::SIMHASH) {
-
+        delete _srp;
         _srp = new SparseRandomProjection(_previousLayerNumOfNodes, _K * _L, Slide::SIMHASH_RATIO);
 
     }
@@ -491,6 +491,7 @@ map<string, vector<float>> Layer::mapfyWeights()
 Layer::~Layer()
 {
 
+    // delete[] _hashTables; // causing exception
     for (size_t i = 0; i < _noOfNodes; i++)
     {
         if (_type == NodeType::Softmax)
@@ -511,5 +512,4 @@ Layer::~Layer()
         delete &_train_array[d];
     }
     delete[] _train_array;
-    delete[] _hashTables;
 }
