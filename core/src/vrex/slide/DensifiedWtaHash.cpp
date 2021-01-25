@@ -171,4 +171,5 @@ DensifiedWtaHash::~DensifiedWtaHash()
 {
     delete[] _randHash;
     delete[] _indices;
+    delete[] _pos;
 }

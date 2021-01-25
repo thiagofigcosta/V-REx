@@ -501,7 +501,7 @@ Layer::~Layer()
     delete [] _Nodes;
     delete [] _weights;
     delete [] _bias;
-
+    delete [] _binids;
     delete _wtaHasher;
     delete _dwtaHasher;
     delete _srp;
@@ -511,4 +511,5 @@ Layer::~Layer()
         delete &_train_array[d];
     }
     delete[] _train_array;
+    delete[] _hashTables;
 }
