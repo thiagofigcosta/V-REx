@@ -199,6 +199,7 @@ void testSlide_IntLabel(){
             cout << endl;
         }
     }
+    cout<<endl<<endl;
     delete slide;
 }
 
@@ -248,7 +249,7 @@ void testSlide_NeuronByNeuronLabel(){
 
     pair<int,vector<vector<pair<int,float>>>> predicted = slide->evalData(test_data);
     cout<<"Test size: "<<test_data.size()<<endl;
-    cout<<"Correct values: "<<predicted.first<<endl;
+    cout<<"Correct values: "<<predicted.first<<endl<<endl<<endl;
     delete slide;
 }
 
@@ -279,8 +280,7 @@ void testStdGeneticsOnMath(){
     }
     pair<float,int> min_result=elite_min.getBest();
     cout<<"Expected: y(512,404.2319) = -959.6407"<<endl;
-    cout<<"Min Best ("<<min_result.second<<"): "<<min_result.first<<endl;
-    cout<<endl<<endl;
+    cout<<"Min Best ("<<min_result.second<<"): "<<min_result.first<<endl<<endl;
 
     cout<<"Maximization:"<<endl;
     FLOAT_SPACE_SEARCH x2 = FLOAT_SPACE_SEARCH(-100,100);
@@ -307,7 +307,7 @@ void testStdGeneticsOnMath(){
         cout<<individual->to_string()<<endl;
     }
     pair<float,int> max_result=elite_max.getBest();
-    cout<<"Expected: y(3.141592,3.141592) = 1"<<endl<<"Max Best ("<<max_result.second<<"): "<<max_result.first<<endl<<endl;
+    cout<<"Expected: y(3.141592,3.141592) = 1"<<endl<<"Max Best ("<<max_result.second<<"): "<<max_result.first<<endl<<endl<<endl<<endl;
 }
 
 void testEnchancedGeneticsOnMath(){
@@ -370,7 +370,7 @@ void testEnchancedGeneticsOnMath(){
     enchanced_mean.second/=tests;
     std_mean.first/=tests;
     std_mean.second/=tests;
-    cout<<endl<<endl<<"Enchanced Mean ("<<enchanced_mean.second<<"): "<<enchanced_mean.first<<" | Std Mean ("<<std_mean.second<<"): "<<std_mean.first<<endl;
+    cout<<endl<<"Enchanced Mean ("<<enchanced_mean.second<<"): "<<enchanced_mean.first<<" | Std Mean ("<<std_mean.second<<"): "<<std_mean.first<<endl<<endl<<endl;
 }
 
 void testGeneticallyTunedNeuralNetwork(){
