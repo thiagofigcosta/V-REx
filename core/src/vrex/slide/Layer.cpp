@@ -490,8 +490,7 @@ map<string, vector<float>> Layer::mapfyWeights()
 
 Layer::~Layer()
 {
-
-    // delete[] _hashTables; // causing exception
+    delete _hashTables;
     for (size_t i = 0; i < _noOfNodes; i++)
     {
         if (_type == NodeType::Softmax)
