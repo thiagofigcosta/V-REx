@@ -61,7 +61,7 @@ SPACE_SEARCH NeuralGenome::buildSlideNeuralNetworkSpaceSearch(INT_SPACE_SEARCH a
     return SPACE_SEARCH(int_dna,float_dna);
 }
 
-pair<Slide*,int> NeuralGenome::buildSlide(pair<vector<int>,vector<float>> dna, int input_size, int output_size, SlideLabelEncoding label_encoding, int rehash, int rebuild, int border_sparsity, bool adam_optimizer){
+tuple<Slide*,int,function<void()>> NeuralGenome::buildSlide(pair<vector<int>,vector<float>> dna, int input_size, int output_size, SlideLabelEncoding label_encoding, int rehash, int rebuild, int border_sparsity, bool adam_optimizer){
     vector<int> int_dna=dna.first;
     vector<float> float_dna=dna.second;
     int epochs=int_dna[0];
@@ -75,6 +75,15 @@ pair<Slide*,int> NeuralGenome::buildSlide(pair<vector<int>,vector<float>> dna, i
     int *L=new int[layers];
     NodeType* node_types = new NodeType[layers];
     float *sparcity=new float[layers];
+
+    auto teardown_callback = [layer_sizes,range_pow,K,L,node_types,sparcity]() {
+        delete[] layer_sizes;
+        delete[] range_pow;
+        delete[] K;
+        delete[] L;
+        delete[] node_types;
+        delete[] sparcity;
+    };
     
     sparcity[0]=border_sparsity;
     sparcity[layers-1]=border_sparsity;
@@ -128,8 +137,8 @@ pair<Slide*,int> NeuralGenome::buildSlide(pair<vector<int>,vector<float>> dna, i
         }
     }
 
-    return pair<Slide*,int>(new Slide(layers, layer_sizes, node_types, input_size, alpha, batch_size, adam_optimizer, label_encoding,
-    range_pow, K, L, sparcity, rehash, rebuild, SlideMode::SAMPLING, SlideHashingFunction::DENSIFIED_WTA, false),epochs);
+    return {new Slide(layers, layer_sizes, node_types, input_size, alpha, batch_size, adam_optimizer, label_encoding,
+    range_pow, K, L, sparcity, rehash, rebuild, SlideMode::SAMPLING, SlideHashingFunction::DENSIFIED_WTA, false),epochs,teardown_callback};
 }
 
 map<string, vector<float>> NeuralGenome::getWeights(){

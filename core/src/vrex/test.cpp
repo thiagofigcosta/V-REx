@@ -416,20 +416,21 @@ void testGeneticallyTunedNeuralNetwork(){
     const int border_sparsity=1; // first and last layers
 
     auto train_callback = [&](Genome *self) -> float {
-        pair<Slide*,int> net=NeuralGenome::buildSlide(self->getDna(),input_size,output_size,label_encoding,rehash,rebuild,border_sparsity,adam_optimizer);
+        tuple<Slide*,int,function<void()>> net=NeuralGenome::buildSlide(self->getDna(),input_size,output_size,label_encoding,rehash,rebuild,border_sparsity,adam_optimizer);
         auto self_neural=dynamic_cast<NeuralGenome*>(self);
         if (!self_neural) {
             throw runtime_error("Error could not find an instance of NeuralGenome!\nhint: make useNeuralGenome=true on PopulationManager construtor!");
         }
         map<string, vector<float>> weights=self_neural->getWeights();
         if (weights.size()>0){
-            net.first->setWeights(weights);
+            get<0>(net)->setWeights(weights);
         }
 
-        vector<float> loss=net.first->train(train_data,net.second);
-        // vector<float> loss=net.first->train(self_neural->getTrainData(),net.second); // not necessary since we are using lambda [&] 
-        self_neural->setWeights(net.first->getWeights());
-        delete net.first;
+        vector<float> loss=get<0>(net)->train(train_data,get<1>(net));
+        // vector<float> loss=get<0>(net)->train(self_neural->getTrainData(),get<1>(net)); // not necessary since we are using lambda [&] 
+        self_neural->setWeights(get<0>(net)->getWeights());
+        delete get<0>(net);
+        get<2>(net)();
         float output=0;
         for(float l:loss){
             output+=l;
@@ -446,20 +447,21 @@ void testGeneticallyTunedNeuralNetwork(){
     cout<<"Best loss ("<<elite.getBest().second<<"): "<<elite.getBest().first<<endl;
 
     auto test_callback = [&](Genome *self) {
-        pair<Slide*,int> net=NeuralGenome::buildSlide(self->getDna(),input_size,output_size,label_encoding,rehash,rebuild,border_sparsity,adam_optimizer);
+        tuple<Slide*,int,function<void()>> net=NeuralGenome::buildSlide(self->getDna(),input_size,output_size,label_encoding,rehash,rebuild,border_sparsity,adam_optimizer);
         auto self_neural=dynamic_cast<NeuralGenome*>(self);
         if (!self_neural) {
             throw runtime_error("Error could not find an instance of NeuralGenome!\nhint: make useNeuralGenome=true on PopulationManager construtor!");
         }
         map<string, vector<float>> weights=self_neural->getWeights();
         if (weights.size()>0){
-            net.first->setWeights(weights);
+            get<0>(net)->setWeights(weights);
         }
 
-        pair<int,vector<vector<pair<int,float>>>> predicted = net.first->evalData(test_data);
+        pair<int,vector<vector<pair<int,float>>>> predicted = get<0>(net)->evalData(test_data);
         cout<<"Test size: "<<test_data.size()<<endl;
         cout<<"Correct values: "<<predicted.first<<endl;
-        delete net.first;
+        delete get<0>(net);
+        get<2>(net)();
     };
 
     NeuralGenome best=(NeuralGenome&)(elite.getNotables()[0]);
