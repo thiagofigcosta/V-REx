@@ -35,6 +35,9 @@ run:
 debug: 
 	gdb ./$(EXEC)
 
+profile:
+	valgrind --leak-check=yes $(EXEC)
+
 compileAndLink: compile link
 
 compileLinkAndRun: compile link run
@@ -42,6 +45,8 @@ compileLinkAndRun: compile link run
 linkAndRun: link run
 
 compileLinkAndDebug: compile link debug
+
+compileLinkAndProfile: compile link profile
 
 clean:
 	rm -rf *.o obj/*.o $(EXEC)
