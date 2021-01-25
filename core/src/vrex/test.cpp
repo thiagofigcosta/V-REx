@@ -469,6 +469,7 @@ void testGeneticallyTunedNeuralNetwork(){
     NeuralGenome best=(NeuralGenome&)(elite.getNotables()[0]);
     NeuralGenome *best_ptr=new NeuralGenome(best);
     test_callback(best_ptr); // test best of all times
+    delete best_ptr;
 }
 
 void test() {
