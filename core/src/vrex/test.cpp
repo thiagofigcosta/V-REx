@@ -430,7 +430,7 @@ void testGeneticallyTunedNeuralNetwork(){
         // vector<float> loss=get<0>(net)->train(self_neural->getTrainData(),get<1>(net)); // not necessary since we are using lambda [&] 
         self_neural->setWeights(get<0>(net)->getWeights());
         delete get<0>(net); // free memory
-        get<2>(net)(); // free memory
+        // get<2>(net)(); // double free memory
         float output=0;
         for(float l:loss){
             output+=l;
@@ -438,12 +438,14 @@ void testGeneticallyTunedNeuralNetwork(){
         output/=loss.size();
         return output;
     };
-
+    
     HallOfFame elite=HallOfFame(max_notables, search_maximum);
     EnchancedGenetic en_ga = EnchancedGenetic(max_children,max_age,mutation_rate,sex_rate,recycle_rate);
     PopulationManager enchanced_population=PopulationManager(en_ga,space,train_callback,population_start_size,search_maximum,use_neural_genome,true);
     enchanced_population.setHallOfFame(elite);
+    cout<<"Starting natural selection"<<endl;
     enchanced_population.naturalSelection(max_gens);
+    cout<<"Finished natural selection"<<endl;
     cout<<"Best loss ("<<elite.getBest().second<<"): "<<elite.getBest().first<<endl;
 
     auto test_callback = [&](Genome *self) {
@@ -461,7 +463,7 @@ void testGeneticallyTunedNeuralNetwork(){
         cout<<"Test size: "<<test_data.size()<<endl;
         cout<<"Correct values: "<<predicted.first<<endl;
         delete get<0>(net); // free memory
-        get<2>(net)(); // free memory
+        // get<2>(net)(); // double free memory
     };
 
     NeuralGenome best=(NeuralGenome&)(elite.getNotables()[0]);
