@@ -214,6 +214,7 @@ void Slide::allocAndCastDatasetToSlide(vector<pair<vector<int>, vector<float>>> 
 void Slide::deallocSlideDataset(float **values, int *sizes, int **records, int **labels, int *labelsize){
     // clean up
     delete[] sizes;
+    delete[] labelsize;
     // TODO: causing exception: double free or corruption (fasttop)
     // for (int d = 0; d < Batchsize; d++) {
     //     delete[] records[d];
