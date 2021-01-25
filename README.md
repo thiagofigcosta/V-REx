@@ -114,12 +114,12 @@ docker run core:v1.0.0
 
 To debug with gdb use:
 ```
-docker run --cap-add=SYS_PTRACE --security-opt seccomp=unconfined -it core:v1.0.0 --debug
+docker run --cap-add=SYS_PTRACE --security-opt seccomp=unconfined -it core:v1.0.0 args --debug
 ```
 
 To profile with valgrind use:
 ```
-docker run --cap-add=SYS_PTRACE --security-opt seccomp=unconfined core:v1.0.0 --profiling
+docker run --cap-add=SYS_PTRACE --security-opt seccomp=unconfined core:v1.0.0 args --profiling
 ```
 
 To limit memoru usage use:

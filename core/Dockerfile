@@ -11,4 +11,5 @@ RUN chmod +x /vrex/src/bin/vrex
 
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
+RUN ln -s /entrypoint.sh /usr/bin/args
 CMD ["./entrypoint.sh"]
