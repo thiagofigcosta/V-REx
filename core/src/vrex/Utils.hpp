@@ -31,6 +31,8 @@ std::unique_ptr<T> make_unique(Args&&... args){ // this is from C++14
   return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
 }
 
+typedef std::basic_string<char> string;
+
 class Utils{
     public:
         // constructors and destructor

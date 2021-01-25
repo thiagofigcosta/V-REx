@@ -1,5 +1,6 @@
 #include "PopulationManager.hpp"
 #include "NeuralGenome.hpp"
+#include "HallOfFame.hpp"
 
 PopulationManager::PopulationManager(GeneticAlgorithm &galg, SPACE_SEARCH space, function<float(Genome *self)> callback,int startPopulationSize, bool searchHighestFitness, bool useNeuralGenome, bool printDeltas){
     ga=galg.clone();

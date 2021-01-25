@@ -11,8 +11,6 @@ class Genome;
 class HallOfFame;
 
 #include "GeneticAlgorithm.hpp"
-#include "Genome.hpp"
-#include "HallOfFame.hpp"
 #include "EnchancedGenetic.hpp"
 
 

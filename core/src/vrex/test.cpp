@@ -272,8 +272,8 @@ void testStdGeneticsOnMath(){
         ,population_size, search_maximum);
     population.setHallOfFame(elite_min);
     population.naturalSelection(max_gens);
-    for (Genome individual: elite_min.getNotables()){
-        cout<<individual.to_string()<<endl;
+    for (Genome* individual: elite_min.getNotables()){
+        cout<<individual->to_string()<<endl;
     }
     pair<float,int> min_result=elite_min.getBest();
     cout<<"Expected: y(512,404.2319) = -959.6407"<<endl;
@@ -301,8 +301,8 @@ void testStdGeneticsOnMath(){
         ,population_size, search_maximum);
     population2.setHallOfFame(elite_max);
     population2.naturalSelection(max_gens);
-    for (Genome individual: elite_max.getNotables()){
-        cout<<individual.to_string()<<endl;
+    for (Genome* individual: elite_max.getNotables()){
+        cout<<individual->to_string()<<endl;
     }
     pair<float,int> max_result=elite_max.getBest();
     cout<<"Expected: y(3.141592,3.141592) = 1"<<endl<<"Max Best ("<<max_result.second<<"): "<<max_result.first<<endl<<endl;
@@ -466,10 +466,7 @@ void testGeneticallyTunedNeuralNetwork(){
         get<2>(net)(); // free memory
     };
 
-    NeuralGenome best=(NeuralGenome&)(elite.getNotables()[0]);
-    NeuralGenome *best_ptr=new NeuralGenome(best);
-    test_callback(best_ptr); // test best of all times
-    delete best_ptr;
+    test_callback(elite.getNotables()[0]); // test best of all times
 }
 
 void test() {
