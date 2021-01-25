@@ -112,9 +112,14 @@ docker run front-end:v1.0.0
 docker run core:v1.0.0
 ```
 
-To enable gdb debug or profiling use:
+To debug with gdb use:
 ```
-docker run --cap-add=SYS_PTRACE --security-opt seccomp=unconfined -it core:v1.0.0
+docker run --cap-add=SYS_PTRACE --security-opt seccomp=unconfined -it core:v1.0.0 --debug
+```
+
+To profile with valgrind use:
+```
+docker run --cap-add=SYS_PTRACE --security-opt seccomp=unconfined core:v1.0.0 --profiling
 ```
 
 To limit memoru usage use:

@@ -192,7 +192,10 @@ float Network::ProcessInput(int **inputIndices, float **inputValues, int *length
         metric[i]=0;
         for (int j = _numberOfLayers - 1; j >= 0; j--) {
             Layer* layer = _hiddenlayers[j];
-            Layer* prev_layer = _hiddenlayers[j - 1];
+            Layer* prev_layer; 
+            if (j!=0){
+                prev_layer = _hiddenlayers[j - 1];
+            }
             // nodes
             for (int k = 0; k < sizesPerBatch[i][j + 1]; k++) {
                 Node* node = layer->getNodebyID(activeNodesPerBatch[i][j + 1][k]);
