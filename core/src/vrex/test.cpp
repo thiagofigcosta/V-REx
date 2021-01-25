@@ -408,7 +408,7 @@ void testGeneticallyTunedNeuralNetwork(){
     bool search_maximum=false;
 
     const int input_size=4;
-    const int output_size=2;
+    const int output_size=1;
     const bool adam_optimizer=true;
     const SlideLabelEncoding label_encoding=SlideLabelEncoding::INT_CLASS;
     const int rehash=6400;
