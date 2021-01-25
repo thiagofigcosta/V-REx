@@ -215,12 +215,11 @@ void Slide::deallocSlideDataset(float **values, int *sizes, int **records, int *
     // clean up
     delete[] sizes;
     delete[] labelsize;
-    // TODO: causing exception: double free or corruption (fasttop)
-    // for (int d = 0; d < Batchsize; d++) {
-    //     delete[] records[d];
-    //     delete[] values[d];
-    //     delete[] labels[d];
-    // }
+    for (int d = 0; d < batch_size; d++) { // causing exception: double free or corruption (fasttop) ???? not causing anymore?
+        delete[] records[d]; 
+        delete[] values[d];
+        delete[] labels[d]; 
+    }
     delete[] records;
     delete[] values;
     delete[] labels;

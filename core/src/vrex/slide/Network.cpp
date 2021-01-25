@@ -143,10 +143,10 @@ pair<int,vector<vector<pair<int,float>>>> Network::predictClass(int **inputIndic
 
 float Network::ProcessInput(int **inputIndices, float **inputValues, int *lengths, int **labels, int *labelsize, int iter, bool rehash, bool rebuild) {
     // float logloss = 0.0; // not used
-    int* avg_retrieval = new int[_numberOfLayers]();
+    // int* avg_retrieval = new int[_numberOfLayers]();  // not used
 
-    for (int j = 0; j < _numberOfLayers; j++)
-        avg_retrieval[j] = 0;
+    // for (int j = 0; j < _numberOfLayers; j++)
+    //     avg_retrieval[j] = 0;  // not used
 
 
     if(iter%6946==6945 ){
@@ -178,12 +178,13 @@ float Network::ProcessInput(int **inputIndices, float **inputValues, int *length
         activenodesperlayer[0] = inputIndices[i];  // inputs parsed from training data file
         activeValuesperlayer[0] = inputValues[i];
         sizes[0] = lengths[i];
-        int in;
+        // int in;  // not used
         // forward propagation
         for (int j = 0; j < _numberOfLayers; j++) {
-            in = _hiddenlayers[j]->queryActiveNodeandComputeActivations(activenodesperlayer, activeValuesperlayer, sizes, j, i, labels[i], labelsize[i],
+            // in =  // not used
+            _hiddenlayers[j]->queryActiveNodeandComputeActivations(activenodesperlayer, activeValuesperlayer, sizes, j, i, labels[i], labelsize[i],
                     _Sparsity[j], iter*_currentBatchSize+i);
-            avg_retrieval[j] += in;
+            // avg_retrieval[j] += in;  // not used
         }
 
         //Now backpropagate.
@@ -314,6 +315,8 @@ float Network::ProcessInput(int **inputIndices, float **inputValues, int *length
     for (size_t i=0;i<(size_t)_currentBatchSize;i++){
         total_metrics+=metric[i];
     }
+
+    delete[] metric;
 
     return total_metrics/_currentBatchSize;
 }
