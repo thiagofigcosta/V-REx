@@ -26,7 +26,8 @@ PopulationManager::PopulationManager(const PopulationManager& orig) {
 }
 
 PopulationManager::~PopulationManager() {
-    ga.release();
+    GeneticAlgorithm* ptr=ga.release();
+    ga.get_deleter() ( ptr );
     for (Genome* g:population){
         delete g;
     }
