@@ -400,7 +400,7 @@ void testGeneticallyTunedNeuralNetwork(){
     int population_start_size=1; // TODO: change back to 30
     int max_gens=2; // TODO: change back to 10
     int max_age=2; // TODO: change back to 10
-    int max_children=1; // TODO: change back to 4
+    int max_children=4; // TODO: change back to 1
     float mutation_rate=0.1;
     float recycle_rate=0.13;
     float sex_rate=0.7;
@@ -467,6 +467,9 @@ void testGeneticallyTunedNeuralNetwork(){
     };
 
     test_callback(elite.getNotables()[0]); // test best of all times
+    for (Genome* individual: elite.getNotables()){
+        cout<<individual->to_string()<<endl;
+    }
 }
 
 void test() {
