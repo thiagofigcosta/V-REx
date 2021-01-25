@@ -66,6 +66,7 @@ class Utils{
         static float getRandomBetweenZeroAndOne();
         static boost::uuids::uuid genRandomUUID();
         static string genRandomUUIDStr();
+        static string msToHumanReadable(long timestamp);
 
         // variables
         static mt19937_64 RNG;

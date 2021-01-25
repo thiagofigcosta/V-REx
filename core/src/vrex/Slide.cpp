@@ -124,7 +124,7 @@ vector<pair<float,float>> Slide::train(vector<pair<vector<int>, vector<float>>> 
     }
     if (print_deltas) {
         t2 = chrono::high_resolution_clock::now();
-        cout<<"Training takes: "<<chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count()<<" ms"<<endl;
+        cout<<"Training takes: "<<Utils::msToHumanReadable(chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count())<<endl;
     }
     return losses;
 }
@@ -152,7 +152,7 @@ float Slide::evalLoss(vector<pair<vector<int>, vector<float>>> &eval_data){
     loss/=num_batches;
     if (print_deltas) {
         t2 = chrono::high_resolution_clock::now();
-        cout<<"Loss evaluation takes: "<<chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count()<<" ms"<<endl;
+        cout<<"Loss evaluation takes: "<<Utils::msToHumanReadable(chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count())<<endl;
     }
     return loss;
 }
@@ -180,7 +180,7 @@ pair<int,vector<vector<pair<int,float>>>> Slide::evalData(vector<pair<vector<int
     }
     if (print_deltas) {
         t2 = chrono::high_resolution_clock::now();
-        cout<<"Inference takes: "<<chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count()<<" ms"<<endl;
+        cout<<"Inference takes: "<<Utils::msToHumanReadable(chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count())<<endl;
     }
     return output;
 }

@@ -318,3 +318,34 @@ boost::uuids::uuid Utils::genRandomUUID(){
 string Utils::genRandomUUIDStr(){
     return boost::uuids::to_string(Utils::genRandomUUID());
 }
+
+string Utils::msToHumanReadable(long timestamp){
+    int D=int(timestamp/1000/60/60/24);
+    int H=int(timestamp/1000/60/60%24);
+    int M=int(timestamp/1000/60%60);
+    int S=int(timestamp/1000%60);
+    int MS=int(timestamp%1000);
+
+    string out="";
+    if (timestamp <= 0)
+        out="FINISHED";
+    if (D > 0)
+        out+=to_string(D)+" days ";
+    if (D > 0 and MS == 0 and S == 0 and M == 0 and H > 0)
+        out+="and ";
+    if (H > 0)
+        out+=to_string(H)+" hours ";
+    if ((D > 0 or H > 0) and MS == 0 and S == 0 and M == 0)
+        out+="and ";
+    if (M > 0)
+        out+=to_string(M)+" minutes ";
+    if ((D > 0 or H > 0 or M > 0) and MS == 0 and S == 0)
+        out+="and ";
+    if (S > 0)
+        out+=to_string(S)+" seconds ";
+    if ((D > 0 or H > 0 or M > 0 or S > 0) and MS == 0)
+        out+="and ";
+    if (MS > 0)
+        out+=to_string(MS)+" milliseconds ";
+    return out;
+}

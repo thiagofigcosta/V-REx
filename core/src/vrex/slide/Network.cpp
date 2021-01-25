@@ -62,8 +62,9 @@ void Network::setWeights(map<string, vector<float>> loadedData){
             adamAvgVel[j]=loadedData[cur_map_idx][j];
         }
 
-        delete _hiddenlayers[i];
-
+        if (_hiddenlayers){
+            delete _hiddenlayers[i];
+        }
         if (i != 0) {
             _hiddenlayers[i] = new Layer(_sizesOfLayers[i], _sizesOfLayers[i - 1], i, _layersTypes[i], _currentBatchSize,  _K[i], _L[i], _RangePow[i], _Sparsity[i],mode,hash_func, use_adam,label_type, weight, bias, adamAvgMom, adamAvgVel);
         } else {
@@ -403,5 +404,6 @@ Network::~Network() {
     //     delete _hiddenlayers[i];
     // }
     delete[] _hiddenlayers;
+    _hiddenlayers=nullptr;
     delete[] _layersTypes;
 }
