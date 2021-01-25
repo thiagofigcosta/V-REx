@@ -74,7 +74,7 @@ Layer::Layer(size_t noOfNodes, int previousLayerNumOfNodes, int layerID, NodeTyp
         }
     }
 
-    _train_array = new train[noOfNodes*batchsize];
+    _train_array = new train[_noOfNodes*_batchsize];
 
     // create nodes for this layer
 #pragma omp parallel for
@@ -507,5 +507,8 @@ Layer::~Layer()
     delete _srp;
     delete _MinHasher;
     delete [] _randNode;
+    for (size_t d=0;d<_noOfNodes*_batchsize;d++){
+        delete &_train_array[d];
+    }
     delete[] _train_array;
 }
