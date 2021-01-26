@@ -78,7 +78,7 @@ Layer::Layer(size_t noOfNodes, int previousLayerNumOfNodes, int layerID, NodeTyp
 
     // create nodes for this layer
 #pragma omp parallel for
-    for (size_t i = 0; i < noOfNodes; i++)
+    for (size_t i = 0; i < _noOfNodes; i++)
     {
         _Nodes[i].Update(previousLayerNumOfNodes, i, _layerID, type, batchsize, _weights+previousLayerNumOfNodes*i,
                 _bias[i], _adamAvgMom+previousLayerNumOfNodes*i , _adamAvgVel+previousLayerNumOfNodes*i, _train_array);

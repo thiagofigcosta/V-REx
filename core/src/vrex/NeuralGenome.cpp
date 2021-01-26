@@ -134,7 +134,7 @@ tuple<Slide*,int,function<void()>> NeuralGenome::buildSlide(pair<vector<int>,vec
 
     float alpha=float_dna[0];
     l=1;
-    for(i=1;i<max_layers-2;l++,i++){
+    for(i=1;i<max_layers-1;l++,i++){
         if (i+1<layers){
             sparcity[i]=float_dna[l];
         }
