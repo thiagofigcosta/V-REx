@@ -147,30 +147,24 @@ void testSlide_IntLabel(){
 
     // Too heavy for my computer :/
     // int layers=2;
-    // int epochs=3;
-    // float alpha=0.01;
-    // int batch_size=5;
     // int *layer_sizes=new int[layers]{6,(int)train_data[0].first.size()};
-    // bool adam=true;
     // int *range_pow=new int[layers]{6,18};
     // int *K=new int[layers]{2,6};
     // int *L=new int[layers]{20,50};
     // float *sparcity=new float[layers]{1,1};
-    // int rehash=6400;
-    // int rebuild=128000;
-    // bool print_deltas=true;
 
     int layers=1;
-    int epochs=5;
-    float alpha=0.01;
-    int batch_size=5;
     SlideLabelEncoding label_type=SlideLabelEncoding::INT_CLASS;
     int *layer_sizes=new int[layers]{(int)train_data[0].first.size()};
-    bool adam=true;
     int *range_pow=new int[layers]{6};
     int *K=new int[layers]{2};
     int *L=new int[layers]{20};
     float *sparcity=new float[layers]{1};
+
+    int epochs=5;
+    float alpha=0.01;
+    int batch_size=5;
+    bool adam=true;
     int rehash=6400;
     int rebuild=128000;
     bool print_deltas=true;
@@ -478,8 +472,8 @@ void test() {
     // testCsvRead();
     // testMongo();
     testSlide_IntLabel();
-    testSlide_NeuronByNeuronLabel();
-    testStdGeneticsOnMath();
-    testEnchancedGeneticsOnMath();
+    // testSlide_NeuronByNeuronLabel();
+    // testStdGeneticsOnMath();
+    // testEnchancedGeneticsOnMath();
     testGeneticallyTunedNeuralNetwork();
 }
