@@ -28,7 +28,7 @@ void exceptionHandler(int signum) {
 void setup(){
     ::signal(SIGSEGV, &exceptionHandler);
     ::signal(SIGABRT, &exceptionHandler);
-    const rlim_t kStackSize = 512 * 1024 * 1024;   // min stack size = 16 MB
+    const rlim_t kStackSize = 1 * 1024 * 1024 * 1024;   // 1 * 1024 * 1024 * 1024 = 1 GB
     struct rlimit rl;
     int result;
     result = getrlimit(RLIMIT_STACK, &rl);
