@@ -368,8 +368,9 @@ void testEnchancedGeneticsOnMath(){
 }
 
 void testGeneticallyTunedNeuralNetwork(){
-    INT_SPACE_SEARCH amount_of_layers = INT_SPACE_SEARCH(1,1);
-    // INT_SPACE_SEARCH amount_of_layers = INT_SPACE_SEARCH(1,4); // Too heavy for my computer :(
+    // INT_SPACE_SEARCH amount_of_layers = INT_SPACE_SEARCH(1,1); // For weaker computers
+    INT_SPACE_SEARCH amount_of_layers = INT_SPACE_SEARCH(1,4); // Too heavy for my computer :(
+        
     INT_SPACE_SEARCH epochs = INT_SPACE_SEARCH(20,40); // Per generation, so it is not a good idea to use large numbers such [100,250]
     FLOAT_SPACE_SEARCH alpha = FLOAT_SPACE_SEARCH(0.0001,0.1);
     INT_SPACE_SEARCH batch_size = INT_SPACE_SEARCH(5,15);

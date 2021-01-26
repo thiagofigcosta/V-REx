@@ -33,7 +33,7 @@ int Bucket::add(int id) {
     //FIFO
     if (Slide::FIFO_INSTEAD_OF_RESERVOIR_SAMPLING) {
         isInit += 1;
-        int index = _counts & (Slide::BUCKET_SIZE - 1);
+        index = _counts & (Slide::BUCKET_SIZE - 1);
         _counts++;
         arr[index] = id;
         return index;

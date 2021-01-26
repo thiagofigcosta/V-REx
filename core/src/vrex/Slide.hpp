@@ -38,27 +38,27 @@ class Slide{
         void deallocSlideDataset(float **values, int *sizes, int **records, int **labels, int *labelsize);
 
         // variables
-        static const bool MEAN_ERROR_INSTEAD_OF_GRADS_SUM;
+        static const bool MEAN_ERROR_INSTEAD_OF_GRADS_SUM=true;
         #pragma omp threadprivate(MEAN_ERROR_INSTEAD_OF_GRADS_SUM)
-        static const float ADAM_OT_BETA1;
+        static constexpr float ADAM_OT_BETA1=0.9;
         #pragma omp threadprivate(ADAM_OT_BETA1)
-        static const float ADAM_OT_BETA2;
+        static constexpr float ADAM_OT_BETA2=0.999;
         #pragma omp threadprivate(ADAM_OT_BETA2)
-        static const float ADAM_OT_EPSILON;
+        static constexpr float ADAM_OT_EPSILON=0.00000001;
         #pragma omp threadprivate(ADAM_OT_EPSILON)
-        static const int BUCKET_SIZE;
+        static const int BUCKET_SIZE=128;
         #pragma omp threadprivate(BUCKET_SIZE)
-        static const int TOPK_HASH_TOPK;
+        static const int TOPK_HASH_TOPK=30;
         #pragma omp threadprivate(TOPK_HASH_TOPK)
-        static const int SIMHASH_RATIO;
+        static const int SIMHASH_RATIO=3;
         #pragma omp threadprivate(SIMHASH_RATIO)
-        static const int WTA_BIN_SIZE;
+        static const int WTA_BIN_SIZE=8; // binsize is the number of times the range is larger than the total number of hashes we need.
         #pragma omp threadprivate(WTA_BIN_SIZE)
-        static const int TOPK_THRESHOLD_SECONDS;
+        static const int TOPK_THRESHOLD_SECONDS=2;
         #pragma omp threadprivate(TOPK_THRESHOLD_SECONDS)
-        static const bool FIFO_INSTEAD_OF_RESERVOIR_SAMPLING;
+        static const bool FIFO_INSTEAD_OF_RESERVOIR_SAMPLING=true;
         #pragma omp threadprivate(FIFO_INSTEAD_OF_RESERVOIR_SAMPLING)
-        static const float SOFTMAX_LINEAR_CONSTANT;
+        static constexpr float SOFTMAX_LINEAR_CONSTANT=0.0000001;
         #pragma omp threadprivate(SOFTMAX_LINEAR_CONSTANT)
 
     private:
