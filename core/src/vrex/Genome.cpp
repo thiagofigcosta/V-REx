@@ -49,7 +49,16 @@ float Genome::getFitness(){
 }
 
 void Genome::evaluate(){
-    output=evaluate_cb(this);
+    try {
+        output=evaluate_cb(this);
+    } catch (const exception& ex) {
+        string print="Exception at Thread: ";
+        int tid = omp_get_thread_num();
+        print+=std::to_string(tid)+"\n";
+        string what = ex.what();
+        print+=what+"\n";
+        cout<<print;
+    }
 }
 
 bool Genome::operator< (Genome& o){

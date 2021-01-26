@@ -154,7 +154,6 @@ void testSlide_IntLabel(){
     // float *sparcity=new float[layers]{1,1};
 
     int layers=1;
-    SlideLabelEncoding label_type=SlideLabelEncoding::INT_CLASS;
     int *layer_sizes=new int[layers]{(int)train_data[0].first.size()};
     int *range_pow=new int[layers]{6};
     int *K=new int[layers]{2};
@@ -168,6 +167,7 @@ void testSlide_IntLabel(){
     int rehash=6400;
     int rebuild=128000;
     bool print_deltas=true;
+    SlideLabelEncoding label_type=SlideLabelEncoding::INT_CLASS;
     Slide* slide=new Slide(layers, layer_sizes, Slide::getStdLayerTypes(layers), train_data[0].second.size(), alpha, batch_size, adam, label_type,
     range_pow, K, L, sparcity, rehash, rebuild, SlideMode::SAMPLING, SlideHashingFunction::DENSIFIED_WTA, print_deltas);
     vector<float>train_losses=slide->train(train_data,epochs);
@@ -412,11 +412,11 @@ void testGeneticallyTunedNeuralNetwork(){
     const int border_sparsity=1; // first and last layers
 
     auto train_callback = [&](Genome *self) -> float {
-        tuple<Slide*,int,function<void()>> net=NeuralGenome::buildSlide(self->getDna(),input_size,output_size,label_encoding,rehash,rebuild,border_sparsity,adam_optimizer);
         auto self_neural=dynamic_cast<NeuralGenome*>(self);
         if (!self_neural) {
             throw runtime_error("Error could not find an instance of NeuralGenome!\nhint: make useNeuralGenome=true on PopulationManager construtor!");
         }
+        tuple<Slide*,int,function<void()>> net=self_neural->buildSlide(self->getDna(),input_size,output_size,label_encoding,rehash,rebuild,border_sparsity,adam_optimizer);
         map<string, vector<float>> weights=self_neural->getWeights();
         if (weights.size()>0){
             get<0>(net)->setWeights(weights);
@@ -445,11 +445,11 @@ void testGeneticallyTunedNeuralNetwork(){
     cout<<"Best loss ("<<elite.getBest().second<<"): "<<elite.getBest().first<<endl;
 
     auto test_callback = [&](Genome *self) {
-        tuple<Slide*,int,function<void()>> net=NeuralGenome::buildSlide(self->getDna(),input_size,output_size,label_encoding,rehash,rebuild,border_sparsity,adam_optimizer);
         auto self_neural=dynamic_cast<NeuralGenome*>(self);
         if (!self_neural) {
             throw runtime_error("Error could not find an instance of NeuralGenome!\nhint: make useNeuralGenome=true on PopulationManager construtor!");
         }
+        tuple<Slide*,int,function<void()>> net=self_neural->buildSlide(self->getDna(),input_size,output_size,label_encoding,rehash,rebuild,border_sparsity,adam_optimizer);
         map<string, vector<float>> weights=self_neural->getWeights();
         if (weights.size()>0){
             get<0>(net)->setWeights(weights);

@@ -11,6 +11,7 @@ NeuralGenome::NeuralGenome(const NeuralGenome& orig, pair<vector<int>,vector<flo
     :Genome(orig,new_dna){
     weights=orig.weights;
     train_data=orig.train_data;
+    print_str=orig.print_str;
 }
 
 NeuralGenome::NeuralGenome(const NeuralGenome& orig){
@@ -23,6 +24,7 @@ NeuralGenome::NeuralGenome(const NeuralGenome& orig){
     weights=orig.weights;
     id=orig.id;
     train_data=orig.train_data;
+    print_str=orig.print_str;
 }
 
 NeuralGenome::~NeuralGenome(){
@@ -137,24 +139,44 @@ tuple<Slide*,int,function<void()>> NeuralGenome::buildSlide(pair<vector<int>,vec
         }
     }
 
-    // string print_str;
-    // for(i=0;i<layers;i++){
-    //     print_str="layer_sizes["+std::to_string(i)+"]: "+std::to_string(layer_sizes[i])+"\n";
-    //     cout<<print_str;
-    //     print_str="range_pow["+std::to_string(i)+"]: "+std::to_string(range_pow[i])+"\n";
-    //     cout<<print_str;
-    //     print_str="K["+std::to_string(i)+"]: "+std::to_string(K[i])+"\n";
-    //     cout<<print_str;
-    //     print_str="L["+std::to_string(i)+"]: "+std::to_string(L[i])+"\n";
-    //     cout<<print_str;
-    //     print_str="node_types["+std::to_string(i)+"]: "+std::to_string(static_cast<underlying_type<NodeType>::type>(node_types[i]))+"\n";
-    //     cout<<print_str;
-    //     print_str="sparcity["+std::to_string(i)+"]: "+std::to_string(sparcity[i])+"\n";
-    //     cout<<print_str;
-    // }
+    print_str="Slide Network with:\n";
+    print_str+="\tepochs: "+std::to_string(epochs)+"\n";
+    print_str+="\tbatch_size: "+std::to_string(batch_size)+"\n";
+    print_str+="\tlayers: "+std::to_string(layers)+"\n";
+    print_str+="\tmax_layers: "+std::to_string(max_layers)+"\n";
+
+    for(i=0;i<layers;i++)
+        print_str+="\tlayer_sizes["+std::to_string(i)+"]: "+std::to_string(layer_sizes[i])+"\n";
+    for(i=0;i<layers;i++)
+        print_str+="\trange_pow["+std::to_string(i)+"]: "+std::to_string(range_pow[i])+"\n";
+    for(i=0;i<layers;i++)
+        print_str+="\tK["+std::to_string(i)+"]: "+std::to_string(K[i])+"\n";
+    for(i=0;i<layers;i++)
+        print_str+="\tL["+std::to_string(i)+"]: "+std::to_string(L[i])+"\n";
+    for(i=0;i<layers;i++)
+        print_str+="\tnode_types["+std::to_string(i)+"]: "+std::to_string(static_cast<underlying_type<NodeType>::type>(node_types[i]))+"\n";
+    for(i=0;i<layers;i++)
+        print_str+="\tsparcity["+std::to_string(i)+"]: "+std::to_string(sparcity[i])+"\n";
+
+    string ex_str="";
+    Slide* net=nullptr;
+    try{
+        net=new Slide(layers, layer_sizes, node_types, input_size, alpha, batch_size, adam_optimizer, label_encoding,
+    range_pow, K, L, sparcity, rehash, rebuild, SlideMode::SAMPLING, SlideHashingFunction::DENSIFIED_WTA, false);
+    } catch (const exception& ex) {
+        ex_str=ex.what();
+    } catch (const string& ex) {
+        ex_str=""+ex;
+    } catch (...) {
+        exception_ptr p = current_exception();
+        ex_str=(p ? p.__cxa_exception_type()->name() : "null");
+    }
+
+    if(!ex_str.empty()){
+        throw runtime_error(ex_str+"\n\nOn "+print_str);
+    }
     
-    return {new Slide(layers, layer_sizes, node_types, input_size, alpha, batch_size, adam_optimizer, label_encoding,
-    range_pow, K, L, sparcity, rehash, rebuild, SlideMode::SAMPLING, SlideHashingFunction::DENSIFIED_WTA, false),epochs,teardown_callback};
+    return {net,epochs,teardown_callback};
 }
 
 map<string, vector<float>> NeuralGenome::getWeights(){

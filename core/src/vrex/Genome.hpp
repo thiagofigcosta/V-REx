@@ -4,6 +4,7 @@
 #include <utility>
 #include <vector>
 #include <functional>
+#include <omp.h>
 
 #include "PopulationManager.hpp"
 #include "Utils.hpp"
