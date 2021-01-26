@@ -137,6 +137,22 @@ tuple<Slide*,int,function<void()>> NeuralGenome::buildSlide(pair<vector<int>,vec
         }
     }
 
+    // string print_str;
+    // for(i=0;i<layers;i++){
+    //     print_str="layer_sizes["+std::to_string(i)+"]: "+std::to_string(layer_sizes[i])+"\n";
+    //     cout<<print_str;
+    //     print_str="range_pow["+std::to_string(i)+"]: "+std::to_string(range_pow[i])+"\n";
+    //     cout<<print_str;
+    //     print_str="K["+std::to_string(i)+"]: "+std::to_string(K[i])+"\n";
+    //     cout<<print_str;
+    //     print_str="L["+std::to_string(i)+"]: "+std::to_string(L[i])+"\n";
+    //     cout<<print_str;
+    //     print_str="node_types["+std::to_string(i)+"]: "+std::to_string(static_cast<underlying_type<NodeType>::type>(node_types[i]))+"\n";
+    //     cout<<print_str;
+    //     print_str="sparcity["+std::to_string(i)+"]: "+std::to_string(sparcity[i])+"\n";
+    //     cout<<print_str;
+    // }
+    
     return {new Slide(layers, layer_sizes, node_types, input_size, alpha, batch_size, adam_optimizer, label_encoding,
     range_pow, K, L, sparcity, rehash, rebuild, SlideMode::SAMPLING, SlideHashingFunction::DENSIFIED_WTA, false),epochs,teardown_callback};
 }

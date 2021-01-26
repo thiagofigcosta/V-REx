@@ -60,6 +60,10 @@ or in background
 docker-compose build
 docker-compose up -d
 ```
+or in background with replicas
+```
+docker-compose up -d --scale data-crawler=2
+```
 
 ## Running without Docker compose
 

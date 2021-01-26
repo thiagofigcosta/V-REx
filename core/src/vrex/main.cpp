@@ -3,6 +3,7 @@
 #include <boost/stacktrace.hpp>
 #include <exception>
 #include <stdexcept>
+#include <sys/resource.h>
 
 #include "Utils.hpp"
 #include "test.hpp"
@@ -27,6 +28,19 @@ void exceptionHandler(int signum) {
 void setup(){
     ::signal(SIGSEGV, &exceptionHandler);
     ::signal(SIGABRT, &exceptionHandler);
+    const rlim_t kStackSize = 512 * 1024 * 1024;   // min stack size = 16 MB
+    struct rlimit rl;
+    int result;
+    result = getrlimit(RLIMIT_STACK, &rl);
+    if (result == 0){
+        if (rl.rlim_cur < kStackSize){
+            rl.rlim_cur = kStackSize;
+            result = setrlimit(RLIMIT_STACK, &rl);
+            if (result != 0){
+                fprintf(stderr, "setrlimit returned result = %d\n", result);
+            }
+        }
+    }
 }
 
 int main() {
