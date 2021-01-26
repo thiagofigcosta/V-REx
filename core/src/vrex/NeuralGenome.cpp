@@ -1,5 +1,6 @@
 #include "NeuralGenome.hpp"
 
+string NeuralGenome::print_str="";
 vector<pair<vector<int>, vector<float>>> NeuralGenome::static_train_data=vector<pair<vector<int>, vector<float>>> ();
 
 NeuralGenome::NeuralGenome(SPACE_SEARCH space, function<float(Genome *self)> callback)

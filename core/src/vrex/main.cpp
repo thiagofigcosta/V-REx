@@ -6,6 +6,7 @@
 #include <sys/resource.h>
 
 #include "Utils.hpp"
+#include "NeuralGenome.hpp"
 #include "test.hpp"
 
 using namespace std;
@@ -21,6 +22,9 @@ void exceptionHandler(int signum) {
         }
     } catch(const exception& e) {
         cerr << "Caught exception:\n\t\"" << e.what() << "\"\n\n";
+    }
+    if(!NeuralGenome::print_str.empty()){
+        cout<<"\n\nOn "+NeuralGenome::print_str<<endl;
     }
     ::raise(SIGABRT);
 }
