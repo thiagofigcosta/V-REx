@@ -814,7 +814,11 @@ class DataProcessor(object){
                         capec['Taxonomy_Mappings']=capec['Taxonomy_Mappings']['Taxonomy_Mapping']
                     }
                     for tax in capec['Taxonomy_Mappings']{
-                        capec['Taxonomy'].append('{}-{}'.format(tax['Taxonomy_Name'],tax['Entry_ID']))
+                        tmp_entry_id="Absent"
+                        if 'Entry_ID' in tax{
+                            tmp_entry_id=tax['Entry_ID']
+                        }
+                        capec['Taxonomy'].append('{}-{}'.format(tax['Taxonomy_Name'],tmp_entry_id))
                     }
                     capec.pop('Taxonomy_Mappings', None)
                 }
@@ -1075,7 +1079,11 @@ class DataProcessor(object){
                 }
                 if 'Extended_Description' in cwe{
                     if type(cwe['Extended_Description']) is dict{
-                        cwe['Extended_Description']='\n'.join(cwe['Extended_Description']['value'])
+                        if 'value' in cwe['Extended_Description']{
+                            cwe['Extended_Description']='\n'.join(cwe['Extended_Description']['value'])
+                        }else{
+                            cwe['Extended_Description']='\n'.join(cwe['Extended_Description'])
+                        }
                     }
                 }
                 if 'Weakness_Ordinalities' in cwe{
