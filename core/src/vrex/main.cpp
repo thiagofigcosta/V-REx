@@ -5,6 +5,8 @@
 #include <stdexcept>
 #include <sys/resource.h>
 
+#define USE_SMART_POINTERS 1 // 1 to use smart pointer or 0 to use classical pointers
+
 #include "Utils.hpp"
 #include "NeuralGenome.hpp"
 #include "test.hpp"
@@ -32,19 +34,20 @@ void exceptionHandler(int signum) {
 void setup(){
     ::signal(SIGSEGV, &exceptionHandler);
     ::signal(SIGABRT, &exceptionHandler);
-    const rlim_t kStackSize = 1 * 1024 * 1024 * 1024;   // 1 * 1024 * 1024 * 1024 = 1 GB
-    struct rlimit rl;
-    int result;
-    result = getrlimit(RLIMIT_STACK, &rl);
-    if (result == 0){
-        if (rl.rlim_cur < kStackSize){
-            rl.rlim_cur = kStackSize;
-            result = setrlimit(RLIMIT_STACK, &rl);
-            if (result != 0){
-                fprintf(stderr, "setrlimit returned result = %d\n", result);
-            }
-        }
-    }
+    // set stack
+    // const rlim_t kStackSize = 1 * 1024 * 1024 * 1024;   // 1 * 1024 * 1024 * 1024 = 1 GB
+    // struct rlimit rl;
+    // int result;
+    // result = getrlimit(RLIMIT_STACK, &rl);
+    // if (result == 0){
+    //     if (rl.rlim_cur < kStackSize){
+    //         rl.rlim_cur = kStackSize;
+    //         result = setrlimit(RLIMIT_STACK, &rl);
+    //         if (result != 0){
+    //             fprintf(stderr, "setrlimit returned result = %d\n", result);
+    //         }
+    //     }
+    // }
 }
 
 int main() {

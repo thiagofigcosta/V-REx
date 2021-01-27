@@ -242,7 +242,12 @@ int Layer::queryActiveNodeandComputeActivations(int** activenodesperlayer, float
                 hashes = _srp->getHashSparse(activenodesperlayer[layerIndex], activeValuesperlayer[layerIndex], lengths[layerIndex]);
             }
             int *hashIndices = _hashTables->hashesToIndex(hashes);
-            int **actives = _hashTables->retrieveRaw(hashIndices);
+            #if USE_SMART_POINTERS == 1
+                vector<shared_ptr<int[]>> actives = _hashTables->retrieveRaw(hashIndices);
+            #else
+                int **actives = _hashTables->retrieveRaw(hashIndices);
+            #endif
+            
 
             // Get candidates from hashtable
             std::map<int, size_t> counts;
@@ -256,7 +261,7 @@ int Layer::queryActiveNodeandComputeActivations(int** activenodesperlayer, float
             }
 
             for (int i = 0; i < _L; i++) {
-                if (actives[i] == NULL) {
+                if (actives[i] == nullptr) {
                     continue;
                 } else {
                     for (int j = 0; j < Slide::BUCKET_SIZE; j++) {
@@ -292,7 +297,10 @@ int Layer::queryActiveNodeandComputeActivations(int** activenodesperlayer, float
             delete[] hashes;
             #pragma GCC diagnostic pop 
             delete[] hashIndices;
-            delete[] actives;
+            #if USE_SMART_POINTERS == 0
+                delete[] actives;
+            #endif
+            
 
         }
         if (mode==SlideMode::SAMPLING) {
@@ -308,7 +316,11 @@ int Layer::queryActiveNodeandComputeActivations(int** activenodesperlayer, float
                 hashes = _srp->getHashSparse(activenodesperlayer[layerIndex], activeValuesperlayer[layerIndex], lengths[layerIndex]);
             }
             int *hashIndices = _hashTables->hashesToIndex(hashes);
-            int **actives = _hashTables->retrieveRaw(hashIndices);
+            #if USE_SMART_POINTERS == 1
+                vector<shared_ptr<int[]>> actives = _hashTables->retrieveRaw(hashIndices);
+            #else
+                int **actives = _hashTables->retrieveRaw(hashIndices);
+            #endif
             // we now have a sparse array of indices of active nodes
 
             // Get candidates from hashtable
@@ -321,7 +333,7 @@ int Layer::queryActiveNodeandComputeActivations(int** activenodesperlayer, float
             }
 
             for (int i = 0; i < _L; i++) {
-                if (actives[i] == NULL) {
+                if (actives[i] == nullptr) {
                     continue;
                 } else {
                     // copy sparse array into (dense) map
@@ -377,7 +389,9 @@ int Layer::queryActiveNodeandComputeActivations(int** activenodesperlayer, float
             delete[] hashes;
             #pragma GCC diagnostic pop 
             delete[] hashIndices;
-            delete[] actives;
+            #if USE_SMART_POINTERS == 0
+                delete[] actives;
+            #endif
 
         }
         else if ((mode == SlideMode::UNKNOWN_MODE1) & (_type== NodeType::Softmax)) {

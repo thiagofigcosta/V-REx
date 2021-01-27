@@ -65,6 +65,11 @@ or in background with replicas
 docker-compose up -d --scale data-crawler=2
 ```
 
+To Stop run:
+```
+docker-compose stop
+```
+
 ## Running without Docker compose
 
 ### Build docker images

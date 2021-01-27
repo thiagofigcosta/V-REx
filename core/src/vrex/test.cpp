@@ -369,7 +369,8 @@ void testEnchancedGeneticsOnMath(){
 
 void testGeneticallyTunedNeuralNetwork(){
     // INT_SPACE_SEARCH amount_of_layers = INT_SPACE_SEARCH(1,1); // For weaker computers
-    INT_SPACE_SEARCH amount_of_layers = INT_SPACE_SEARCH(1,4); // Too heavy for my computer :(
+    INT_SPACE_SEARCH amount_of_layers = INT_SPACE_SEARCH(1,2); // Too heavy for my computer :(
+    // INT_SPACE_SEARCH amount_of_layers = INT_SPACE_SEARCH(1,3); // Too heavy for my computer :(
         
     INT_SPACE_SEARCH epochs = INT_SPACE_SEARCH(20,40); // Per generation, so it is not a good idea to use large numbers such [100,250]
     FLOAT_SPACE_SEARCH alpha = FLOAT_SPACE_SEARCH(0.0001,0.1);
@@ -438,6 +439,7 @@ void testGeneticallyTunedNeuralNetwork(){
     
     HallOfFame elite=HallOfFame(max_notables, search_maximum);
     EnchancedGenetic en_ga = EnchancedGenetic(max_children,max_age,mutation_rate,sex_rate,recycle_rate);
+    // StandardGenetic en_ga = StandardGenetic(mutation_rate,sex_rate);
     PopulationManager enchanced_population=PopulationManager(en_ga,space,train_callback,population_start_size,search_maximum,use_neural_genome,true);
     enchanced_population.setHallOfFame(elite);
     cout<<"Starting natural selection"<<endl;
@@ -472,9 +474,9 @@ void testGeneticallyTunedNeuralNetwork(){
 void test() {
     // testCsvRead();
     // testMongo();
-    // testSlide_IntLabel();
-    // testSlide_NeuronByNeuronLabel();
-    // testStdGeneticsOnMath();
-    // testEnchancedGeneticsOnMath();
+    testSlide_IntLabel();
+    testSlide_NeuronByNeuronLabel();
+    testStdGeneticsOnMath();
+    testEnchancedGeneticsOnMath();
     testGeneticallyTunedNeuralNetwork();
 }

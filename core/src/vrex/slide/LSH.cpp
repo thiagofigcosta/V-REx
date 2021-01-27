@@ -1,6 +1,7 @@
 // SLIDE: https://github.com/keroro824/HashingDeepLearning 
 
 #include "LSH.h"
+#include "Bucket.h"
 
 using namespace std;
 
@@ -9,13 +10,23 @@ LSH::LSH(int K, int L, int RangePow,SlideHashingFunction hashFunc)
 	_K = K;
 	_L = L;
 	_RangePow = RangePow;
-	_bucket = new Bucket*[L];
+	#if USE_SMART_POINTERS == 1
+		_bucket=vector<vector<shared_ptr<Bucket>>>(_L);
+	#else
+		_bucket = new Bucket*[L];
+	#endif
 	hash_func=hashFunc;
 
 //#pragma omp parallel for
-	for (int i = 0; i < L; i++)
-	{
-		_bucket[i] = new Bucket[1 << _RangePow];
+	for (int i = 0; i < _L; i++){
+		#if USE_SMART_POINTERS == 1
+			_bucket[i] = vector<shared_ptr<Bucket>>(1 << _RangePow);
+			for(size_t z=0;z<_bucket[i].size();z++){
+				_bucket[i][z]=make_shared<Bucket>();
+			}
+		#else
+			_bucket[i] = new Bucket[1 << _RangePow];
+		#endif
 	}
 
 	rand1 = new int[_K*_L];
@@ -38,13 +49,19 @@ void LSH::clear()
 {
     for (int i = 0; i < _L; i++)
     {
-		if(_bucket&&_bucket[i]){
-    		delete[] _bucket[i];
-		}
-    	_bucket[i] = new Bucket[1 << _RangePow];
+		#if USE_SMART_POINTERS == 1
+			_bucket[i].clear();
+			_bucket[i] = vector<shared_ptr<Bucket>>(1 << _RangePow);
+    		for(size_t z=0;z<_bucket[i].size();z++){
+				_bucket[i][z]=make_shared<Bucket>();
+			}
+		#else
+			delete[] _bucket[i];
+			_bucket[i] = new Bucket[1 << _RangePow];
+		#endif
+		
 
     }
-	_bucket=nullptr;
 }
 
 
@@ -53,10 +70,17 @@ void LSH::count()
 	for (int j=0; j<_L;j++) {
 		int total = 0;
 		for (int i = 0; i < 1 << _RangePow; i++) {
-			if (_bucket[j][i].getSize()!=0) {
-				cout <<_bucket[j][i].getSize() << " ";
-			}
-			total += _bucket[j][i].getSize();
+			#if USE_SMART_POINTERS == 1
+				if (_bucket[j][i]->getSize()!=0) {
+					cout <<_bucket[j][i]->getSize() << " ";
+				}
+				total += _bucket[j][i]->getSize();
+			#else
+				if (_bucket[j][i].getSize()!=0) {
+					cout <<_bucket[j][i].getSize() << " ";
+				}
+				total += _bucket[j][i].getSize();
+			#endif
 		}
 		cout << endl;
 		cout <<"TABLE "<< j << "Total "<< total << endl;
@@ -105,7 +129,15 @@ int* LSH::add(int *indices, int id)
 	int * secondIndices = new int[_L];
 	for (int i = 0; i < _L; i++)
 	{
-		secondIndices[i] = _bucket[i][indices[i]].add(id);
+		#if USE_SMART_POINTERS == 1
+			if(!_bucket[i][indices[i]]){
+				cout<<"nullref\n";
+				_bucket[i][indices[i]]=make_shared<Bucket>();
+			}
+			secondIndices[i] = _bucket[i][indices[i]]->add(id);
+		#else
+			secondIndices[i] = _bucket[i][indices[i]].add(id);
+		#endif
 	}
 
 	return secondIndices;
@@ -114,7 +146,11 @@ int* LSH::add(int *indices, int id)
 
 int LSH::add(int tableId, int indices, int id)
 {
-	int secondIndices = _bucket[tableId][indices].add(id);
+	#if USE_SMART_POINTERS == 1
+		int secondIndices = _bucket[tableId][indices]->add(id);
+	#else
+		int secondIndices = _bucket[tableId][indices].add(id);
+	#endif
 	return secondIndices;
 }
 
@@ -122,13 +158,20 @@ int LSH::add(int tableId, int indices, int id)
 /*
 * Returns all the buckets
 */
-int** LSH::retrieveRaw(int *indices)
-{
+#if USE_SMART_POINTERS == 1
+	vector<shared_ptr<int[]>> LSH::retrieveRaw(int *indices){
+#else
+	int** LSH::retrieveRaw(int *indices){
+#endif
 	int ** rawResults = new int*[_L];
 
 	for (int i = 0; i < _L; i++)
 	{
-		rawResults[i] = _bucket[i][indices[i]].getAll();
+		#if USE_SMART_POINTERS == 1
+			rawResults[i] = _bucket[i][indices[i]]->getAll();
+		#else
+			rawResults[i] = _bucket[i][indices[i]].getAll();
+		#endif
 	}
 	return rawResults;
 }
@@ -136,13 +179,25 @@ int** LSH::retrieveRaw(int *indices)
 
 int LSH::retrieve(int table, int indices, int bucket)
 {
-	return _bucket[table][indices].retrieve(bucket);
+	#if USE_SMART_POINTERS == 1
+		return _bucket[table][indices]->retrieve(bucket);
+	#else
+		return _bucket[table][indices].retrieve(bucket);
+	#endif
 }
 
 LSH::~LSH(){
 	delete [] rand1;
-	for (int i = 0; i < _L; i++){
-		delete[] _bucket[i];
-	}
-	delete[] _bucket;
+	#if USE_SMART_POINTERS == 1
+		for (int i = 0; i < _L; i++){
+			_bucket[i].clear();
+		}
+		_bucket.clear();
+	#else
+		for (int i = 0; i < _L; i++){
+			delete[] _bucket[i];
+		}
+		delete[] _bucket;
+	#endif
+	
 }

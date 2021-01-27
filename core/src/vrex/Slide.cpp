@@ -1,4 +1,7 @@
 #include "Slide.hpp"
+#include "slide/Node.h"
+#include "slide/Network.h"
+#include "Utils.hpp"
 
 Slide::Slide(int numLayer, int *sizesOfLayers, NodeType* layerTypes, int InputDim, float Lr, int Batchsize, bool useAdamOt, 
             SlideLabelEncoding labelType, int *RangePow, int *KValues,int *LValues,float *Sparsity, int Rehash, int Rebuild, 

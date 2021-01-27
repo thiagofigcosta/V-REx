@@ -2,13 +2,21 @@
 #pragma once
 
 #include <iostream>
+#include <memory>
 
-class Slide;
+using namespace std;
+
+#include "../Slide.hpp"
 
 class Bucket
 {
 private:
-	int *arr;
+	
+	#if USE_SMART_POINTERS == 1
+		shared_ptr<int[]> arr;
+	#else
+		int *arr;
+	#endif
 	int isInit = -1;
 	int index = 0;
 	int _counts = 0;
@@ -17,7 +25,11 @@ public:
 	Bucket();
 	int add(int id);
 	int retrieve(int index);
-	int * getAll();
+	#if USE_SMART_POINTERS == 1
+		shared_ptr<int[]> getAll();
+	#else
+		int * getAll();
+	#endif
 	int getTotalCounts();
 	int getSize();
 	~Bucket();

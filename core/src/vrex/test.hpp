@@ -3,6 +3,7 @@
 #include <iostream>
 #include <math.h>
 
+#include "Slide.hpp"
 #include "Utils.hpp"
 #include "MongoDB.hpp"
 #include "Slide.hpp"

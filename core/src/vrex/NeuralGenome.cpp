@@ -1,4 +1,5 @@
 #include "NeuralGenome.hpp"
+#include "slide/Node.h"
 
 string NeuralGenome::print_str="";
 vector<pair<vector<int>, vector<float>>> NeuralGenome::static_train_data=vector<pair<vector<int>, vector<float>>> ();

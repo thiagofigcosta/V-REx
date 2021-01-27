@@ -6,13 +6,19 @@
 Bucket::Bucket()
 {
     isInit = -1;
-    arr = new int[Slide::BUCKET_SIZE]();
+    #if USE_SMART_POINTERS == 1
+        arr = shared_ptr<int[]>(new int[Slide::BUCKET_SIZE]);
+    #else
+        arr = new int[Slide::BUCKET_SIZE]();
+    #endif
 }
 
 
 Bucket::~Bucket()
 {
-    delete[] arr;
+    #if USE_SMART_POINTERS == 0
+        delete[] arr;
+    #endif
 }
 
 
@@ -68,10 +74,14 @@ int Bucket::retrieve(int indice)
 }
 
 
-int * Bucket::getAll()
-{
+
+#if USE_SMART_POINTERS == 1
+    shared_ptr<int[]> Bucket::getAll(){
+#else
+    int * Bucket::getAll(){
+#endif
     if (isInit == -1)
-        return NULL;
+        return nullptr;
     if(_counts<Slide::BUCKET_SIZE){
         arr[_counts]=-1;
     }
