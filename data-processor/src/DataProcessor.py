@@ -1723,6 +1723,9 @@ class DataProcessor(object){
                             }
                             v=tuple(v)
                         }
+                        if type(v) is tuple{
+                            v=' '.join(v)
+                        }
                         fields_and_values[k].add(v.replace(' ','_'))
                     }
                 }elif k=='Description'{
