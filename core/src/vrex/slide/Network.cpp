@@ -20,19 +20,44 @@ Network::Network(int *sizesOfLayers, NodeType *layersTypes, int noOfLayers, int 
     mode=Mode;
     use_adam=useAdamOt;
     label_type=labelType;
-    for (int i = 0; i < noOfLayers; i++) {
-        #pragma GCC diagnostic push 
-        #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
-        if (i != 0) {
-            _hiddenlayers[i] = new Layer(sizesOfLayers[i], sizesOfLayers[i - 1], i, _layersTypes[i], _currentBatchSize,  K[i], L[i], RangePow[i], Sparsity[i],mode,hash_func, use_adam,label_type, nullptr, nullptr, nullptr, nullptr);
-        } else {
-            _hiddenlayers[i] = new Layer(sizesOfLayers[i], inputdim, i, _layersTypes[i], _currentBatchSize, K[i], L[i], RangePow[i], Sparsity[i],mode,hash_func, use_adam,label_type, nullptr, nullptr, nullptr, nullptr);
+
+    init=false;
+    _weight=nullptr;
+    _bias=nullptr;
+    _adamAvgMom=nullptr;
+    _adamAvgVel=nullptr;
+}
+
+void Network::lateInit(){
+    if(!init){
+        init=true;
+        for (int i = 0; i < _numberOfLayers; i++) {
+            float *weight=nullptr;
+            float *bias=nullptr;
+            float *adamAvgMom=nullptr;
+            float *adamAvgVel=nullptr;
+            if(_weight)
+                weight=_weight[i];
+            if(_bias)
+                bias=_bias[i];
+            if(_adamAvgMom)
+                adamAvgMom=_adamAvgMom[i];
+            if(_adamAvgVel)
+                adamAvgVel=_adamAvgVel[i];
+            if (i != 0) {
+                _hiddenlayers[i] = new Layer(_sizesOfLayers[i], _sizesOfLayers[i - 1], i, _layersTypes[i], _currentBatchSize, _K[i], _L[i], _RangePow[i], _Sparsity[i],mode,hash_func, use_adam,label_type, weight, bias, adamAvgMom, adamAvgVel);
+            } else {
+                _hiddenlayers[i] = new Layer(_sizesOfLayers[i], _inputDim, i, _layersTypes[i], _currentBatchSize, _K[i], _L[i], _RangePow[i], _Sparsity[i],mode,hash_func, use_adam,label_type, weight, bias, adamAvgMom, adamAvgVel);
+            }
         }
-        #pragma GCC diagnostic pop
     }
 }
 
 void Network::setWeights(map<string, vector<float>> loadedData){
+    _weight=new float*[_numberOfLayers];
+    _bias=new float*[_numberOfLayers];
+    _adamAvgMom=new float*[_numberOfLayers];
+    _adamAvgVel=new float*[_numberOfLayers];
     for (int i = 0; i < _numberOfLayers; i++) {
         float* weight, *bias, *adamAvgMom, *adamAvgVel;
         string str_i=to_string(i);
@@ -62,19 +87,16 @@ void Network::setWeights(map<string, vector<float>> loadedData){
             adamAvgVel[j]=loadedData[cur_map_idx][j];
         }
 
-        if (_hiddenlayers && _hiddenlayers[i]){
-            delete _hiddenlayers[i];
-        }
-        if (i != 0) {
-            _hiddenlayers[i] = new Layer(_sizesOfLayers[i], _sizesOfLayers[i - 1], i, _layersTypes[i], _currentBatchSize,  _K[i], _L[i], _RangePow[i], _Sparsity[i],mode,hash_func, use_adam,label_type, weight, bias, adamAvgMom, adamAvgVel);
-        } else {
-            _hiddenlayers[i] = new Layer(_sizesOfLayers[i], _inputDim, i, _layersTypes[i], _currentBatchSize, _K[i], _L[i], _RangePow[i], _Sparsity[i],mode,hash_func, use_adam,label_type, weight, bias, adamAvgMom, adamAvgVel);
-        }
+        _weight[i]=weight;
+        _bias[i]=bias;
+        _adamAvgMom[i]=adamAvgMom;
+        _adamAvgVel[i]=adamAvgVel;
     }
 }
 
 
 Layer *Network::getLayer(int LayerID) {
+    lateInit();
     if (LayerID < _numberOfLayers)
         return _hiddenlayers[LayerID];
     else {
@@ -86,6 +108,7 @@ Layer *Network::getLayer(int LayerID) {
 
 
 pair<int,vector<vector<pair<int,float>>>> Network::predictClass(int **inputIndices, float **inputValues, int *length, int **labels, int *labelsize) {
+    lateInit();
     int correctPred = 0;
     #pragma GCC diagnostic push 
     #pragma GCC diagnostic ignored "-Wsizeof-pointer-div"
@@ -143,6 +166,7 @@ pair<int,vector<vector<pair<int,float>>>> Network::predictClass(int **inputIndic
 
 
 float Network::ProcessInput(int **inputIndices, float **inputValues, int *lengths, int **labels, int *labelsize, int iter, bool rehash, bool rebuild) {
+    lateInit();
     // float logloss = 0.0; // not used
     // int* avg_retrieval = new int[_numberOfLayers]();  // not used
 
@@ -326,6 +350,7 @@ float Network::ProcessInput(int **inputIndices, float **inputValues, int *length
 }
 
 float Network::evalInput(int** inputIndices, float** inputValues, int* lengths, int ** labels, int *labelsize){
+    lateInit();
     int*** activeNodesPerBatch = new int**[_currentBatchSize];
     int** sizesPerBatch = new int*[_currentBatchSize];
     float* metric = new float[_currentBatchSize];
@@ -396,6 +421,7 @@ float Network::evalInput(int** inputIndices, float** inputValues, int* lengths, 
 
 map<string, vector<float>> Network::mapfyWeights()
 {
+    lateInit();
     map<string, vector<float>> weights;
     for (int i=0; i< _numberOfLayers; i++){
         map<string, vector<float>> layerWeights = _hiddenlayers[i]->mapfyWeights();
@@ -411,6 +437,13 @@ Network::~Network() {
         delete _hiddenlayers[i];
     }
     delete[] _hiddenlayers;
-    _hiddenlayers=nullptr;
     delete[] _layersTypes;
+    if(_weight)
+        delete[] _weight;
+    if(_bias)
+        delete[] _bias;
+    if(_adamAvgMom)
+        delete[] _adamAvgMom;
+    if(_adamAvgVel)
+        delete[] _adamAvgVel;
 }

@@ -37,6 +37,10 @@ private:
 	SlideMode mode;
 	bool use_adam;
 	SlideLabelEncoding label_type;
+	bool init;
+
+	void lateInit();
+	float **_weight, **_bias, **_adamAvgMom, **_adamAvgVel; 
 
 public:
 	Network(int* sizesOfLayers, NodeType* layersTypes, int noOfLayers, int batchsize, float lr, int inputdim, int* K, int* L, int* RangePow, float* Sparsity,SlideMode Mode,SlideHashingFunction hashFunc, bool useAdamOt,SlideLabelEncoding labelType);

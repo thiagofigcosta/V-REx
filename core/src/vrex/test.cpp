@@ -485,7 +485,7 @@ void test() {
     // testCsvRead();
     // testMongo();
     testSlide_IntLabel();
-    testSlide_NeuronByNeuronLabel();
+    // testSlide_NeuronByNeuronLabel();
     //testStdGeneticsOnMath();
     // testEnchancedGeneticsOnMath();
     // testGeneticallyTunedNeuralNetwork();
