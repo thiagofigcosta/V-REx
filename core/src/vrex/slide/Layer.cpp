@@ -242,11 +242,7 @@ int Layer::queryActiveNodeandComputeActivations(int** activenodesperlayer, float
                 hashes = _srp->getHashSparse(activenodesperlayer[layerIndex], activeValuesperlayer[layerIndex], lengths[layerIndex]);
             }
             int *hashIndices = _hashTables->hashesToIndex(hashes);
-            #if USE_SMART_POINTERS == 1
-                vector<shared_ptr<int[]>> actives = _hashTables->retrieveRaw(hashIndices);
-            #else
-                int **actives = _hashTables->retrieveRaw(hashIndices);
-            #endif
+            int **actives = _hashTables->retrieveRaw(hashIndices);
             
 
             // Get candidates from hashtable
@@ -297,9 +293,7 @@ int Layer::queryActiveNodeandComputeActivations(int** activenodesperlayer, float
             delete[] hashes;
             #pragma GCC diagnostic pop 
             delete[] hashIndices;
-            #if USE_SMART_POINTERS == 0
-                delete[] actives;
-            #endif
+            delete[] actives;
             
 
         }
@@ -316,11 +310,7 @@ int Layer::queryActiveNodeandComputeActivations(int** activenodesperlayer, float
                 hashes = _srp->getHashSparse(activenodesperlayer[layerIndex], activeValuesperlayer[layerIndex], lengths[layerIndex]);
             }
             int *hashIndices = _hashTables->hashesToIndex(hashes);
-            #if USE_SMART_POINTERS == 1
-                vector<shared_ptr<int[]>> actives = _hashTables->retrieveRaw(hashIndices);
-            #else
-                int **actives = _hashTables->retrieveRaw(hashIndices);
-            #endif
+            int **actives = _hashTables->retrieveRaw(hashIndices);
             // we now have a sparse array of indices of active nodes
 
             // Get candidates from hashtable
@@ -389,9 +379,7 @@ int Layer::queryActiveNodeandComputeActivations(int** activenodesperlayer, float
             delete[] hashes;
             #pragma GCC diagnostic pop 
             delete[] hashIndices;
-            #if USE_SMART_POINTERS == 0
-                delete[] actives;
-            #endif
+            delete[] actives;
 
         }
         else if ((mode == SlideMode::UNKNOWN_MODE1) & (_type== NodeType::Softmax)) {

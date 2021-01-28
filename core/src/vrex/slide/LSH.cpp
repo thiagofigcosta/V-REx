@@ -10,23 +10,12 @@ LSH::LSH(int K, int L, int RangePow,SlideHashingFunction hashFunc)
 	_K = K;
 	_L = L;
 	_RangePow = RangePow;
-	#if USE_SMART_POINTERS == 1
-		_bucket=vector<vector<shared_ptr<Bucket>>>(_L);
-	#else
-		_bucket = new Bucket*[L];
-	#endif
+	_bucket = new Bucket*[L];
 	hash_func=hashFunc;
 
 //#pragma omp parallel for
 	for (int i = 0; i < _L; i++){
-		#if USE_SMART_POINTERS == 1
-			_bucket[i] = vector<shared_ptr<Bucket>>(1 << _RangePow);
-			for(size_t z=0;z<_bucket[i].size();z++){
-				_bucket[i][z]=make_shared<Bucket>();
-			}
-		#else
-			_bucket[i] = new Bucket[1 << _RangePow];
-		#endif
+		_bucket[i] = new Bucket[1 << _RangePow];
 	}
 
 	rand1 = new int[_K*_L];
@@ -49,18 +38,8 @@ void LSH::clear()
 {
     for (int i = 0; i < _L; i++)
     {
-		#if USE_SMART_POINTERS == 1
-			_bucket[i].clear();
-			_bucket[i] = vector<shared_ptr<Bucket>>(1 << _RangePow);
-    		for(size_t z=0;z<_bucket[i].size();z++){
-				_bucket[i][z]=make_shared<Bucket>();
-			}
-		#else
-			delete[] _bucket[i];
-			_bucket[i] = new Bucket[1 << _RangePow];
-		#endif
-		
-
+		delete[] _bucket[i];
+		_bucket[i] = new Bucket[1 << _RangePow];
     }
 }
 
@@ -70,17 +49,10 @@ void LSH::count()
 	for (int j=0; j<_L;j++) {
 		int total = 0;
 		for (int i = 0; i < 1 << _RangePow; i++) {
-			#if USE_SMART_POINTERS == 1
-				if (_bucket[j][i]->getSize()!=0) {
-					cout <<_bucket[j][i]->getSize() << " ";
-				}
-				total += _bucket[j][i]->getSize();
-			#else
-				if (_bucket[j][i].getSize()!=0) {
-					cout <<_bucket[j][i].getSize() << " ";
-				}
-				total += _bucket[j][i].getSize();
-			#endif
+			if (_bucket[j][i].getSize()!=0) {
+				cout <<_bucket[j][i].getSize() << " ";
+			}
+			total += _bucket[j][i].getSize();
 		}
 		cout << endl;
 		cout <<"TABLE "<< j << "Total "<< total << endl;
@@ -129,15 +101,7 @@ int* LSH::add(int *indices, int id)
 	int * secondIndices = new int[_L];
 	for (int i = 0; i < _L; i++)
 	{
-		#if USE_SMART_POINTERS == 1
-			if(!_bucket[i][indices[i]]){
-				cout<<"nullref\n";
-				_bucket[i][indices[i]]=make_shared<Bucket>();
-			}
-			secondIndices[i] = _bucket[i][indices[i]]->add(id);
-		#else
-			secondIndices[i] = _bucket[i][indices[i]].add(id);
-		#endif
+		secondIndices[i] = _bucket[i][indices[i]].add(id);
 	}
 
 	return secondIndices;
@@ -146,11 +110,7 @@ int* LSH::add(int *indices, int id)
 
 int LSH::add(int tableId, int indices, int id)
 {
-	#if USE_SMART_POINTERS == 1
-		int secondIndices = _bucket[tableId][indices]->add(id);
-	#else
-		int secondIndices = _bucket[tableId][indices].add(id);
-	#endif
+	int secondIndices = _bucket[tableId][indices].add(id);
 	return secondIndices;
 }
 
@@ -159,21 +119,13 @@ int LSH::add(int tableId, int indices, int id)
 * Returns all the buckets
 */
 
-int_array_pointer_2d LSH::retrieveRaw(int *indices){
-	int_array_pointer_2d rawResults;
-	#if USE_SMART_POINTERS == 1
-		rawResults = vector<shared_ptr<int[]>>(_L);
-	#else
-		rawResults = new int*[_L];
-	#endif
+int** LSH::retrieveRaw(int *indices){
+	int** rawResults;
+	rawResults = new int*[_L];
 
 	for (int i = 0; i < _L; i++)
 	{
-		#if USE_SMART_POINTERS == 1
-			rawResults[i] = _bucket[i][indices[i]]->getAll();
-		#else
-			rawResults[i] = _bucket[i][indices[i]].getAll();
-		#endif
+		rawResults[i] = _bucket[i][indices[i]].getAll();
 	}
 	return rawResults;
 }
@@ -181,25 +133,13 @@ int_array_pointer_2d LSH::retrieveRaw(int *indices){
 
 int LSH::retrieve(int table, int indices, int bucket)
 {
-	#if USE_SMART_POINTERS == 1
-		return _bucket[table][indices]->retrieve(bucket);
-	#else
-		return _bucket[table][indices].retrieve(bucket);
-	#endif
+	return _bucket[table][indices].retrieve(bucket);
 }
 
 LSH::~LSH(){
 	delete [] rand1;
-	#if USE_SMART_POINTERS == 1
-		for (int i = 0; i < _L; i++){
-			_bucket[i].clear();
-		}
-		_bucket.clear();
-	#else
-		for (int i = 0; i < _L; i++){
-			delete[] _bucket[i];
-		}
-		delete[] _bucket;
-	#endif
-	
+	for (int i = 0; i < _L; i++){
+		delete[] _bucket[i];
+	}
+	delete[] _bucket;	
 }

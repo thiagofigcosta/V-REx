@@ -17,7 +17,7 @@ class Bucket;
 
 class LSH {
 private:
-	bucket_pointer_2d _bucket;
+	Bucket** _bucket;
 	int _K;
 	int _L;
 	int _RangePow;
@@ -31,7 +31,7 @@ public:
 	int* add(int *indices, int id);
 	int add(int indices, int tableId, int id);
 	int * hashesToIndex(int * hashes);
-	int_array_pointer_2d retrieveRaw(int *indices);
+	int** retrieveRaw(int *indices);
 	int retrieve(int table, int indices, int bucket);
 	void count();
 	~LSH();

@@ -6,7 +6,6 @@
 #include <memory>
 
 #define Slide_MAPLEN 325056
-#define USE_SMART_POINTERS 1 // 1 to use smart pointer or 0 to use classical pointers
 
 class Bucket;
 class Network;
@@ -16,17 +15,6 @@ enum class SlideHashingFunction { WTA=1, DENSIFIED_WTA=2, TOPK_MIN_HASH=3, SIMHA
 enum class SlideLabelEncoding { INT_CLASS, NEURON_BY_NEURON, NEURON_BY_N_LOG_LOSS };
 
 using namespace std;
-
-#if USE_SMART_POINTERS == 1
-    typedef vector<vector<shared_ptr<Bucket>>> bucket_pointer_2d;
-    typedef shared_ptr<int[]> int_array_pointer;
-    typedef vector<shared_ptr<int[]>> int_array_pointer_2d;
-#else
-    typedef Bucket** bucket_pointer_2d;
-    typedef int* int_array_pointer;
-    typedef int** int_array_pointer_2d;
-#endif
-
 
 class Slide{
     public:
