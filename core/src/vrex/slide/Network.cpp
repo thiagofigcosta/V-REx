@@ -368,6 +368,12 @@ float Network::evalInput(int** inputIndices, float** inputValues, int* lengths, 
                 }
             }
         }
+        delete[] sizes;
+        for (int j = 0; j < _numberOfLayers + 1; j++) {
+            delete[] activeValuesperlayer[j];
+            delete[] activeValuesperlayer[j];
+        }
+        delete[] activeValuesperlayer;
     }
     for (int i = 0; i < _currentBatchSize; i++) {
         //Free memory to avoid leaks
