@@ -369,26 +369,28 @@ float Network::evalInput(int** inputIndices, float** inputValues, int* lengths, 
             }
         }
         delete[] sizes;
-        for (int j = 0; j < _numberOfLayers + 1; j++) {
-            delete[] activeValuesperlayer[j];
-            delete[] activeValuesperlayer[j];
-        }
+    	//for (int j = 0; j < _numberOfLayers + 1; j++) {
+            //delete[] activenodesperlayer[j];
+            //delete[] activeValuesperlayer[j];
+        //}
+        delete[] activenodesperlayer;
         delete[] activeValuesperlayer;
     }
-    for (int i = 0; i < _currentBatchSize; i++) {
+    //for (int i = 0; i < _currentBatchSize; i++) {
         //Free memory to avoid leaks
-        delete[] sizesPerBatch[i];
-        for (int j = 1; j < _numberOfLayers + 1; j++) {
-            delete[] activeNodesPerBatch[i][j];
-        }
-        delete[] activeNodesPerBatch[i];
-    }
+       // delete[] sizesPerBatch[i];
+       // for (int j = 1; j < _numberOfLayers + 1; j++) {
+            //delete[] activeNodesPerBatch[i][j];
+       // }
+        //delete[] activeNodesPerBatch[i];
+    //}
     delete[] activeNodesPerBatch;
     delete[] sizesPerBatch;
     float total_metrics=0;
     for (size_t i=0;i<(size_t)_currentBatchSize;i++){
         total_metrics+=metric[i];
     }
+    delete[] metric;
     return total_metrics/_currentBatchSize;
 }
 
