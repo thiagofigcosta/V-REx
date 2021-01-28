@@ -195,6 +195,11 @@ void testSlide_IntLabel(){
     }
     cout<<endl<<endl;
     delete slide;
+    delete[] layer_sizes;
+    delete[] range_pow;
+    delete[] K;
+    delete[] L;
+    delete[] sparcity;
 }
 
 void testSlide_NeuronByNeuronLabel(){
@@ -245,6 +250,11 @@ void testSlide_NeuronByNeuronLabel(){
     cout<<"Test size: "<<test_data.size()<<endl;
     cout<<"Correct values: "<<predicted.first<<endl<<endl<<endl;
     delete slide;
+    delete[] layer_sizes;
+    delete[] range_pow;
+    delete[] K;
+    delete[] L;
+    delete[] sparcity;
 }
 
 void testStdGeneticsOnMath(){
@@ -478,5 +488,5 @@ void test() {
     testSlide_NeuronByNeuronLabel();
     testStdGeneticsOnMath();
     testEnchancedGeneticsOnMath();
-    testGeneticallyTunedNeuralNetwork();
+    // testGeneticallyTunedNeuralNetwork();
 }

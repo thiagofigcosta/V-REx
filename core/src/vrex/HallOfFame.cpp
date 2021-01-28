@@ -43,6 +43,7 @@ void HallOfFame::update(vector<Genome*> candidates, int gen){
             }
         });
         while(notables.size()>(size_t)max_notables){
+            delete notables.back();
             notables.pop_back();
         }
         if ((looking_highest_fitness && notables[0]->getOutput()>best.first) || (!looking_highest_fitness && notables[0]->getOutput()<best.first)){
@@ -70,6 +71,7 @@ void HallOfFame::update(vector<Genome*> candidates, vector<string> extraCandidat
     });
     // if (notables.size()>(size_t)max_notables){notables.resize(max_notables);}
     while(notables_extra.size()>(size_t)max_notables){
+        delete notables_extra.back().first;
         notables_extra.pop_back();
     }
     if ((looking_highest_fitness && notables_extra[0].first->getOutput()>best.first) || (!looking_highest_fitness && notables_extra[0].first->getOutput()<best.first)){
