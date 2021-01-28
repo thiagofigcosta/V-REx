@@ -12,11 +12,7 @@ class Bucket
 {
 private:
 	
-	#if USE_SMART_POINTERS == 1
-		shared_ptr<int[]> arr;
-	#else
-		int *arr;
-	#endif
+	int_array_pointer arr;
 	int isInit = -1;
 	int index = 0;
 	int _counts = 0;
@@ -25,11 +21,7 @@ public:
 	Bucket();
 	int add(int id);
 	int retrieve(int index);
-	#if USE_SMART_POINTERS == 1
-		shared_ptr<int[]> getAll();
-	#else
-		int * getAll();
-	#endif
+	int_array_pointer getAll();
 	int getTotalCounts();
 	int getSize();
 	~Bucket();

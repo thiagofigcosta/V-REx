@@ -5,8 +5,6 @@
 #include <stdexcept>
 #include <sys/resource.h>
 
-#define USE_SMART_POINTERS 1 // 1 to use smart pointer or 0 to use classical pointers
-
 #include "Utils.hpp"
 #include "NeuralGenome.hpp"
 #include "test.hpp"
@@ -25,8 +23,8 @@ void exceptionHandler(int signum) {
     } catch(const exception& e) {
         cerr << "Caught exception:\n\t\"" << e.what() << "\"\n\n";
     }
-    if(!NeuralGenome::print_str.empty()){
-        cout<<"\n\nOn "+NeuralGenome::print_str<<endl;
+    if(!NeuralGenome::last_print_str.empty()){
+        cout<<"\n\nOn "+NeuralGenome::last_print_str<<endl;
     }
     ::raise(SIGABRT);
 }

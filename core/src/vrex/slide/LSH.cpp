@@ -158,12 +158,14 @@ int LSH::add(int tableId, int indices, int id)
 /*
 * Returns all the buckets
 */
-#if USE_SMART_POINTERS == 1
-	vector<shared_ptr<int[]>> LSH::retrieveRaw(int *indices){
-#else
-	int** LSH::retrieveRaw(int *indices){
-#endif
-	int ** rawResults = new int*[_L];
+
+int_array_pointer_2d LSH::retrieveRaw(int *indices){
+	int_array_pointer_2d rawResults;
+	#if USE_SMART_POINTERS == 1
+		rawResults = vector<shared_ptr<int[]>>(_L);
+	#else
+		rawResults = new int*[_L];
+	#endif
 
 	for (int i = 0; i < _L; i++)
 	{

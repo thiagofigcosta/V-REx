@@ -1,7 +1,7 @@
 #include "NeuralGenome.hpp"
 #include "slide/Node.h"
 
-string NeuralGenome::print_str="";
+string NeuralGenome::last_print_str="";
 vector<pair<vector<int>, vector<float>>> NeuralGenome::static_train_data=vector<pair<vector<int>, vector<float>>> ();
 
 NeuralGenome::NeuralGenome(SPACE_SEARCH space, function<float(Genome *self)> callback)
@@ -159,6 +159,8 @@ tuple<Slide*,int,function<void()>> NeuralGenome::buildSlide(pair<vector<int>,vec
         print_str+="\tnode_types["+std::to_string(i)+"]: "+std::to_string(static_cast<underlying_type<NodeType>::type>(node_types[i]))+"\n";
     for(i=0;i<layers;i++)
         print_str+="\tsparcity["+std::to_string(i)+"]: "+std::to_string(sparcity[i])+"\n";
+    
+    last_print_str=print_str;
 
     string ex_str="";
     Slide* net=nullptr;
@@ -195,4 +197,9 @@ void NeuralGenome::setNeuralTrainData(vector<pair<vector<int>, vector<float>>> d
 
 vector<pair<vector<int>, vector<float>>>& NeuralGenome::getTrainData(){
     return train_data;
+}
+
+string NeuralGenome::to_string(){
+    string out=Genome::to_string()+"\n"+print_str;
+    return out;
 }

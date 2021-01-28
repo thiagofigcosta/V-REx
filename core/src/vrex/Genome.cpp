@@ -104,7 +104,7 @@ void Genome::setDna(pair<vector<int>,vector<float>> new_dna){
 
 string Genome::to_string(){
     string out="Output: "+std::to_string(output)+" Fitness: "+std::to_string(fitness);
-    out+=" -- Genes: Int:";
+    out+=" -- Genes{ Int: ";
     for(size_t i=0;i<dna.first.size();i++){
         out+=std::to_string(dna.first[i])+" ";
     }
@@ -112,13 +112,7 @@ string Genome::to_string(){
     for(size_t i=0;i<dna.second.size();i++){
         out+=std::to_string(dna.second[i])+" ";
     }
-    for(size_t i=0;i<dna.second.size();i++){
-        if (dna.second[i]<limits.second[i].first){
-            dna.second[i]=limits.second[i].first;
-        }else if (dna.second[i]>limits.second[i].second){
-            dna.second[i]=limits.second[i].second;
-        }
-    }
+    out+="}";
     return out;
 }
 

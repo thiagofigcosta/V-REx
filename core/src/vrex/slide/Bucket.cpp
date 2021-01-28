@@ -75,11 +75,7 @@ int Bucket::retrieve(int indice)
 
 
 
-#if USE_SMART_POINTERS == 1
-    shared_ptr<int[]> Bucket::getAll(){
-#else
-    int * Bucket::getAll(){
-#endif
+int_array_pointer Bucket::getAll(){
     if (isInit == -1)
         return nullptr;
     if(_counts<Slide::BUCKET_SIZE){
