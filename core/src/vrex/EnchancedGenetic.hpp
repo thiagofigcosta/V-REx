@@ -44,6 +44,7 @@ class EnchancedGenetic : public GeneticAlgorithm{
         int current_population_size;
         static const float will_of_D_percent;
         static const float recycle_threshold_percent;
+        static const float cutoff_population_limit;
 
         //methods 
         Genome* age(Genome *individual, int cur_population_size);

@@ -3,6 +3,7 @@
 
 const float EnchancedGenetic::will_of_D_percent=0.07;
 const float EnchancedGenetic::recycle_threshold_percent=0.03;
+const float EnchancedGenetic::cutoff_population_limit=1.3;
 
 EnchancedGenetic::EnchancedGenetic(int maxChildren, int maxAge, float mutationRate, float sexRate, float recycleRate){
     mutation_rate=mutationRate;
@@ -87,7 +88,7 @@ void EnchancedGenetic::select(vector<Genome*> &currentGen){
     for(vector<Genome*> parents:all_parents){
         vector<Genome*> children=sex(parents[0],parents[1]);
         nxt_gen.insert(nxt_gen.end(),children.begin(),children.end());
-        // current_population_size+=children.size()-2; // TODO new stuff, should remove?
+        current_population_size+=children.size()-2;
     }
     for (Genome *g:useful_beings_vec){
         delete g;
@@ -117,7 +118,7 @@ void EnchancedGenetic::fit(vector<Genome*> &currentGen){
             recycled=recycleBadIndividuals(currentGen);
         }else{
             recycled=false;
-            int cutout_limit=max_population*1.3;
+            int cutout_limit=max_population*cutoff_population_limit;
             int cutout_diff=(currentGen.size()-cutout_limit);
             if(cutout_diff>0){
                 for (size_t e=0;e<(size_t)cutout_diff;e++){
