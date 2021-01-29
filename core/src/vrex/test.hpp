@@ -24,3 +24,4 @@ void testStdGeneticsOnMath();
 void testEnchancedGeneticsOnMath();
 void testSlide_Validation();
 void testGeneticallyTunedNeuralNetwork();
+void testMongoCveRead();

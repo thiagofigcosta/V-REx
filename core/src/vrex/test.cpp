@@ -551,6 +551,73 @@ void testGeneticallyTunedNeuralNetwork(){
     }
 }
 
+void testMongoCveRead(){
+    string mongo_host;
+    if (Utils::runningOnDockerContainer()){
+        mongo_host="mongo";
+    }else{
+        mongo_host="127.0.0.1";
+    }
+    MongoDB mongo = MongoDB(mongo_host,"root","123456");
+    bsoncxx::stdx::optional<bsoncxx::document::value> maybe_result =
+        mongo.getCollection(mongo.getDB("processed_data"),"dataset").find_one(document{} << "cve" << "CVE-2017-0144" << finalize);
+    if(maybe_result) {
+        bsoncxx::document::element index = maybe_result->view()["index"];
+        bsoncxx::document::element cve = maybe_result->view()["cve"];
+        bsoncxx::document::element features = maybe_result->view()["features"];
+        bsoncxx::document::element labels = maybe_result->view()["labels"];
+        cout<<"index type: "<<bsoncxx::to_string(index.type())<<endl;
+        if (index.type() == bsoncxx::type::k_int32){
+            int idx = index.get_int32();
+            cout<<"index value: "<<idx<<endl;
+        }
+        cout<<"cve type: "<<bsoncxx::to_string(cve.type())<<endl;
+        if (cve.type() == bsoncxx::type::k_utf8){
+            string cve_str = cve.get_utf8().value.data();
+            cout<<"cve value: "<<cve_str<<endl;
+        }
+        cout<<"features type: "<<bsoncxx::to_string(features.type())<<endl;
+        if (features.type() == bsoncxx::type::k_document){
+            bsoncxx::document::view features_vw=features.get_document().view();
+            map<string,float> features;
+            for (auto el:features_vw){
+                string key=el.key().data();
+                if (el.type() == bsoncxx::type::k_int32){
+                    features[key]=(float)el.get_int32();
+                }else if (el.type() == bsoncxx::type::k_double){
+                    features[key]=(float)el.get_double();
+                }else{
+                    throw runtime_error("Error unkown type: "+bsoncxx::to_string(el.type())+"\n");
+                }
+            }
+            cout<<"Features value (size: "+to_string(features.size())+"): "<<endl;
+            for(map<string,float>::const_iterator it=features.begin();it!=features.end();it++){
+                cout<<"\t"<<it->first<<": "<<it->second<<endl;
+            }
+        }
+        cout<<"labels type: "<<bsoncxx::to_string(labels.type())<<endl;
+        if (labels.type() == bsoncxx::type::k_document){
+            bsoncxx::document::view labels_vw=labels.get_document().view();
+            map<string,float> labels;
+            for (auto el:labels_vw){
+                string key=el.key().data();
+                if (el.type() == bsoncxx::type::k_int32){
+                    labels[key]=(float)el.get_int32();
+                }else if (el.type() == bsoncxx::type::k_double){
+                    labels[key]=(float)el.get_double();
+                }else{
+                    throw runtime_error("Error unkown type: "+bsoncxx::to_string(el.type())+"\n");
+                }
+            }
+            cout<<"Labels value (size: "+to_string(labels.size())+"): "<<endl;
+            for(map<string,float>::const_iterator it=labels.begin();it!=labels.end();it++){
+                cout<<"\t"<<it->first<<": "<<it->second<<endl;
+            }
+        }
+    }
+    // TODO find({"cve": CVE-2017-.*/}) find vulners by year
+}
+
 void test() {
     // testCsvRead();
     // testMongo();
@@ -559,5 +626,6 @@ void test() {
     // testStdGeneticsOnMath();
     // testEnchancedGeneticsOnMath();
     // testSlide_Validation();
-    testGeneticallyTunedNeuralNetwork();
+    // testGeneticallyTunedNeuralNetwork();
+    testMongoCveRead();
 }
