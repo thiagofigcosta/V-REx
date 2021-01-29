@@ -411,10 +411,10 @@ void testGeneticallyTunedNeuralNetwork(){
     // int max_age=10; // change to 2 for fast run
     // int max_children=4; // change to 1 for fast run
 
-    int population_start_size=5; 
+    int population_start_size=3; 
     int max_gens=10;
-    int max_age=3; 
-    int max_children=2; 
+    int max_age=5; 
+    int max_children=4; 
 
     bool use_neural_genome=true;
     float mutation_rate=0.1;
