@@ -406,15 +406,15 @@ void testGeneticallyTunedNeuralNetwork(){
     SPACE_SEARCH space = NeuralGenome::buildSlideNeuralNetworkSpaceSearch(amount_of_layers,epochs,alpha,batch_size,
                                                 layer_size,range_pow,k_values,l_values,sparcity,activation_funcs);
 
-    // int population_start_size=30; // change to 1 for fast run
-    // int max_gens=10; // change to 2 for fast run
-    // int max_age=10; // change to 2 for fast run
-    // int max_children=4; // change to 1 for fast run
+    int population_start_size=30; // change to 1 for fast run
+    int max_gens=10; // change to 2 for fast run
+    int max_age=10; // change to 2 for fast run
+    int max_children=4; // change to 1 for fast run
 
-    int population_start_size=3; 
-    int max_gens=10;
-    int max_age=5; 
-    int max_children=4; 
+    // int population_start_size=2; 
+    // int max_gens=10;
+    // int max_age=5; 
+    // int max_children=4; 
 
     bool use_neural_genome=true;
     float mutation_rate=0.1;
@@ -496,6 +496,6 @@ void test() {
     // testSlide_IntLabel();
     // testSlide_NeuronByNeuronLabel();
     // testStdGeneticsOnMath();
-    testEnchancedGeneticsOnMath();
-    // testGeneticallyTunedNeuralNetwork();
+    // testEnchancedGeneticsOnMath();
+    testGeneticallyTunedNeuralNetwork();
 }
