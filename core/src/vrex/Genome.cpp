@@ -108,7 +108,7 @@ string Genome::to_string(){
     for(size_t i=0;i<dna.first.size();i++){
         out+=std::to_string(dna.first[i])+" ";
     }
-    out+="Float:";
+    out+="Float: ";
     for(size_t i=0;i<dna.second.size();i++){
         out+=std::to_string(dna.second[i])+" ";
     }

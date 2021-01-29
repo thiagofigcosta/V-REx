@@ -32,6 +32,12 @@ std::unique_ptr<T> make_unique(Args&&... args){ // this is from C++14
 }
 
 typedef std::basic_string<char> string;
+typedef struct snn_stats{
+  float accuracy=-1;
+  float precision=-1;
+  float recall=-1;
+  float f1=-1;
+} snn_stats;
 
 class Utils{
     public:
@@ -67,6 +73,9 @@ class Utils{
         static boost::uuids::uuid genRandomUUID();
         static string genRandomUUIDStr();
         static string msToHumanReadable(long timestamp);
+        static snn_stats statisticalAnalysis(vector<vector<int>> correct, vector<vector<int>> pred);
+        static snn_stats statisticalAnalysis(vector<pair<vector<int>, vector<float>>> correct, vector<vector<pair<int,float>>> pred);
+        static void printStats(snn_stats stats);
 
         // variables
         static mt19937_64 RNG;

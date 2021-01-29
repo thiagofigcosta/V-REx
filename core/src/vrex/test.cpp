@@ -193,6 +193,7 @@ void testSlide_IntLabel(){
             cout << endl;
         }
     }
+    Utils::printStats(Utils::statisticalAnalysis(test_data, predicted.second));
     cout<<endl<<endl;
     delete slide;
     delete[] range_pow;
@@ -247,7 +248,9 @@ void testSlide_NeuronByNeuronLabel(){
 
     pair<int,vector<vector<pair<int,float>>>> predicted = slide->evalData(test_data);
     cout<<"Test size: "<<test_data.size()<<endl;
-    cout<<"Correct values: "<<predicted.first<<endl<<endl<<endl;
+    cout<<"Correct values: "<<predicted.first<<endl;
+    Utils::printStats(Utils::statisticalAnalysis(test_data, predicted.second));
+    cout<<endl<<endl;
     delete slide;
     delete[] range_pow;
     delete[] K;
@@ -379,6 +382,7 @@ void testGeneticallyTunedNeuralNetwork(){
     INT_SPACE_SEARCH amount_of_layers = INT_SPACE_SEARCH(1,1); // For weaker computers
     // INT_SPACE_SEARCH amount_of_layers = INT_SPACE_SEARCH(1,2); // Too heavy for my computer :(
     // INT_SPACE_SEARCH amount_of_layers = INT_SPACE_SEARCH(1,3); // Too heavy for my computer :(
+    // INT_SPACE_SEARCH amount_of_layers = INT_SPACE_SEARCH(1,4); // Too heavy for my computer :(
         
     INT_SPACE_SEARCH epochs = INT_SPACE_SEARCH(20,40); // Per generation, so it is not a good idea to use large numbers such [100,250]
     FLOAT_SPACE_SEARCH alpha = FLOAT_SPACE_SEARCH(0.0001,0.1);
@@ -402,15 +406,21 @@ void testGeneticallyTunedNeuralNetwork(){
     SPACE_SEARCH space = NeuralGenome::buildSlideNeuralNetworkSpaceSearch(amount_of_layers,epochs,alpha,batch_size,
                                                 layer_size,range_pow,k_values,l_values,sparcity,activation_funcs);
 
+    // int population_start_size=30; // change to 1 for fast run
+    // int max_gens=10; // change to 2 for fast run
+    // int max_age=10; // change to 2 for fast run
+    // int max_children=4; // change to 1 for fast run
+
+    int population_start_size=5; 
+    int max_gens=10;
+    int max_age=3; 
+    int max_children=2; 
+
     bool use_neural_genome=true;
-    int population_start_size=30; // change to 1 for fast run
-    int max_gens=10; // change to 2 for fast run
-    int max_age=10; // change to 2 for fast run
-    int max_children=4; // change to 1 for fast run
     float mutation_rate=0.1;
     float recycle_rate=0.13;
     float sex_rate=0.7;
-    int max_notables=5;
+    int max_notables=3;
     bool search_maximum=false;
 
     const int input_size=4;
@@ -467,8 +477,9 @@ void testGeneticallyTunedNeuralNetwork(){
         }
 
         pair<int,vector<vector<pair<int,float>>>> predicted = get<0>(net)->evalData(test_data);
-        cout<<"Test size: "<<test_data.size()<<endl;
+        cout<<"Test size: "<<predicted.second.size()<<endl;
         cout<<"Correct values: "<<predicted.first<<endl;
+        Utils::printStats(Utils::statisticalAnalysis(test_data, predicted.second));
         delete get<0>(net); // free memory
         get<2>(net)(); // free memory
     };

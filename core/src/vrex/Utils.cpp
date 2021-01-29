@@ -349,3 +349,80 @@ string Utils::msToHumanReadable(long timestamp){
         out+=to_string(MS)+" milliseconds ";
     return out;
 }
+
+snn_stats Utils::statisticalAnalysis(vector<pair<vector<int>, vector<float>>> correct, vector<vector<pair<int,float>>> pred){
+    vector<vector<int>> c;
+    for(pair<vector<int>, vector<float>> entry: correct){
+        c.push_back(entry.first);
+    }
+    vector<vector<int>> p;
+    for(vector<pair<int,float>> entry: pred){
+        vector<int> p_tmp;
+        for(pair<int,float> val: entry){
+            p_tmp.push_back(val.first);
+        }
+        p.push_back(p_tmp);
+    }
+    return statisticalAnalysis(c,p);
+}
+
+snn_stats Utils::statisticalAnalysis(vector<vector<int>> correct, vector<vector<int>> pred){
+    // if (correct.size()!=pred.size())
+    //     throw runtime_error("Mismatching sizes on statisticalAnalysis! "+to_string(correct.size())+" - "+to_string(pred.size()));
+    size_t size = pred.size();
+    if(correct.size()<size){
+        size=correct.size();
+    }
+    int total=0;
+    int hits=0;
+    int true_negative=0;
+    int true_positive=0;
+    int false_negative=0;
+    int false_positive=0;
+    int wrong=0;
+    int pos_count=0;
+    for (size_t i=0;i<size;i++){
+        vector<int> cur_pred=pred[i];
+        vector<int> cur_correct=correct[i];
+        bool equal=true;
+        bool positive=true;
+        for(size_t j=0;j<cur_correct.size();j++){
+            if(cur_pred[j]!=cur_correct[j]){
+                equal=false;
+            }
+            if(cur_correct[j]==0){
+                positive=false;
+            }
+        }
+        total++;
+        if(equal){
+            hits++;
+            if(positive){
+                true_positive++;
+                pos_count++;
+            }else{
+                true_negative++;
+            }
+        }else{
+            wrong++;
+            if(positive){
+                false_negative++;
+                pos_count++;
+            }else{
+                false_positive++;
+            }
+        }
+    }
+    snn_stats stats;
+    stats.accuracy=(float)hits/total;
+    if (pos_count>0){
+        stats.precision=(float)true_positive/(true_positive+false_positive);
+        stats.recall=(float)true_positive/(true_positive+false_negative);
+        stats.f1=2*(stats.precision*stats.recall)/(stats.precision+stats.recall);
+    }
+    return stats;
+}
+
+void Utils::printStats(snn_stats stats){
+    cout<<"Stats:"<<"\taccuracy: "<<stats.accuracy<<"\n\tprecision: "<<stats.precision<<"\n\trecall: "<<stats.recall<<"\n\tf1: "<<stats.f1<<endl;
+}

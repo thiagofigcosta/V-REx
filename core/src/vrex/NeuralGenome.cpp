@@ -30,7 +30,8 @@ NeuralGenome::NeuralGenome(const NeuralGenome& orig){
 }
 
 NeuralGenome::~NeuralGenome(){
-
+    weights.clear();
+    train_data.clear();
 }
 
 SPACE_SEARCH NeuralGenome::buildSlideNeuralNetworkSpaceSearch(INT_SPACE_SEARCH amount_of_layers,INT_SPACE_SEARCH epochs,FLOAT_SPACE_SEARCH alpha,
