@@ -246,6 +246,12 @@ float Network::ProcessInput(int **inputIndices, float **inputValues, int *length
     for (int i = 0; i < _currentBatchSize; i++) {
         //Free memory to avoid leaks
         delete[] sizesPerBatch[i];
+        for (int j = 1; j < _numberOfLayers + 1; j++) {	
+            GarbageCollector::get()->rmInt1d(activeNodesPerBatch[i][j]);
+            delete[] activeNodesPerBatch[i][j];	
+            GarbageCollector::get()->rmFloat1d(activeValuesPerBatch[i][j]);
+            delete[] activeValuesPerBatch[i][j];	
+        }
         delete[] activeNodesPerBatch[i];
         delete[] activeValuesPerBatch[i];
     }

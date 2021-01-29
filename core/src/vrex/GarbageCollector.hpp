@@ -4,6 +4,7 @@
 #include <utility>
 #include <vector>
 #include <memory>
+#include <algorithm>
 
 using namespace std;
 
@@ -16,6 +17,11 @@ class GarbageCollector{
         vector<float*> float_1_pointers;
         vector<int**> int_2_pointers;
         vector<float**> float_2_pointers;
+
+        vector<int*> int_1_cleaned;
+        vector<float*> float_1_cleaned;
+        vector<int**> int_2_cleaned;
+        vector<float**> float_2_cleaned;
 
     public:
         // constructors and destructor
@@ -40,4 +46,8 @@ class GarbageCollector{
         void addInt2d(int** obj);
         void addFloat2d(float** obj);
         void flush();
+        void rmInt1d(int* obj);
+        void rmFloat1d(float* obj);
+        void rmInt2d(int** obj);
+        void rmFloat2d(float** obj);
 };
