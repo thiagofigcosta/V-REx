@@ -22,4 +22,5 @@ void testSlide_IntLabel();
 void testSlide_NeuronByNeuronLabel();
 void testStdGeneticsOnMath();
 void testEnchancedGeneticsOnMath();
+void testSlide_Validation();
 void testGeneticallyTunedNeuralNetwork();

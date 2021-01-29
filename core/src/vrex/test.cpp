@@ -164,13 +164,14 @@ void testSlide_IntLabel(){
     float alpha=0.01;
     int batch_size=5;
     bool adam=true;
+    bool shuffleTrainData=true;
     int rehash=6400;
     int rebuild=128000;
     bool print_deltas=true;
     SlideLabelEncoding label_type=SlideLabelEncoding::INT_CLASS;
     Slide* slide=new Slide(layers, layer_sizes, Slide::getStdLayerTypes(layers), train_data[0].second.size(), alpha, batch_size, adam, label_type,
-    range_pow, K, L, sparcity, rehash, rebuild, SlideMode::SAMPLING, SlideHashingFunction::DENSIFIED_WTA, print_deltas);
-    vector<float>train_losses=slide->train(train_data,epochs);
+    range_pow, K, L, sparcity, rehash, rebuild,SlideMetric::RAW_LOSS,SlideMetric::RAW_LOSS,shuffleTrainData, SlideCrossValidation::NONE, SlideMode::SAMPLING, SlideHashingFunction::DENSIFIED_WTA, print_deltas);
+    vector<float>train_losses=slide->trainNoValidation(train_data,epochs);
     for (float loss:train_losses){
         cout<<"Train loss: "<<loss<<endl;
     }
@@ -225,6 +226,7 @@ void testSlide_NeuronByNeuronLabel(){
     SlideLabelEncoding label_type=SlideLabelEncoding::NEURON_BY_NEURON;
     int *layer_sizes=new int[layers]{(int)train_data[0].first.size()};
     bool adam=true;
+    bool shuffleTrainData=true;
     int *range_pow=new int[layers]{6};
     int *K=new int[layers]{2};
     int *L=new int[layers]{20};
@@ -233,8 +235,8 @@ void testSlide_NeuronByNeuronLabel(){
     int rebuild=128000;
     bool print_deltas=true;
     Slide* slide=new Slide(layers, layer_sizes, Slide::getStdLayerTypes(layers), train_data[0].second.size(), alpha, batch_size, adam, label_type,
-    range_pow, K, L, sparcity, rehash, rebuild, SlideMode::SAMPLING, SlideHashingFunction::DENSIFIED_WTA, print_deltas);
-    vector<float>train_losses=slide->train(train_data,epochs);
+    range_pow, K, L, sparcity, rehash, rebuild,SlideMetric::RAW_LOSS,SlideMetric::RAW_LOSS,shuffleTrainData, SlideCrossValidation::NONE, SlideMode::SAMPLING, SlideHashingFunction::DENSIFIED_WTA, print_deltas);
+    vector<float>train_losses=slide->trainNoValidation(train_data,epochs);
     float total_loss=0;
     for (float loss:train_losses){
        total_loss+=loss;
@@ -378,6 +380,61 @@ void testEnchancedGeneticsOnMath(){
     cout<<endl<<"Enchanced Mean ("<<enchanced_mean.second<<"): "<<enchanced_mean.first<<" | Std Mean ("<<std_mean.second<<"): "<<std_mean.first<<endl<<endl<<endl;
 }
 
+void testSlide_Validation(){
+    cout<<"Testing cross validation"<<endl;
+    pair<vector<pair<int, vector<float>>>,map<string,int>> enumfied = Utils::enumfyDataset(Utils::readLabeledCsvDataset(Utils::getResourcePath("iris.data")));
+    vector<pair<vector<int>, vector<float>>> dataset = Utils::encodeDatasetLabels(enumfied.first,DataEncoder::INCREMENTAL);
+    enumfied.first.clear(); // free
+    dataset=Utils::normalizeDataset(dataset).second;
+    map<string,int> equivalence = enumfied.second;
+    dataset=Utils::shuffleDataset(dataset);
+
+
+    float train_percentage=.7;
+    pair<vector<pair<vector<int>, vector<float>>>,vector<pair<vector<int>, vector<float>>>> dividedData=
+        Utils::divideDataSet(dataset, train_percentage);
+    vector<pair<vector<int>, vector<float>>> train_data=dividedData.first;
+    vector<pair<vector<int>, vector<float>>> test_data=dividedData.second;
+   
+    int layers=1;
+    int *layer_sizes=new int[layers]{(int)train_data[0].first.size()};
+    int *range_pow=new int[layers]{6};
+    int *K=new int[layers]{2};
+    int *L=new int[layers]{20};
+    float *sparcity=new float[layers]{1};
+
+    SlideCrossValidation cv=SlideCrossValidation::KFOLDS;
+
+    int epochs=3;
+    float alpha=0.01;
+    int batch_size=5;
+    bool adam=true;
+    bool shuffleTrainData=true;
+    int rehash=6400;
+    int rebuild=128000;
+    bool print_deltas=true;
+    SlideLabelEncoding label_type=SlideLabelEncoding::INT_CLASS;
+    Slide* slide=new Slide(layers, layer_sizes, Slide::getStdLayerTypes(layers), train_data[0].second.size(), alpha, batch_size, adam, label_type,
+    range_pow, K, L, sparcity, rehash, rebuild,SlideMetric::ACCURACY,SlideMetric::ACCURACY,shuffleTrainData, cv, SlideMode::SAMPLING, SlideHashingFunction::DENSIFIED_WTA, print_deltas);
+    vector<pair<float,float>> metrics=slide->train(train_data,epochs);
+    for (pair<float,float> me:metrics){
+        cout<<"Train Acc: "<<me.first<<" - Val Acc: "<<me.second<<endl;
+    }
+    float test_loss=slide->evalLoss(test_data);
+    cout<<"Test loss: "<<test_loss<<endl;
+
+    pair<int,vector<vector<pair<int,float>>>> predicted = slide->evalData(test_data);
+    cout<<"Test size: "<<test_data.size()<<endl;
+    cout<<"Correct values: "<<predicted.first<<endl;
+    Utils::printStats(Utils::statisticalAnalysis(test_data, predicted.second));
+    cout<<endl<<endl;
+    delete slide;
+    delete[] range_pow;
+    delete[] K;
+    delete[] L;
+    delete[] sparcity;
+}
+
 void testGeneticallyTunedNeuralNetwork(){
     INT_SPACE_SEARCH amount_of_layers = INT_SPACE_SEARCH(1,1); // For weaker computers
     // INT_SPACE_SEARCH amount_of_layers = INT_SPACE_SEARCH(1,2); // Too heavy for my computer :(
@@ -406,52 +463,56 @@ void testGeneticallyTunedNeuralNetwork(){
     SPACE_SEARCH space = NeuralGenome::buildSlideNeuralNetworkSpaceSearch(amount_of_layers,epochs,alpha,batch_size,
                                                 layer_size,range_pow,k_values,l_values,sparcity,activation_funcs);
 
-    int population_start_size=30; // change to 1 for fast run
-    int max_gens=10; // change to 2 for fast run
-    int max_age=10; // change to 2 for fast run
-    int max_children=4; // change to 1 for fast run
+    // int population_start_size=30; // change to 1 for fast run
+    // int max_gens=10; // change to 2 for fast run
+    // int max_age=10; // change to 2 for fast run
+    // int max_children=4; // change to 1 for fast run
 
-    // int population_start_size=2; 
-    // int max_gens=10;
-    // int max_age=5; 
-    // int max_children=4; 
+    int population_start_size=1; 
+    int max_gens=1;
+    int max_age=1; 
+    int max_children=1; 
 
-    bool use_neural_genome=true;
     float mutation_rate=0.1;
     float recycle_rate=0.13;
     float sex_rate=0.7;
     int max_notables=3;
-    bool search_maximum=false;
+
+    SlideCrossValidation crossValidation=SlideCrossValidation::KFOLDS;
+    SlideMetric metricMode=SlideMetric::ACCURACY;
 
     const int input_size=4;
     const int output_size=1;
     const bool adam_optimizer=true;
-    const SlideLabelEncoding label_encoding=SlideLabelEncoding::INT_CLASS;
+    const bool use_neural_genome=true;
     const int rehash=6400;
     const int rebuild=128000;
     const int border_sparsity=1; // first and last layers
+    const bool shuffleTrainData=true;
+    const bool search_maximum=(metricMode!=SlideMetric::RAW_LOSS);
+    const SlideLabelEncoding label_encoding=SlideLabelEncoding::INT_CLASS;
 
     auto train_callback = [&](Genome *self) -> float {
         auto self_neural=dynamic_cast<NeuralGenome*>(self);
         if (!self_neural) {
             throw runtime_error("Error could not find an instance of NeuralGenome!\nhint: make useNeuralGenome=true on PopulationManager construtor!");
         }
-        tuple<Slide*,int,function<void()>> net=self_neural->buildSlide(self->getDna(),input_size,output_size,label_encoding,rehash,rebuild,border_sparsity,adam_optimizer);
+        tuple<Slide*,int,function<void()>> net=self_neural->buildSlide(self->getDna(),input_size,output_size,label_encoding,rehash,rebuild,border_sparsity,metricMode,shuffleTrainData,crossValidation,adam_optimizer);
         map<string, vector<float>> weights=self_neural->getWeights();
         if (weights.size()>0){
             get<0>(net)->setWeights(weights);
         }
 
-        vector<float> loss=get<0>(net)->train(train_data,get<1>(net));
+        vector<pair<float,float>> metric=get<0>(net)->train(train_data,get<1>(net));
         // vector<float> loss=get<0>(net)->train(self_neural->getTrainData(),get<1>(net)); // not necessary since we are using lambda [&] 
         self_neural->setWeights(get<0>(net)->getWeights());
         delete get<0>(net); // free memory
         get<2>(net)(); // free memory
         float output=0;
-        for(float l:loss){
-            output+=l;
+        for(pair<float,float> l:metric){
+            output+=l.second; // use validation
         }
-        output/=loss.size();
+        output/=metric.size();
         return output;
     };
     
@@ -470,7 +531,7 @@ void testGeneticallyTunedNeuralNetwork(){
         if (!self_neural) {
             throw runtime_error("Error could not find an instance of NeuralGenome!\nhint: make useNeuralGenome=true on PopulationManager construtor!");
         }
-        tuple<Slide*,int,function<void()>> net=self_neural->buildSlide(self->getDna(),input_size,output_size,label_encoding,rehash,rebuild,border_sparsity,adam_optimizer);
+        tuple<Slide*,int,function<void()>> net=self_neural->buildSlide(self->getDna(),input_size,output_size,label_encoding,rehash,rebuild,border_sparsity,metricMode,shuffleTrainData,crossValidation,adam_optimizer);
         map<string, vector<float>> weights=self_neural->getWeights();
         if (weights.size()>0){
             get<0>(net)->setWeights(weights);
@@ -497,5 +558,6 @@ void test() {
     // testSlide_NeuronByNeuronLabel();
     // testStdGeneticsOnMath();
     // testEnchancedGeneticsOnMath();
+    // testSlide_Validation();
     testGeneticallyTunedNeuralNetwork();
 }

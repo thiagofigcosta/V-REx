@@ -5,7 +5,7 @@
 
 Slide::Slide(int numLayer, int *sizesOfLayers, NodeType* layerTypes, int InputDim, float Lr, int Batchsize, bool useAdamOt, 
             SlideLabelEncoding labelType, int *RangePow, int *KValues,int *LValues,float *Sparsity, int Rehash, int Rebuild, 
-            SlideMode Mode,SlideHashingFunction HashFunc, bool printDeltas) {
+            SlideMetric trainMetric,SlideMetric valMetric,bool shuffleTrainData,SlideCrossValidation crossValidation,SlideMode Mode,SlideHashingFunction HashFunc, bool printDeltas) {
         range_pow=RangePow;
         K=KValues;
         L=LValues;
@@ -23,6 +23,10 @@ Slide::Slide(int numLayer, int *sizesOfLayers, NodeType* layerTypes, int InputDi
         print_deltas=printDeltas;
         use_adam=useAdamOt;
         label_type=labelType;
+        train_metric=trainMetric;
+        val_metric=valMetric;
+        shuffle_train_data=shuffleTrainData;
+        cross_validation=crossValidation;
 
         slide_network=new Network(layer_sizes, layer_types, amount_layers, batch_size, learning_rate, input_dim, K, L, range_pow, sparsity,mode,hash_function,use_adam,label_type);
 }
@@ -32,6 +36,7 @@ Slide::Slide(const Slide& orig) {
 
 Slide::~Slide() {
     delete slide_network;
+    GarbageCollector::erase();
 }
 
 void Slide::setWeights(map<string, vector<float>> loadedData){
@@ -51,69 +56,143 @@ NodeType* Slide::getStdLayerTypes(const int amount_layers){
     return types;
 }
 
-vector<float> Slide::train(vector<pair<vector<int>, vector<float>>> &train_data,int epochs){
-    vector<pair<vector<int>, vector<float>>> validation_data;
-    vector<pair<float,float>> losses = train(train_data,validation_data,epochs);
+vector<float> Slide::trainNoValidation(vector<pair<vector<int>, vector<float>>> &train_data,int epochs){
+    SlideCrossValidation crossValidation = cross_validation;
+    cross_validation=SlideCrossValidation::NONE;
+    vector<pair<float,float>> losses = train(train_data,epochs);
     vector<float> loss;
     for (pair<float,float> ll:losses){
         loss.push_back(ll.first);
     }
+    cross_validation=crossValidation;
     return loss;
 }
 
-vector<pair<float,float>> Slide::train(vector<pair<vector<int>, vector<float>>> &train_data,vector<pair<vector<int>, vector<float>>> &validation_data,int epochs){
-    vector<pair<float,float>> losses; // train / validation
+pair<float,float> Slide::trainEpoch(vector<pair<vector<int>, vector<float>>> &train_data,vector<pair<vector<int>, vector<float>>> &validation_data, int cur_epoch){
+    // int num_batches=(train_data.size() + batch_size-1)/batch_size; // ERROR, round UP causes segfault
+    int num_batches=train_data.size()/batch_size;
+    float train_loss=0;
+    for (size_t i = 0; i <(size_t)num_batches; i++) {
+        int iter=cur_epoch*num_batches+i;
+        vector<pair<vector<int>, vector<float>>> batch_data=Utils::extractSubVector(train_data, i*batch_size, batch_size);
+        bool must_rehash = false;
+        bool must_rebuild = false;
+        if ((size_t)(iter)%(rehash/batch_size) == ((size_t)rehash/batch_size-1)){
+            if(mode==SlideMode::TOPK_THRESHOLD || mode==SlideMode::SAMPLING) {
+                must_rehash = true;
+            }
+        }
+        if ((size_t)(iter)%(rebuild/batch_size) == ((size_t)rehash/batch_size-1)){
+            if(mode==SlideMode::TOPK_THRESHOLD || mode==SlideMode::SAMPLING) {
+                must_rebuild = true;
+            }
+        }
+        float **values;
+        int *sizes, *labelsize;
+        int **records, **labels;
+        allocAndCastDatasetToSlide(batch_data,values,sizes,records,labels,labelsize);
+
+        train_loss+=slide_network->ProcessInput(records, values, sizes, labels, labelsize, 
+                                                iter, must_rehash, must_rebuild);
+
+        batch_data.clear();
+        deallocSlideDataset(values,sizes,records,labels,labelsize);
+    }
+    train_loss/=num_batches;
+
+    float train=0;
+    switch(train_metric){
+        case SlideMetric::RAW_LOSS:
+            train=train_loss;
+            break;
+        case SlideMetric::F1:
+            train=Utils::statisticalAnalysis(train_data,evalData(train_data).second).f1;
+            break;
+        case SlideMetric::RECALL:
+            train=Utils::statisticalAnalysis(train_data,evalData(train_data).second).recall;
+            break;
+        case SlideMetric::ACCURACY:
+            train=Utils::statisticalAnalysis(train_data,evalData(train_data).second).accuracy;
+            break;
+        case SlideMetric::PRECISION:
+            train=Utils::statisticalAnalysis(train_data,evalData(train_data).second).precision;
+            break;
+    }
+
+    float val=0;
+    if (validation_data.size()>0){
+        switch(val_metric){
+            case SlideMetric::RAW_LOSS:
+                val=evalLoss(validation_data);
+                break;
+            case SlideMetric::F1:
+                val=Utils::statisticalAnalysis(validation_data,evalData(validation_data).second).f1;
+                break;
+            case SlideMetric::RECALL:
+                val=Utils::statisticalAnalysis(validation_data,evalData(validation_data).second).recall;
+                break;
+            case SlideMetric::ACCURACY:
+                val=Utils::statisticalAnalysis(validation_data,evalData(validation_data).second).accuracy;
+                break;
+            case SlideMetric::PRECISION:
+                val=Utils::statisticalAnalysis(validation_data,evalData(validation_data).second).precision;
+                break;
+        }
+        GarbageCollector::get()->flush();
+    }
+    return pair<float,float>(train,val);
+}
+
+vector<pair<float,float>> Slide::train(vector<pair<vector<int>, vector<float>>> &train_data,int epochs){
+    vector<pair<float,float>> metrics; // train / validation
     chrono::high_resolution_clock::time_point t1,t2;
     if (print_deltas) {
         t1 = chrono::high_resolution_clock::now();
     }
-    // int num_batches=(train_data.size() + batch_size-1)/batch_size; // ERROR, round UP causes segfault
-    int num_batches=train_data.size()/batch_size;
     for (size_t j=0;j<(size_t)epochs;j++){
-        float train_loss=0;
-        for (size_t i = 0; i <(size_t)num_batches; i++) {
-            int iter=j*num_batches+i;
-            vector<pair<vector<int>, vector<float>>> batch_data=Utils::extractSubVector(train_data, i*batch_size, batch_size);
-            bool must_rehash = false;
-            bool must_rebuild = false;
-            if ((size_t)(iter)%(rehash/batch_size) == ((size_t)rehash/batch_size-1)){
-                if(mode==SlideMode::TOPK_THRESHOLD || mode==SlideMode::SAMPLING) {
-                    must_rehash = true;
+        if(shuffle_train_data)
+            train_data=Utils::shuffleDataset(train_data);
+        vector<pair<vector<int>, vector<float>>> validation_data;
+        vector<pair<vector<int>, vector<float>>> t_data;
+        switch(cross_validation){
+            case SlideCrossValidation::NONE:
+                t_data=train_data;
+                break;
+            case SlideCrossValidation::ROLLING_FORECASTING_ORIGIN:{
+                int fixed_train_pos=train_data.size()*Slide::ROLLING_FORECASTING_ORIGIN_MIN;
+                int window_size=(train_data.size()-fixed_train_pos)/epochs;
+                int start_val=fixed_train_pos+j*window_size;
+                t_data=Utils::extractSubVector(train_data, 0, start_val);
+                validation_data=Utils::extractSubVector(train_data, start_val, window_size);
+                }break;
+            case SlideCrossValidation::KFOLDS:{
+                const int total_folds=Slide::K_FOLDS;
+                int val_fold=int((total_folds-1)*Utils::getRandomBetweenZeroAndOne());
+                int fold_size=train_data.size()/total_folds;
+                t_data=Utils::extractSubVector(train_data, 0, val_fold*fold_size );
+                validation_data=Utils::extractSubVector(train_data, val_fold*fold_size, fold_size );
+                if (val_fold!=(total_folds-1)){
+                    vector<pair<vector<int>, vector<float>>> tmp=Utils::extractSubVector(train_data, (val_fold+1)*fold_size, (total_folds-val_fold-1)*fold_size );
+                    t_data.insert(t_data.end(),tmp.begin(),tmp.end());
+                    tmp.clear();
                 }
-            }
-            if ((size_t)(iter)%(rebuild/batch_size) == ((size_t)rehash/batch_size-1)){
-                if(mode==SlideMode::TOPK_THRESHOLD || mode==SlideMode::SAMPLING) {
-                    must_rebuild = true;
-                }
-            }
-            float **values;
-            int *sizes, *labelsize;
-            int **records, **labels;
-            allocAndCastDatasetToSlide(batch_data,values,sizes,records,labels,labelsize);
-
-            train_loss+=slide_network->ProcessInput(records, values, sizes, labels, labelsize, 
-                                                    iter, must_rehash, must_rebuild);
-
-            batch_data.clear();
-            deallocSlideDataset(values,sizes,records,labels,labelsize);
-            GarbageCollector::get()->flush();
+                }break;
+            case SlideCrossValidation::TWENTY_PERCENT:{
+                int val_size=.2*train_data.size();
+                t_data=Utils::extractSubVector(train_data, 0, train_data.size()-val_size);
+                validation_data=Utils::extractSubVector(train_data, train_data.size()-val_size, val_size);
+                }break;
         }
-        train_data=Utils::shuffleDataset(train_data);
-
-        train_loss/=num_batches;
-
-        float val_loss=0;
-        if (validation_data.size()>0){
-            val_loss=evalLoss(validation_data);
+        while((int)validation_data.size()<batch_size){
+            validation_data.push_back(t_data[int(t_data.size()*Utils::getRandomBetweenZeroAndOne())]);
         }
-        losses.push_back(pair<float,float>(train_loss,val_loss));
-        GarbageCollector::get()->flush();
+        metrics.push_back(trainEpoch(t_data,validation_data,j));
     }
     if (print_deltas) {
         t2 = chrono::high_resolution_clock::now();
         cout<<"Training takes: "<<Utils::msToHumanReadable(chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count())<<endl;
     }
-    return losses;
+    return metrics;
 }
 
 float Slide::evalLoss(vector<pair<vector<int>, vector<float>>> &eval_data){
@@ -210,5 +289,5 @@ void Slide::deallocSlideDataset(float **values, int *sizes, int **records, int *
     delete[] records;
     delete[] values;
     delete[] labels;
-    GarbageCollector::erase();
+    GarbageCollector::get()->flush();
 }

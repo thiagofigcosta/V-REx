@@ -66,7 +66,7 @@ SPACE_SEARCH NeuralGenome::buildSlideNeuralNetworkSpaceSearch(INT_SPACE_SEARCH a
     return SPACE_SEARCH(int_dna,float_dna);
 }
 
-tuple<Slide*,int,function<void()>> NeuralGenome::buildSlide(pair<vector<int>,vector<float>> dna, int input_size, int output_size, SlideLabelEncoding label_encoding, int rehash, int rebuild, int border_sparsity, bool adam_optimizer){
+tuple<Slide*,int,function<void()>> NeuralGenome::buildSlide(pair<vector<int>,vector<float>> dna, int input_size, int output_size, SlideLabelEncoding label_encoding, int rehash, int rebuild, int border_sparsity,SlideMetric metric,bool shuffleTrainData,SlideCrossValidation crossValidation, bool adam_optimizer){
     vector<int> int_dna=dna.first;
     vector<float> float_dna=dna.second;
     int epochs=int_dna[0];
@@ -161,11 +161,16 @@ tuple<Slide*,int,function<void()>> NeuralGenome::buildSlide(pair<vector<int>,vec
     
     last_print_str=print_str;
 
+    SlideMetric trainMetric=SlideMetric::RAW_LOSS;
+    if (crossValidation==SlideCrossValidation::NONE){
+        trainMetric=metric;
+    }
+
     string ex_str="";
     Slide* net=nullptr;
     try{
         net=new Slide(layers, layer_sizes, node_types, input_size, alpha, batch_size, adam_optimizer, label_encoding,
-    range_pow, K, L, sparcity, rehash, rebuild, SlideMode::SAMPLING, SlideHashingFunction::DENSIFIED_WTA, false);
+    range_pow, K, L, sparcity, rehash, rebuild,trainMetric,metric,shuffleTrainData,crossValidation, SlideMode::SAMPLING, SlideHashingFunction::DENSIFIED_WTA, false);
     } catch (const exception& ex) {
         ex_str=ex.what();
     } catch (const string& ex) {

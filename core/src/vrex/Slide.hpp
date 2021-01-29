@@ -13,6 +13,8 @@ enum class NodeType;
 enum class SlideMode { TOPK_THRESHOLD=1, SAMPLING=4, UNKNOWN_MODE1=2, UNKNOWN_MODE2=3 }; // TODO find out mode names
 enum class SlideHashingFunction { WTA=1, DENSIFIED_WTA=2, TOPK_MIN_HASH=3, SIMHASH=4 };
 enum class SlideLabelEncoding { INT_CLASS, NEURON_BY_NEURON, NEURON_BY_N_LOG_LOSS };
+enum class SlideMetric { RAW_LOSS, F1, RECALL, ACCURACY, PRECISION };
+enum class SlideCrossValidation { NONE, ROLLING_FORECASTING_ORIGIN, KFOLDS, TWENTY_PERCENT };
 
 using namespace std;
 
@@ -21,6 +23,7 @@ class Slide{
         // constructors and destructor
         Slide(int numLayer, int *sizesOfLayers, NodeType* layerTypes, int InputDim, float Lr, int Batchsize, bool useAdamOt, 
             SlideLabelEncoding labelType,int *RangePow, int *KValues,int *LValues,float *Sparsity, int Rehash, int Rebuild, 
+            SlideMetric trainMetric,SlideMetric valMetric, bool shuffleTrainData, SlideCrossValidation crossValidation,
             SlideMode Mode=SlideMode::SAMPLING, SlideHashingFunction HashFunc=SlideHashingFunction::DENSIFIED_WTA, bool printDeltas=false);
         Slide(const Slide& orig);
         virtual ~Slide();
@@ -29,8 +32,8 @@ class Slide{
         void setWeights(map<string, vector<float>> loadedData);
         map<string, vector<float>> getWeights();
         static NodeType* getStdLayerTypes(const int amount_layers);
-        vector<float> train(vector<pair<vector<int>, vector<float>>> &train_data,int epochs);
-        vector<pair<float,float>> train(vector<pair<vector<int>, vector<float>>> &train_data,vector<pair<vector<int>, vector<float>>> &validation_data,int epochs);
+        vector<float> trainNoValidation(vector<pair<vector<int>, vector<float>>> &train_data,int epochs);
+        vector<pair<float,float>> train(vector<pair<vector<int>, vector<float>>> &train_data,int epochs);
         float evalLoss(vector<pair<vector<int>, vector<float>>> &eval_data);
         pair<int,vector<vector<pair<int,float>>>> evalData(vector<pair<vector<int>, vector<float>>> &test_data);
         void allocAndCastDatasetToSlide(vector<pair<vector<int>, vector<float>>> &data,float **&values, int *&sizes, int **&records, int **&labels, int *&labelsize);
@@ -63,6 +66,10 @@ class Slide{
         #pragma omp threadprivate(RAND_WEIGHT_START)
         static constexpr float RAND_WEIGHT_END= 0.01;
         #pragma omp threadprivate(RAND_WEIGHT_END)
+        static const int K_FOLDS=10;
+        #pragma omp threadprivate(K_FOLDS)
+        static constexpr float ROLLING_FORECASTING_ORIGIN_MIN=.5;
+        #pragma omp threadprivate(ROLLING_FORECASTING_ORIGIN_MIN)
 
     private:
         // variables
@@ -85,4 +92,10 @@ class Slide{
         bool print_deltas;
         bool use_adam;
         SlideLabelEncoding label_type;
+        SlideMetric train_metric;
+        SlideMetric val_metric;
+        bool shuffle_train_data;
+        SlideCrossValidation cross_validation;
+        pair<float,float> trainEpoch(vector<pair<vector<int>, vector<float>>> &train_data,vector<pair<vector<int>, vector<float>>> &validation_data, int cur_epoch);
+
 };
