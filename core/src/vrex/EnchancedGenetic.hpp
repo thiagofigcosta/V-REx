@@ -3,6 +3,7 @@
 #include <iostream>
 #include <utility>
 #include <vector>
+#include <set>
 
 using namespace std;
 class Genome;

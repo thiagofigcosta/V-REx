@@ -76,6 +76,15 @@ class Utils{
         static snn_stats statisticalAnalysis(vector<vector<int>> correct, vector<vector<int>> pred);
         static snn_stats statisticalAnalysis(vector<pair<vector<int>, vector<float>>> correct, vector<vector<pair<int,float>>> pred);
         static void printStats(snn_stats stats);
+        template<typename T>
+        static vector<T> subtractVectors(vector<T> a, vector<T> b){
+            vector<T> out;
+            remove_copy_if(a.begin(), a.end(), back_inserter(out),
+                [&b](const T& arg)
+                {return (find(b.begin(), b.end(), arg) != b.end());});
+            return out;
+        }
+
 
         // variables
         static mt19937_64 RNG;

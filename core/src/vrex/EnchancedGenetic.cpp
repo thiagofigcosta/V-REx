@@ -46,8 +46,9 @@ void EnchancedGenetic::select(vector<Genome*> &currentGen){
     for (Genome *g:currentGen){
         fitness_sum+=g->getFitness()+offset;
     }
-    vector<Genome*> nxt_gen;
     uniform_real_distribution<float> roulette(0,fitness_sum);
+    vector<vector<Genome*>> all_parents;
+    set<Genome*> useful_beings;
     for (size_t i=0;i<currentGen.size()/2;i++){
         vector<Genome*> parents;
         Genome* backup=nullptr;
@@ -66,23 +67,32 @@ void EnchancedGenetic::select(vector<Genome*> &currentGen){
                 }
             }
         }
-        if (parents.size()==2){
-            current_population_size=currentGen.size();
-            vector<Genome*> children=sex(parents[0],parents[1]);
-            nxt_gen.insert(nxt_gen.end(),children.begin(),children.end());
-        }else{
-            if (dynamic_cast<NeuralGenome*>(parents[0])){
-                nxt_gen.push_back(new NeuralGenome(*((NeuralGenome*)parents[0])));
-                nxt_gen.push_back(new NeuralGenome(*((NeuralGenome*)backup)));
-            }else{
-                nxt_gen.push_back(new Genome(*parents[0]));
-                nxt_gen.push_back(new Genome(*backup));
-            }
+        if (parents.size()!=2){
+            parents.push_back(backup);
         }
+        useful_beings.insert(parents[0]);
+        useful_beings.insert(parents[1]);
+        all_parents.push_back(parents);
     }
-    for (Genome *g:currentGen){
+    vector<Genome*> useful_beings_vec;
+    copy(useful_beings.begin(), useful_beings.end(), back_inserter(useful_beings_vec));
+    useful_beings.clear();
+    vector<Genome*> useless_beings_vec = Utils::subtractVectors(currentGen,useful_beings_vec);
+    for (Genome *g:useless_beings_vec){
         delete g;
     }
+    useless_beings_vec.clear();
+    current_population_size=currentGen.size();
+    vector<Genome*> nxt_gen;
+    for(vector<Genome*> parents:all_parents){
+        vector<Genome*> children=sex(parents[0],parents[1]);
+        nxt_gen.insert(nxt_gen.end(),children.begin(),children.end());
+        // current_population_size+=children.size()-2; // TODO new stuff, should remove?
+    }
+    for (Genome *g:useful_beings_vec){
+        delete g;
+    }
+    useful_beings_vec.clear();
     currentGen.clear();
     currentGen.insert(currentGen.end(),nxt_gen.begin(),nxt_gen.end());
     nxt_gen.clear();

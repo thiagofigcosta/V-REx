@@ -1,4 +1,5 @@
 #include "GarbageCollector.hpp"
+#include "Utils.hpp"
 
 GarbageCollector* GarbageCollector::singleton=nullptr;
 
@@ -34,23 +35,14 @@ void GarbageCollector::rmFloat2d(float** obj){
     float_2_cleaned.push_back(obj);
 }
 
-template<typename T>
-vector<T> subtractLists(vector<T> a, vector<T> b){
-    vector<T> out;
-    remove_copy_if(a.begin(), a.end(), back_inserter(out),
-        [&b](const T& arg)
-        {return (find(b.begin(), b.end(), arg) != b.end());});
-    return out;
-}
-
 void GarbageCollector::flush(){
-    int_1_pointers=subtractLists(int_1_pointers, int_1_cleaned);
+    int_1_pointers=Utils::subtractVectors(int_1_pointers, int_1_cleaned);
     int_1_cleaned.clear();
-    float_1_pointers=subtractLists(float_1_pointers, float_1_cleaned);
+    float_1_pointers=Utils::subtractVectors(float_1_pointers, float_1_cleaned);
     float_1_cleaned.clear();
-    int_2_pointers=subtractLists(int_2_pointers, int_2_cleaned);
+    int_2_pointers=Utils::subtractVectors(int_2_pointers, int_2_cleaned);
     int_2_cleaned.clear();
-    float_2_pointers=subtractLists(float_2_pointers, float_2_cleaned);
+    float_2_pointers=Utils::subtractVectors(float_2_pointers, float_2_cleaned);
     float_2_cleaned.clear();
 
     while(int_1_pointers.size()>0){
