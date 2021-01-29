@@ -1,10 +1,9 @@
 #include "HallOfFame.hpp"
 #include "NeuralGenome.hpp"
 
-HallOfFame::HallOfFame(int maxNotables, bool lookingHighestFitness, bool useExtraArgs) {
+HallOfFame::HallOfFame(int maxNotables, bool lookingHighestFitness) {
     looking_highest_fitness=lookingHighestFitness;
     max_notables=maxNotables;
-    use_extra_args=useExtraArgs;
     float starting_point;
     if (looking_highest_fitness){
         starting_point=numeric_limits<float>::min();
@@ -21,80 +20,54 @@ HallOfFame::~HallOfFame() {
     for (Genome* g:notables){
         delete g;
     }
-    for (pair<Genome*,string> g:notables_extra){
-        delete g.first;
-    }
 }
 
 void HallOfFame::update(vector<Genome*> candidates, int gen){
-    if (!use_extra_args){
-        for (Genome *entry:candidates){
-            if (dynamic_cast<NeuralGenome*>(entry)){
-                notables.push_back(new NeuralGenome(*((NeuralGenome*)entry)));
-            }else{
-                notables.push_back(new Genome(*entry));
-            }
-        }
-        sort(notables.begin(),notables.end(),[&](Genome* &lhs, Genome* &rhs){
-            if (looking_highest_fitness){
-                return lhs->getOutput() > rhs->getOutput(); // descending
-            }else{
-                return lhs->getOutput() < rhs->getOutput(); // ascending
-            }
-        });
-        while(notables.size()>(size_t)max_notables){
-            delete notables.back();
-            notables.pop_back();
-        }
-        if ((looking_highest_fitness && notables[0]->getOutput()>best.first) || (!looking_highest_fitness && notables[0]->getOutput()<best.first)){
-            best.first=notables[0]->getOutput();
-            best.second=gen;
-        }
-    }else{
-        vector<string> extras;
-        update(candidates,extras,gen);
+    vector<pair<float,Genome*>> notables_to_select;
+    for (Genome *entry:notables){
+        notables_to_select.push_back(pair<float,Genome*>(entry->getOutput(),entry));
     }
-}
-
-void HallOfFame::update(vector<Genome*> candidates, vector<string> extraCandidatesArguments, int gen){
-    vector<pair<Genome*,string>> candidatesWithExtra=joinGenomeVector(candidates,extraCandidatesArguments);
-    for (pair<Genome*,string> entry:candidatesWithExtra){
-        notables_extra.push_back(entry);
+    for (Genome *entry:candidates){
+        notables_to_select.push_back(pair<float,Genome*>(entry->getOutput(),entry));
     }
-    // notables.insert(notables.end(),candidatesWithExtra.begin(),candidatesWithExtra.end());
-    sort(notables_extra.begin(),notables_extra.end(),[&](pair<Genome*,string> &lhs, pair<Genome*,string> &rhs){
+    sort(notables_to_select.begin(),notables_to_select.end(),[&](pair<float,Genome*> &lhs, pair<float,Genome*> &rhs){
         if (looking_highest_fitness){
-            return lhs.first->getOutput() > rhs.first->getOutput(); // descending
+            return lhs.first > rhs.first; // descending
         }else{
-            return lhs.first->getOutput() < rhs.first->getOutput(); // ascending
+            return lhs.first < rhs.first; // ascending
         }
     });
-    // if (notables.size()>(size_t)max_notables){notables.resize(max_notables);}
-    while(notables_extra.size()>(size_t)max_notables){
-        delete notables_extra.back().first;
-        notables_extra.pop_back();
+    while(notables_to_select.size()>(size_t)max_notables){
+        pair<float,Genome*> entry=notables_to_select.back();
+        if(find(notables.begin(), notables.end(), entry.second) != notables.end()) {
+            delete entry.second;
+        }
+        notables_to_select.pop_back();
     }
-    if ((looking_highest_fitness && notables_extra[0].first->getOutput()>best.first) || (!looking_highest_fitness && notables_extra[0].first->getOutput()<best.first)){
-        best.first=notables_extra[0].first->getOutput();
+    vector<Genome*> new_notables;
+    for (pair<float,Genome*> entry:notables_to_select){
+        if(find(notables.begin(), notables.end(), entry.second) != notables.end()) {
+            new_notables.push_back(entry.second);
+        }else{
+            if (dynamic_cast<NeuralGenome*>(entry.second)){
+                new_notables.push_back(new NeuralGenome(*((NeuralGenome*)entry.second)));
+            }else{
+                new_notables.push_back(new Genome(*entry.second));
+            }
+        }
+    }
+    notables.clear();
+    notables=new_notables;
+    if ((looking_highest_fitness && notables[0]->getOutput()>best.first) || (!looking_highest_fitness && notables[0]->getOutput()<best.first)){
+        best.first=notables[0]->getOutput();
         best.second=gen;
     }
 }
 
 vector<Genome*> HallOfFame::getNotables(){
-    if (!use_extra_args){
-        return notables;
-    }else{
-        return splitGenomeVector(notables_extra);
-    }
+    return notables;
 }
 
-vector<pair<Genome*,string>> HallOfFame::getNotablesPlusExtras(){
-    if (!use_extra_args){
-        return joinGenomeVector(notables,vector<string>());
-    }else{
-        return notables_extra;
-    }
-}
 vector<Genome*> HallOfFame::splitGenomeVector(vector<pair<Genome*,string>> genomeVec){
     vector<Genome*> out;
     for (pair<Genome*,string> notable:genomeVec){
