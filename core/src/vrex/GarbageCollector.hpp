@@ -11,6 +11,7 @@ class GarbageCollector{
     private:
         // variables
         static GarbageCollector* singleton;
+        #pragma omp threadprivate(singleton)
         vector<int*> int_1_pointers;
         vector<float*> float_1_pointers;
         vector<int**> int_2_pointers;

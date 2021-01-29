@@ -59,6 +59,10 @@ class Slide{
         #pragma omp threadprivate(FIFO_INSTEAD_OF_RESERVOIR_SAMPLING)
         static constexpr float SOFTMAX_LINEAR_CONSTANT=0.0000001;
         #pragma omp threadprivate(SOFTMAX_LINEAR_CONSTANT)
+        static constexpr float RAND_WEIGHT_START=0;
+        #pragma omp threadprivate(RAND_WEIGHT_START)
+        static constexpr float RAND_WEIGHT_END= 0.01;
+        #pragma omp threadprivate(RAND_WEIGHT_END)
 
     private:
         // variables

@@ -60,7 +60,7 @@ Layer::Layer(size_t noOfNodes, int previousLayerNumOfNodes, int layerID, NodeTyp
         _bias = new float[_noOfNodes];
         random_device rd;
         default_random_engine dre(rd());
-        normal_distribution<float> distribution(0.0, 0.01);
+        normal_distribution<float> distribution(Slide::RAND_WEIGHT_START, Slide::RAND_WEIGHT_END);
 
         generate(_weights, _weights + _noOfNodes * previousLayerNumOfNodes, [&] () { return distribution(dre); });
         generate(_bias, _bias + _noOfNodes, [&] () { return distribution(dre); });

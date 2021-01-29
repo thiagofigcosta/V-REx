@@ -482,9 +482,9 @@ void testGeneticallyTunedNeuralNetwork(){
 void test() {
     // testCsvRead();
     // testMongo();
-    // testSlide_IntLabel();
+    testSlide_IntLabel();
     // testSlide_NeuronByNeuronLabel();
     //testStdGeneticsOnMath();
     // testEnchancedGeneticsOnMath();
-    testGeneticallyTunedNeuralNetwork();
+    // testGeneticallyTunedNeuralNetwork();
 }
