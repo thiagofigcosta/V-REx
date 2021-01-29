@@ -31,7 +31,7 @@ done
 if [ $debug -ne 0 ] ; then 
     gdb /vrex/src/bin/vrex $program_args
 elif  [ $profiling -ne 0 ] ; then 
-    valgrind --leak-check=yes /vrex/src/bin/vrex $program_args
+    valgrind --leak-check=full --track-origins=yes /vrex/src/bin/vrex $program_args
 else
     ./vrex/src/bin/vrex $program_args
 fi

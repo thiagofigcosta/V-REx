@@ -111,6 +111,7 @@ vector<pair<float,float>> Slide::train(vector<pair<vector<int>, vector<float>>> 
         t2 = chrono::high_resolution_clock::now();
         cout<<"Training takes: "<<Utils::msToHumanReadable(chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count())<<endl;
     }
+    GarbageCollector::get()->flush();
     return losses;
 }
 
@@ -208,4 +209,5 @@ void Slide::deallocSlideDataset(float **values, int *sizes, int **records, int *
     delete[] records;
     delete[] values;
     delete[] labels;
+    GarbageCollector::erase();
 }

@@ -81,11 +81,9 @@ tuple<Slide*,int,function<void()>> NeuralGenome::buildSlide(pair<vector<int>,vec
     float *sparcity=new float[layers];
 
     auto teardown_callback = [layer_sizes,range_pow,K,L,node_types,sparcity]() {
-        // delete[] layer_sizes; // double free
         delete[] range_pow;
         delete[] K;
         delete[] L;
-        // delete[] node_types; // double free
         delete[] sparcity;
     };
     

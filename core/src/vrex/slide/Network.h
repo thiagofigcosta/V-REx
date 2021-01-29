@@ -15,6 +15,7 @@ class Layer;
 #include "Layer.h"
 #include "LSH.h"
 #include "../Slide.hpp"
+#include "../GarbageCollector.hpp"
 
 using namespace std;
 

@@ -11,6 +11,7 @@
 #include "HallOfFame.hpp"
 #include "StandardGenetic.hpp"
 #include "NeuralGenome.hpp"
+#include "GarbageCollector.hpp"
 
 using namespace std;
 

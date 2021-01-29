@@ -36,7 +36,7 @@ debug:
 	gdb ./$(EXEC)
 
 profile:
-	valgrind --leak-check=yes $(EXEC)
+	valgrind --leak-check=full --track-origins=yes $(EXEC)
 
 compileAndLink: compile link
 

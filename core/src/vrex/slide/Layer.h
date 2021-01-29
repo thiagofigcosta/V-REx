@@ -25,6 +25,8 @@ class Node;
 
 using namespace std;
 
+#include "../GarbageCollector.hpp"
+
 class Layer
 {
 private:

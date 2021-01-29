@@ -174,7 +174,6 @@ int * DensifiedMinhash::getHash(int* indices, float* data, int* binids, int data
         hashArray[i] = next;
     }
     delete[] hashes;
-    //   delete[] values;
     return hashArray;
 }
 

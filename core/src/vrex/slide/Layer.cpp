@@ -222,6 +222,7 @@ int Layer::queryActiveNodeandComputeActivations(int** activenodesperlayer, float
         len = _noOfNodes;
         lengths[layerIndex + 1] = len;
         activenodesperlayer[layerIndex + 1] = new int[len]; //assuming not intitialized;
+        GarbageCollector::get()->addInt1d(activenodesperlayer[layerIndex + 1]);
         for (int i = 0; i < len; i++)
         {
             activenodesperlayer[layerIndex + 1][i] = i;
@@ -442,6 +443,7 @@ int Layer::queryActiveNodeandComputeActivations(int** activenodesperlayer, float
     #pragma GCC diagnostic push 
     #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
     activeValuesperlayer[layerIndex + 1] = new float[len]; //assuming its not initialized else memory leak;
+    GarbageCollector::get()->addFloat1d(activeValuesperlayer[layerIndex + 1]);
     #pragma GCC diagnostic pop 
     float maxValue = 0;
     if (_type == NodeType::Softmax)

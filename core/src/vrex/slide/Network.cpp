@@ -156,7 +156,6 @@ pair<int,vector<vector<pair<int,float>>>> Network::predictClass(int **inputIndic
         delete[] sizes; 
         for (int j = 1; j < _numberOfLayers + 1; j++) {
             delete[] activenodesperlayer[j];
-            delete[] activeValuesperlayer[j];
         }
         delete[] activenodesperlayer;
         delete[] activeValuesperlayer;
@@ -247,10 +246,6 @@ float Network::ProcessInput(int **inputIndices, float **inputValues, int *length
     for (int i = 0; i < _currentBatchSize; i++) {
         //Free memory to avoid leaks
         delete[] sizesPerBatch[i];
-        for (int j = 1; j < _numberOfLayers + 1; j++) {
-            delete[] activeNodesPerBatch[i][j];
-            delete[] activeValuesPerBatch[i][j];
-        }
         delete[] activeNodesPerBatch[i];
         delete[] activeValuesPerBatch[i];
     }
@@ -357,7 +352,9 @@ float Network::evalInput(int** inputIndices, float** inputValues, int* lengths, 
 #pragma omp parallel for
     for (int i = 0; i < _currentBatchSize; i++) {
         int **activenodesperlayer = new int *[_numberOfLayers + 1]();
+        GarbageCollector::get()->addInt2d(activenodesperlayer);
         float **activeValuesperlayer = new float *[_numberOfLayers + 1]();
+        GarbageCollector::get()->addFloat2d(activeValuesperlayer);
         int *sizes = new int[_numberOfLayers + 1]();
 
         activeNodesPerBatch[i] = activenodesperlayer;
@@ -393,22 +390,10 @@ float Network::evalInput(int** inputIndices, float** inputValues, int* lengths, 
                 }
             }
         }
-        delete[] sizes;
-    	//for (int j = 0; j < _numberOfLayers + 1; j++) {
-            //delete[] activenodesperlayer[j];
-            //delete[] activeValuesperlayer[j];
-        //}
-        delete[] activenodesperlayer;
-        delete[] activeValuesperlayer;
     }
-    //for (int i = 0; i < _currentBatchSize; i++) {
-        //Free memory to avoid leaks
-       // delete[] sizesPerBatch[i];
-       // for (int j = 1; j < _numberOfLayers + 1; j++) {
-            //delete[] activeNodesPerBatch[i][j];
-       // }
-        //delete[] activeNodesPerBatch[i];
-    //}
+    for (int i = 0; i < _currentBatchSize; i++) {
+       delete[] sizesPerBatch[i];
+    }
     delete[] activeNodesPerBatch;
     delete[] sizesPerBatch;
     float total_metrics=0;
