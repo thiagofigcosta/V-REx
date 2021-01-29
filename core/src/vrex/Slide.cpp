@@ -96,6 +96,7 @@ vector<pair<float,float>> Slide::train(vector<pair<vector<int>, vector<float>>> 
 
             batch_data.clear();
             deallocSlideDataset(values,sizes,records,labels,labelsize);
+            GarbageCollector::get()->flush();
         }
         train_data=Utils::shuffleDataset(train_data);
 
@@ -106,12 +107,12 @@ vector<pair<float,float>> Slide::train(vector<pair<vector<int>, vector<float>>> 
             val_loss=evalLoss(validation_data);
         }
         losses.push_back(pair<float,float>(train_loss,val_loss));
+        GarbageCollector::get()->flush();
     }
     if (print_deltas) {
         t2 = chrono::high_resolution_clock::now();
         cout<<"Training takes: "<<Utils::msToHumanReadable(chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count())<<endl;
     }
-    GarbageCollector::get()->flush();
     return losses;
 }
 
