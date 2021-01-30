@@ -562,6 +562,7 @@ void testMongoCveRead(){
     bsoncxx::stdx::optional<bsoncxx::document::value> maybe_result =
         mongo.getCollection(mongo.getDB("processed_data"),"dataset").find_one(document{} << "cve" << "CVE-2017-0144" << finalize);
     if(maybe_result) {
+        int features_size=863;
         bsoncxx::document::element index = maybe_result->view()["index"];
         bsoncxx::document::element cve = maybe_result->view()["cve"];
         bsoncxx::document::element features = maybe_result->view()["features"];
@@ -591,6 +592,9 @@ void testMongoCveRead(){
                 }
             }
             cout<<"Features value (size: "+to_string(features.size())+"): "<<endl;
+            if((int)features.size()!=features_size){
+                throw runtime_error("Error features sizes should be: "+to_string(features_size)+" but is: "+to_string(features.size())+"\n");
+            }
             for(map<string,float>::const_iterator it=features.begin();it!=features.end();it++){
                 cout<<"\t"<<it->first<<": "<<it->second<<endl;
             }
@@ -615,7 +619,24 @@ void testMongoCveRead(){
             }
         }
     }
-    // TODO find({"cve": CVE-2017-.*/}).limit().sort() find vulners by year
+    int year=2017;
+    int limit=10;
+    bsoncxx::document::value query = document{}
+        << "cve"<< open_document
+            << "$regex" <<  "CVE-"+to_string(year)+"-.*"
+        << close_document
+    << finalize;
+    mongocxx::options::find opts{};
+    opts.sort(document{}<<"cve"<<1<<finalize);
+    mongocxx::cursor cursor = mongo.getCollection(mongo.getDB("processed_data"),"dataset").find(query.view(),opts);
+    int total=0;
+    for(auto&& doc : cursor) {
+        cout << "cve: "<< doc["cve"].get_utf8().value <<endl;
+        if (++total>=limit){
+            break;
+        }
+    }
+    cout<<"Total "<<year<<" documents: "<<total<<endl;
     // TODO https://github.com/mongodb/mongo-cxx-driver/commit/aec77b8e3a2d01100ec1e61faf0e68303347d4a0
 }
 
