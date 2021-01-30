@@ -164,13 +164,13 @@ void testSlide_IntLabel(){
     float alpha=0.01;
     int batch_size=5;
     bool adam=true;
-    bool shuffleTrainData=true;
+    bool shuffle_train_data=true;
     int rehash=6400;
     int rebuild=128000;
     bool print_deltas=true;
     SlideLabelEncoding label_type=SlideLabelEncoding::INT_CLASS;
     Slide* slide=new Slide(layers, layer_sizes, Slide::getStdLayerTypes(layers), train_data[0].second.size(), alpha, batch_size, adam, label_type,
-    range_pow, K, L, sparcity, rehash, rebuild,SlideMetric::RAW_LOSS,SlideMetric::RAW_LOSS,shuffleTrainData, SlideCrossValidation::NONE, SlideMode::SAMPLING, SlideHashingFunction::DENSIFIED_WTA, print_deltas);
+    range_pow, K, L, sparcity, rehash, rebuild,SlideMetric::RAW_LOSS,SlideMetric::RAW_LOSS,shuffle_train_data, SlideCrossValidation::NONE, SlideMode::SAMPLING, SlideHashingFunction::DENSIFIED_WTA, print_deltas);
     vector<float>train_losses=slide->trainNoValidation(train_data,epochs);
     for (float loss:train_losses){
         cout<<"Train loss: "<<loss<<endl;
@@ -226,7 +226,7 @@ void testSlide_NeuronByNeuronLabel(){
     SlideLabelEncoding label_type=SlideLabelEncoding::NEURON_BY_NEURON;
     int *layer_sizes=new int[layers]{(int)train_data[0].first.size()};
     bool adam=true;
-    bool shuffleTrainData=true;
+    bool shuffle_train_data=true;
     int *range_pow=new int[layers]{6};
     int *K=new int[layers]{2};
     int *L=new int[layers]{20};
@@ -235,7 +235,7 @@ void testSlide_NeuronByNeuronLabel(){
     int rebuild=128000;
     bool print_deltas=true;
     Slide* slide=new Slide(layers, layer_sizes, Slide::getStdLayerTypes(layers), train_data[0].second.size(), alpha, batch_size, adam, label_type,
-    range_pow, K, L, sparcity, rehash, rebuild,SlideMetric::RAW_LOSS,SlideMetric::RAW_LOSS,shuffleTrainData, SlideCrossValidation::NONE, SlideMode::SAMPLING, SlideHashingFunction::DENSIFIED_WTA, print_deltas);
+    range_pow, K, L, sparcity, rehash, rebuild,SlideMetric::RAW_LOSS,SlideMetric::RAW_LOSS,shuffle_train_data, SlideCrossValidation::NONE, SlideMode::SAMPLING, SlideHashingFunction::DENSIFIED_WTA, print_deltas);
     vector<float>train_losses=slide->trainNoValidation(train_data,epochs);
     float total_loss=0;
     for (float loss:train_losses){
@@ -409,13 +409,13 @@ void testSlide_Validation(){
     float alpha=0.01;
     int batch_size=5;
     bool adam=true;
-    bool shuffleTrainData=true;
+    bool shuffle_train_data=true;
     int rehash=6400;
     int rebuild=128000;
     bool print_deltas=true;
     SlideLabelEncoding label_type=SlideLabelEncoding::INT_CLASS;
     Slide* slide=new Slide(layers, layer_sizes, Slide::getStdLayerTypes(layers), train_data[0].second.size(), alpha, batch_size, adam, label_type,
-    range_pow, K, L, sparcity, rehash, rebuild,SlideMetric::ACCURACY,SlideMetric::ACCURACY,shuffleTrainData, cv, SlideMode::SAMPLING, SlideHashingFunction::DENSIFIED_WTA, print_deltas);
+    range_pow, K, L, sparcity, rehash, rebuild,SlideMetric::ACCURACY,SlideMetric::ACCURACY,shuffle_train_data, cv, SlideMode::SAMPLING, SlideHashingFunction::DENSIFIED_WTA, print_deltas);
     vector<pair<float,float>> metrics=slide->train(train_data,epochs);
     for (pair<float,float> me:metrics){
         cout<<"Train Acc: "<<me.first<<" - Val Acc: "<<me.second<<endl;
@@ -481,8 +481,8 @@ void testGeneticallyTunedNeuralNetwork(){
     float sex_rate=0.7;
     int max_notables=3;
 
-    SlideCrossValidation crossValidation=SlideCrossValidation::KFOLDS;
-    SlideMetric metricMode=SlideMetric::RAW_LOSS; // SlideMetric::ACCURACY or SlideMetric::RECALL.. is heavier than SlideMetric::RAW_LOSS
+    SlideCrossValidation cross_validation=SlideCrossValidation::KFOLDS;
+    SlideMetric metric_mode=SlideMetric::RAW_LOSS; // SlideMetric::ACCURACY or SlideMetric::RECALL.. is heavier than SlideMetric::RAW_LOSS
 
     const int input_size=4;
     const int output_size=1;
@@ -491,8 +491,8 @@ void testGeneticallyTunedNeuralNetwork(){
     const int rehash=6400;
     const int rebuild=128000;
     const int border_sparsity=1; // first and last layers
-    const bool shuffleTrainData=true;
-    const bool search_maximum=(metricMode!=SlideMetric::RAW_LOSS);
+    const bool shuffle_train_data=true;
+    const bool search_maximum=(metric_mode!=SlideMetric::RAW_LOSS);
     const SlideLabelEncoding label_encoding=SlideLabelEncoding::INT_CLASS;
 
     auto train_callback = [&](Genome *self) -> float {
@@ -500,7 +500,7 @@ void testGeneticallyTunedNeuralNetwork(){
         if (!self_neural) {
             throw runtime_error("Error could not find an instance of NeuralGenome!\nhint: make useNeuralGenome=true on PopulationManager construtor!");
         }
-        tuple<Slide*,int,function<void()>> net=self_neural->buildSlide(self->getDna(),input_size,output_size,label_encoding,rehash,rebuild,border_sparsity,metricMode,shuffleTrainData,crossValidation,adam_optimizer);
+        tuple<Slide*,int,function<void()>> net=self_neural->buildSlide(self->getDna(),input_size,output_size,label_encoding,rehash,rebuild,border_sparsity,metric_mode,shuffle_train_data,cross_validation,adam_optimizer);
         if (self_neural->hasWeights()){
             get<0>(net)->setWeights(self_neural->getWeights());
             self_neural->clearWeights();
@@ -534,7 +534,7 @@ void testGeneticallyTunedNeuralNetwork(){
         if (!self_neural) {
             throw runtime_error("Error could not find an instance of NeuralGenome!\nhint: make useNeuralGenome=true on PopulationManager construtor!");
         }
-        tuple<Slide*,int,function<void()>> net=self_neural->buildSlide(self->getDna(),input_size,output_size,label_encoding,rehash,rebuild,border_sparsity,metricMode,shuffleTrainData,crossValidation,adam_optimizer);
+        tuple<Slide*,int,function<void()>> net=self_neural->buildSlide(self->getDna(),input_size,output_size,label_encoding,rehash,rebuild,border_sparsity,metric_mode,shuffle_train_data,cross_validation,adam_optimizer);
         if (self_neural->hasWeights()){
             get<0>(net)->setWeights(self_neural->getWeights());
         }

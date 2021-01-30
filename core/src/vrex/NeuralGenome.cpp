@@ -162,6 +162,7 @@ tuple<Slide*,int,function<void()>> NeuralGenome::buildSlide(pair<vector<int>,vec
     print_str+="\tepochs: "+std::to_string(epochs)+"\n";
     print_str+="\tbatch_size: "+std::to_string(batch_size)+"\n";
     print_str+="\tlayers: "+std::to_string(layers)+"\n";
+    print_str+="\talpha: "+std::to_string(alpha)+"\n";
     print_str+="\tmax_layers: "+std::to_string(max_layers)+"\n";
 
     for(i=0;i<layers;i++)
