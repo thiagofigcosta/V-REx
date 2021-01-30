@@ -482,7 +482,7 @@ void testGeneticallyTunedNeuralNetwork(){
     int max_notables=3;
 
     SlideCrossValidation crossValidation=SlideCrossValidation::KFOLDS;
-    SlideMetric metricMode=SlideMetric::ACCURACY;
+    SlideMetric metricMode=SlideMetric::RAW_LOSS; // SlideMetric::ACCURACY or SlideMetric::RECALL.. is heavier than SlideMetric::RAW_LOSS
 
     const int input_size=4;
     const int output_size=1;
