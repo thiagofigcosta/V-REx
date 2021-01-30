@@ -35,9 +35,11 @@ class NeuralGenome : public Genome{
                             FLOAT_SPACE_SEARCH sparcity,INT_SPACE_SEARCH activation_funcs);
         tuple<Slide*,int,function<void()>> buildSlide(pair<vector<int>,vector<float>> dna, int input_size, int output_size, SlideLabelEncoding label_encoding, int rehash, int rebuild, int border_sparsity,SlideMetric metric,bool shuffleTrainData,SlideCrossValidation crossValidation,  bool adam_optimizer=true);
         static void setNeuralTrainData(vector<pair<vector<int>, vector<float>>> data);
-        static string last_print_str;
         string to_string();
         
+        // variables
+        static string last_print_str;
+
     private:
         // variables
         map<string, vector<float>> weights;

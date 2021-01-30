@@ -72,6 +72,9 @@ class Slide{
         #pragma omp threadprivate(ROLLING_FORECASTING_ORIGIN_MIN)
 
     private:
+        // methods
+        pair<float,float> trainEpoch(vector<pair<vector<int>, vector<float>>> &train_data,vector<pair<vector<int>, vector<float>>> &validation_data, int cur_epoch);
+
         // variables
         Network *slide_network;
         NodeType* layer_types;
@@ -96,6 +99,5 @@ class Slide{
         SlideMetric val_metric;
         bool shuffle_train_data;
         SlideCrossValidation cross_validation;
-        pair<float,float> trainEpoch(vector<pair<vector<int>, vector<float>>> &train_data,vector<pair<vector<int>, vector<float>>> &validation_data, int cur_epoch);
 
 };
