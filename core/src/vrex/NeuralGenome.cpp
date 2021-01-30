@@ -1,12 +1,17 @@
 #include "NeuralGenome.hpp"
 #include "slide/Node.h"
 
+bool NeuralGenome::CACHE_WEIGHTS=false;
+
+const string NeuralGenome::CACHE_FOLDER="neural_genome_cache";
 string NeuralGenome::last_print_str="";
 vector<pair<vector<int>, vector<float>>> NeuralGenome::static_train_data=vector<pair<vector<int>, vector<float>>> ();
 
 NeuralGenome::NeuralGenome(SPACE_SEARCH space, function<float(Genome *self)> callback)
     :Genome(space,callback){
     train_data=vector<pair<vector<int>, vector<float>>>(NeuralGenome::static_train_data);
+    cache_file=genCacheFilename();
+    cached=false;
 }
 
 NeuralGenome::NeuralGenome(const NeuralGenome& orig, pair<vector<int>,vector<float>> new_dna)
@@ -14,6 +19,11 @@ NeuralGenome::NeuralGenome(const NeuralGenome& orig, pair<vector<int>,vector<flo
     weights=orig.weights;
     train_data=orig.train_data;
     print_str=orig.print_str;
+    cached=orig.cached;
+    cache_file=genCacheFilename();
+    if (cached&&NeuralGenome::CACHE_WEIGHTS){
+        Utils::copyFile(orig.cache_file, cache_file);
+    }
 }
 
 NeuralGenome::NeuralGenome(const NeuralGenome& orig){
@@ -27,11 +37,19 @@ NeuralGenome::NeuralGenome(const NeuralGenome& orig){
     id=orig.id;
     train_data=orig.train_data;
     print_str=orig.print_str;
+    cache_file=genCacheFilename();
+    if (cached&&NeuralGenome::CACHE_WEIGHTS){
+        Utils::copyFile(orig.cache_file, cache_file);
+    }
+    cached=orig.cached;
 }
 
 NeuralGenome::~NeuralGenome(){
     weights.clear();
     train_data.clear();
+    if (cached&&NeuralGenome::CACHE_WEIGHTS){
+        Utils::rmFile(cache_file);
+    }
 }
 
 SPACE_SEARCH NeuralGenome::buildSlideNeuralNetworkSpaceSearch(INT_SPACE_SEARCH amount_of_layers,INT_SPACE_SEARCH epochs,FLOAT_SPACE_SEARCH alpha,
@@ -188,11 +206,23 @@ tuple<Slide*,int,function<void()>> NeuralGenome::buildSlide(pair<vector<int>,vec
 }
 
 map<string, vector<float>> NeuralGenome::getWeights(){
+    if (cached&&NeuralGenome::CACHE_WEIGHTS){
+        weights=Utils::deserializeWeigths(cache_file,print_str);
+    }
     return weights;
 }
 
 void NeuralGenome::setWeights(map<string, vector<float>> Weights){
     weights=Weights;
+    if(cached&&NeuralGenome::CACHE_WEIGHTS){
+        Utils::rmFile(cache_file);
+        cached=false;
+    }
+    if (!cached&&NeuralGenome::CACHE_WEIGHTS){
+        Utils::serializeWeigths(weights, cache_file,print_str);
+        cached=true;
+        weights.clear();
+    }
 }
 
 void NeuralGenome::setNeuralTrainData(vector<pair<vector<int>, vector<float>>> data){
@@ -209,9 +239,24 @@ string NeuralGenome::to_string(){
 }
 
 bool NeuralGenome::hasWeights(){
-    return weights.size()>0;
+    return weights.size()>0 || (cached&&NeuralGenome::CACHE_WEIGHTS);
 }
 
 void NeuralGenome::clearWeights(){
     weights.clear();
+    if (cached&&NeuralGenome::CACHE_WEIGHTS){
+        Utils::rmFile(cache_file);
+        cached=false;
+    }
+}
+
+string NeuralGenome::getBaseFolder(){
+    return Utils::getResourcePath(NeuralGenome::CACHE_FOLDER);
+}
+
+string NeuralGenome::genCacheFilename(){
+    string base=getBaseFolder();
+    string filename=boost::uuids::to_string(id)+Utils::genRandomUUIDStr()+".weights_cache";;
+    Utils::mkdir(base);
+    return Utils::joinPath(base,filename);
 }

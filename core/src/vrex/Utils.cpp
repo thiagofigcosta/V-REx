@@ -426,3 +426,44 @@ snn_stats Utils::statisticalAnalysis(vector<vector<int>> correct, vector<vector<
 void Utils::printStats(snn_stats stats){
     cout<<"Stats:"<<"\taccuracy: "<<stats.accuracy<<"\n\tprecision: "<<stats.precision<<"\n\trecall: "<<stats.recall<<"\n\tf1: "<<stats.f1<<endl;
 }
+
+void Utils::copyFile(string source, string dst){
+    ifstream ifs(source, ios::binary);
+    ofstream ofs(dst, ios::binary);
+    ofs<<ifs.rdbuf();
+}
+
+bool Utils::rmFile(string file){
+    return boost::filesystem::remove_all(file)==0;
+}
+
+void Utils::serializeWeigths(map<string, vector<float>> weights, string filename,string except_str){
+    if(weights.size()==0){
+        return;
+    }
+    ofstream ofs (filename,ofstream::binary);
+    if (ofs.is_open()){
+        hps::to_stream(weights,ofs);
+    }else{
+        throw runtime_error("Could not serialize\n"+except_str);
+    }
+    ofs.close();
+}
+
+map<string, vector<float>> Utils::deserializeWeigths(string filename,string except_str){
+    ifstream ifs (filename, ifstream::binary);
+    map<string, vector<float>> weights;
+    if(ifs.is_open()){
+        weights=hps::from_stream<map<string, vector<float>>>(ifs);
+    }
+    // else{
+    //     throw runtime_error("Could not serialize\n"+except_str);
+    // }
+    ifs.close();
+    return weights;
+}
+
+bool Utils::mkdir(string path){
+    boost::filesystem::create_directory(path);
+    return true;
+}

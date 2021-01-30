@@ -9,6 +9,7 @@ data_bkp/
 core/src/mongo-c-driver/cmake-build
 core/src/mongo-cxx-driver/build
 core/res/dataset/
+core/res/neural_genome_cache/
 core/src/vrex/bin
 core/src/vrex/obj
 core/src/vrex/*.o

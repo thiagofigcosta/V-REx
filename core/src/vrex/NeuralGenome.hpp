@@ -36,12 +36,19 @@ class NeuralGenome : public Genome{
         tuple<Slide*,int,function<void()>> buildSlide(pair<vector<int>,vector<float>> dna, int input_size, int output_size, SlideLabelEncoding label_encoding, int rehash, int rebuild, int border_sparsity,SlideMetric metric,bool shuffleTrainData,SlideCrossValidation crossValidation,  bool adam_optimizer=true);
         static void setNeuralTrainData(vector<pair<vector<int>, vector<float>>> data);
         string to_string();
+        static string getBaseFolder();
         
         // variables
         static string last_print_str;
+        static bool CACHE_WEIGHTS;
 
     private:
+        // methods
+        string genCacheFilename();
         // variables
+        static const string CACHE_FOLDER;
+        string cache_file;
+        bool cached;
         map<string, vector<float>> weights;
         static vector<pair<vector<int>, vector<float>>> static_train_data;
         vector<pair<vector<int>, vector<float>>> train_data;

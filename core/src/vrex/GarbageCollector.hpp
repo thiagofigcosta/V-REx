@@ -8,6 +8,9 @@
 
 using namespace std;
 
+#include "Utils.hpp"
+#include "NeuralGenome.hpp"
+
 class GarbageCollector{
     private:
         // variables
@@ -39,6 +42,7 @@ class GarbageCollector{
                 delete singleton;
                 singleton=nullptr;
             }
+            Utils::rmFile(NeuralGenome::getBaseFolder());
         }
     
         void addInt1d(int* obj);

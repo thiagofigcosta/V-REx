@@ -12,6 +12,7 @@
 #include <locale>
 #include <sys/stat.h>
 #include <stdexcept>
+#include <stdio.h>
 #include <set>
 #include <random>
 #include <map>
@@ -20,7 +21,10 @@
 #include <memory>
 #include <boost/uuid/uuid.hpp>            
 #include <boost/uuid/uuid_generators.hpp> 
-#include <boost/uuid/uuid_io.hpp>         
+#include <boost/uuid/uuid_io.hpp>
+#include <boost/filesystem.hpp>
+
+#include "hps/hps.h"
 
 using namespace std;
 
@@ -48,6 +52,8 @@ class Utils{
 
         // methods
         static vector<string> splitString(string str, string token);
+        static void copyFile(string source, string dst);
+        static bool rmFile(string file);
         static vector<pair<string, vector<float>>> readLabeledCsvDataset(const string filename);
         static string getResourcesFolder();
         static string getResourcePath(string filename);
@@ -84,7 +90,9 @@ class Utils{
                 {return (find(b.begin(), b.end(), arg) != b.end());});
             return out;
         }
-
+        static void serializeWeigths(map<string, vector<float>> weights, string filename,string except_str="");
+        static map<string, vector<float>> deserializeWeigths(string filename,string except_str="");
+        static bool mkdir(string path);
 
         // variables
         static mt19937_64 RNG;
@@ -93,6 +101,7 @@ class Utils{
         // methods
         static mt19937_64 getRandomGenerator();
         static uniform_real_distribution<float> dist_zero_one;
+
         // variables
         static string RESOURCES_FOLDER;
         static const string FILE_SEPARATOR;

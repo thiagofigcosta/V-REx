@@ -460,6 +460,9 @@ void testGeneticallyTunedNeuralNetwork(){
     // NeuralGenome::setNeuralTrainData(train_data); // not necessary since we are using lambda [&]
 
 
+    NeuralGenome::CACHE_WEIGHTS=true;
+
+
     SPACE_SEARCH space = NeuralGenome::buildSlideNeuralNetworkSpaceSearch(amount_of_layers,epochs,alpha,batch_size,
                                                 layer_size,range_pow,k_values,l_values,sparcity,activation_funcs);
 
