@@ -207,3 +207,11 @@ string NeuralGenome::to_string(){
     string out=Genome::to_string()+"\n"+print_str;
     return out;
 }
+
+bool NeuralGenome::hasWeights(){
+    return weights.size()>0;
+}
+
+void NeuralGenome::clearWeights(){
+    weights.clear();
+}

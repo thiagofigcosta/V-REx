@@ -50,6 +50,14 @@ void Network::lateInit(){
                 _hiddenlayers[i] = new Layer(_sizesOfLayers[i], _inputDim, i, _layersTypes[i], _currentBatchSize, _K[i], _L[i], _RangePow[i], _Sparsity[i],mode,hash_func, use_adam,label_type, weight, bias, adamAvgMom, adamAvgVel);
             }
         }
+        delete[] _weight;
+        _weight=nullptr;
+        delete[] _bias;
+        _bias=nullptr;
+        delete[] _adamAvgMom;
+        _adamAvgMom=nullptr;
+        delete[] _adamAvgVel;
+        _adamAvgVel=nullptr;
     }
 }
 

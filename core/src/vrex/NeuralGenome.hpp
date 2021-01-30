@@ -25,6 +25,8 @@ class NeuralGenome : public Genome{
         virtual ~NeuralGenome();
 
         // methods
+        void clearWeights();
+        bool hasWeights();
         map<string, vector<float>> getWeights();
         void setWeights(map<string, vector<float>> Weights);
         vector<pair<vector<int>, vector<float>>>& getTrainData();

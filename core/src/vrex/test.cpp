@@ -468,7 +468,7 @@ void testGeneticallyTunedNeuralNetwork(){
     // int max_age=10; // change to 2 for fast run
     // int max_children=4; // change to 1 for fast run
 
-    int population_start_size=1; 
+    int population_start_size=2; 
     int max_gens=1;
     int max_age=1; 
     int max_children=1; 
@@ -498,9 +498,9 @@ void testGeneticallyTunedNeuralNetwork(){
             throw runtime_error("Error could not find an instance of NeuralGenome!\nhint: make useNeuralGenome=true on PopulationManager construtor!");
         }
         tuple<Slide*,int,function<void()>> net=self_neural->buildSlide(self->getDna(),input_size,output_size,label_encoding,rehash,rebuild,border_sparsity,metricMode,shuffleTrainData,crossValidation,adam_optimizer);
-        map<string, vector<float>> weights=self_neural->getWeights();
-        if (weights.size()>0){
-            get<0>(net)->setWeights(weights);
+        if (self_neural->hasWeights()){
+            get<0>(net)->setWeights(self_neural->getWeights());
+            self_neural->clearWeights();
         }
 
         vector<pair<float,float>> metric=get<0>(net)->train(train_data,get<1>(net));
@@ -532,17 +532,16 @@ void testGeneticallyTunedNeuralNetwork(){
             throw runtime_error("Error could not find an instance of NeuralGenome!\nhint: make useNeuralGenome=true on PopulationManager construtor!");
         }
         tuple<Slide*,int,function<void()>> net=self_neural->buildSlide(self->getDna(),input_size,output_size,label_encoding,rehash,rebuild,border_sparsity,metricMode,shuffleTrainData,crossValidation,adam_optimizer);
-        map<string, vector<float>> weights=self_neural->getWeights();
-        if (weights.size()>0){
-            get<0>(net)->setWeights(weights);
+        if (self_neural->hasWeights()){
+            get<0>(net)->setWeights(self_neural->getWeights());
         }
 
         pair<int,vector<vector<pair<int,float>>>> predicted = get<0>(net)->evalData(test_data);
+        delete get<0>(net); // free memory
+        get<2>(net)(); // free memory
         cout<<"Test size: "<<predicted.second.size()<<endl;
         cout<<"Correct values: "<<predicted.first<<endl;
         Utils::printStats(Utils::statisticalAnalysis(test_data, predicted.second));
-        delete get<0>(net); // free memory
-        get<2>(net)(); // free memory
     };
 
     test_callback(elite.getNotables()[0]); // test best of all times
@@ -648,6 +647,6 @@ void test() {
     // testStdGeneticsOnMath();
     // testEnchancedGeneticsOnMath();
     // testSlide_Validation();
-    // testGeneticallyTunedNeuralNetwork();
-    testMongoCveRead();
+    testGeneticallyTunedNeuralNetwork();
+    // testMongoCveRead();
 }
