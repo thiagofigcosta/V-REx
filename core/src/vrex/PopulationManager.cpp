@@ -67,7 +67,7 @@ void PopulationManager::naturalSelection(int gens){
         }
         if (print_deltas) {
             t2 = chrono::high_resolution_clock::now();
-            cout<<"Generation "<<g<<" of "<<gens<<" takes: "<<Utils::msToHumanReadable(chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count())<<endl;
+            cout<<"Generation "<<g<<" of "<<gens<<", size: "<<population.size()<<" takes: "<<Utils::msToHumanReadable(chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count())<<endl;
         }
     }
 }
