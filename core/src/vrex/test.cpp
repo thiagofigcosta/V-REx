@@ -747,7 +747,7 @@ void testGeneticallyTunedSmartNeuralNetwork_cveData(){
     float sex_rate=0.7;
     int max_notables=3;
 
-    SlideCrossValidation cross_validation=SlideCrossValidation::KFOLDS;
+    SlideCrossValidation cross_validation=SlideCrossValidation::ROLLING_FORECASTING_ORIGIN;
     SlideMetric metric_mode=SlideMetric::RAW_LOSS; // SlideMetric::ACCURACY or SlideMetric::RECALL.. is heavier than SlideMetric::RAW_LOSS
 
     const int input_size=train_data[0].second.size();
@@ -773,7 +773,6 @@ void testGeneticallyTunedSmartNeuralNetwork_cveData(){
         }
 
         vector<pair<float,float>> metric=get<0>(net)->train(train_data,get<1>(net));
-        // vector<float> loss=get<0>(net)->train(self_neural->getTrainData(),get<1>(net)); // not necessary since we are using lambda [&] 
         self_neural->setWeights(get<0>(net)->getWeights());
         delete get<0>(net); // free memory
         get<2>(net)(); // free memory

@@ -445,7 +445,7 @@ void Utils::serializeWeigths(map<string, vector<float>> weights, string filename
     if (ofs.is_open()){
         hps::to_stream(weights,ofs);
     }else{
-        throw runtime_error("Could not serialize\n"+except_str);
+        throw runtime_error("Could not serialize at: "+filename+"\n"+except_str);
     }
     ofs.close();
 }
