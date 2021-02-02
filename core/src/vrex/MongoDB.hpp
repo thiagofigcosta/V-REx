@@ -20,6 +20,8 @@ using bsoncxx::builder::stream::open_array;
 using bsoncxx::builder::stream::open_document;
 using namespace std;
 
+#include "Utils.hpp"
+
 class MongoDB{
     public:
         // constructors and destructor

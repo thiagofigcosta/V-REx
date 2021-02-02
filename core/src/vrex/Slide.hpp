@@ -6,6 +6,7 @@
 #include <memory>
 
 #define Slide_MAPLEN 325056
+// Slide_HUGEPAGES defined in Node.h
 
 class Bucket;
 class Network;

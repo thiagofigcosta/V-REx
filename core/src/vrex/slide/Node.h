@@ -15,8 +15,11 @@
 #include <chrono>
 #include <algorithm>
 
-enum class NodeType { ReLU, Softmax, Sigmoid};
-struct train {
+enum class NodeType { ReLU, Softmax, Sigmoid };
+
+#define Slide_HUGEPAGES 1
+
+struct train_with_huge_pages {
     float _lastDeltaforBPs;
     float _lastActivations;
     float _lastGradients;
@@ -55,15 +58,60 @@ struct train {
     void* operator new[] (std::size_t size, const std::nothrow_t& nothrow_value){return operator new (size);};
     void* operator new[] (std::size_t size, void* ptr){return operator new (size);};
 
-    void operator delete(void * ptr){munmap(ptr, sizeof(train));};
-    void operator delete (void* ptr, const std::nothrow_t& nothrow_constant){munmap(ptr, sizeof(train));};
+    void operator delete(void * ptr){munmap(ptr, sizeof(train_with_huge_pages));};
+    void operator delete (void* ptr, const std::nothrow_t& nothrow_constant){munmap(ptr, sizeof(train_with_huge_pages));};
     void operator delete (void* ptr, void* voidptr2){};
     // TODO: The size to be munmap'd should be the entire array, not just a single object
-    void operator delete[](void * ptr){munmap(ptr, sizeof(train));};
-    void operator delete[] (void* ptr, const std::nothrow_t& nothrow_constant){munmap(ptr, sizeof(train));};
+    void operator delete[](void * ptr){munmap(ptr, sizeof(train_with_huge_pages));};
+    void operator delete[] (void* ptr, const std::nothrow_t& nothrow_constant){munmap(ptr, sizeof(train_with_huge_pages));};
     void operator delete[] (void* ptr, void* voidptr2){};
 
 } __attribute__ ((aligned (64)));
+
+struct train_without_huge_pages {
+    float _lastDeltaforBPs;
+    float _lastActivations;
+    float _lastGradients;
+    int _ActiveinputIds;
+
+    void * operator new(size_t size){
+        void* ptr = mmap(NULL, size,
+            PROT_READ | PROT_EXEC | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS,
+            -1, 0);
+        if (ptr == MAP_FAILED){
+            std::cout << "mmap failed at train." << std::endl;
+        }
+        return ptr;
+    }
+    void* operator new (std::size_t size, const std::nothrow_t& nothrow_value){return operator new (size);};
+    void* operator new (std::size_t size, void* ptr){return operator new (size);};
+    void* operator new[] (std::size_t size){
+        void* ptr = mmap(NULL, size,
+            PROT_READ | PROT_EXEC | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS,
+            -1, 0);
+        if (ptr == MAP_FAILED){
+            std::cout << "mmap fail! No train array!" << std::endl;
+        }
+        return ptr;
+    }
+    void* operator new[] (std::size_t size, const std::nothrow_t& nothrow_value){return operator new (size);};
+    void* operator new[] (std::size_t size, void* ptr){return operator new (size);};
+
+    void operator delete(void * ptr){munmap(ptr, sizeof(train_without_huge_pages));};
+    void operator delete (void* ptr, const std::nothrow_t& nothrow_constant){munmap(ptr, sizeof(train_without_huge_pages));};
+    void operator delete (void* ptr, void* voidptr2){};
+    // TODO: The size to be munmap'd should be the entire array, not just a single object
+    void operator delete[](void * ptr){munmap(ptr, sizeof(train_without_huge_pages));};
+    void operator delete[] (void* ptr, const std::nothrow_t& nothrow_constant){munmap(ptr, sizeof(train_without_huge_pages));};
+    void operator delete[] (void* ptr, void* voidptr2){};
+
+};
+
+#if Slide_HUGEPAGES == 1
+    typedef train_with_huge_pages train;
+#else
+    typedef train_without_huge_pages train;
+#endif
 
 #include "../Slide.hpp"
 

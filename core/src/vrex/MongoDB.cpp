@@ -31,7 +31,12 @@ mongocxx::collection MongoDB::getCollection(const mongocxx::database &db, const 
 }
 
 pair<string,pair<vector<int>, vector<float>>> MongoDB::bsonToDatasetEntry(const bsoncxx::v_noabi::document::view bson){
-    const int features_size=863;
+    int features_size;
+    if (Utils::runningOnDockerContainer()){
+        features_size=878; // I used diffferent data on production environment
+    }else{
+        features_size=863;
+    }
     const int labels_size=8;
     
     string cve_id="";

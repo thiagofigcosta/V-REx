@@ -657,8 +657,6 @@ void testSmartNeuralNetwork_cveData(){
         Utils::divideDataSet(dataset, train_percentage);
     vector<pair<vector<int>, vector<float>>> train_data=dividedData.first;
     vector<pair<vector<int>, vector<float>>> test_data=dividedData.second;
-    dividedData.first.clear();
-    dividedData.second.clear();
 
 
     int layers=1;
@@ -710,6 +708,115 @@ void testGeneticallyTunedSmartNeuralNetwork_cveData(){
         mongo_host="127.0.0.1";
     }
     MongoDB mongo = MongoDB(mongo_host,"root","123456");
+    vector<pair<vector<int>, vector<float>>> dataset=mongo.loadCvesFromYear(2020).second;
+    float train_percentage=.7;
+    pair<vector<pair<vector<int>, vector<float>>>,vector<pair<vector<int>, vector<float>>>> dividedData=
+        Utils::divideDataSet(dataset, train_percentage);
+    vector<pair<vector<int>, vector<float>>> train_data=dividedData.first;
+    vector<pair<vector<int>, vector<float>>> test_data=dividedData.second;
+
+    INT_SPACE_SEARCH amount_of_layers = INT_SPACE_SEARCH(1,1); // For weaker computers
+    // INT_SPACE_SEARCH amount_of_layers = INT_SPACE_SEARCH(1,2); // Too heavy for my computer :(
+        
+    INT_SPACE_SEARCH epochs = INT_SPACE_SEARCH(20,40); // Per generation, so it is not a good idea to use large numbers such [100,250]
+    FLOAT_SPACE_SEARCH alpha = FLOAT_SPACE_SEARCH(0.0001,0.1);
+    INT_SPACE_SEARCH batch_size = INT_SPACE_SEARCH(5,15);
+    INT_SPACE_SEARCH layer_size = INT_SPACE_SEARCH(5,40);
+    INT_SPACE_SEARCH range_pow = INT_SPACE_SEARCH(4,20);
+    INT_SPACE_SEARCH k_values = INT_SPACE_SEARCH(2,10);
+    INT_SPACE_SEARCH l_values = INT_SPACE_SEARCH(20,50);
+    FLOAT_SPACE_SEARCH sparcity = FLOAT_SPACE_SEARCH(0.005,1);
+    INT_SPACE_SEARCH activation_funcs = INT_SPACE_SEARCH(0,2);
+
+    NeuralGenome::CACHE_WEIGHTS=true;
+    SPACE_SEARCH space = NeuralGenome::buildSlideNeuralNetworkSpaceSearch(amount_of_layers,epochs,alpha,batch_size,
+                                                layer_size,range_pow,k_values,l_values,sparcity,activation_funcs);
+
+    // int population_start_size=30; // change to 1 for fast run
+    // int max_gens=10; // change to 2 for fast run
+    // int max_age=10; // change to 2 for fast run
+    // int max_children=4; // change to 1 for fast run
+
+    int population_start_size=2; 
+    int max_gens=1;
+    int max_age=1; 
+    int max_children=1; 
+
+    float mutation_rate=0.1;
+    float recycle_rate=0.13;
+    float sex_rate=0.7;
+    int max_notables=3;
+
+    SlideCrossValidation cross_validation=SlideCrossValidation::KFOLDS;
+    SlideMetric metric_mode=SlideMetric::RAW_LOSS; // SlideMetric::ACCURACY or SlideMetric::RECALL.. is heavier than SlideMetric::RAW_LOSS
+
+    const int input_size=train_data[0].second.size();
+    const int output_size=train_data[0].first.size();
+    const bool adam_optimizer=true;
+    const bool use_neural_genome=true;
+    const int rehash=6400;
+    const int rebuild=128000;
+    const int border_sparsity=1; // first and last layers
+    const bool shuffle_train_data=true;
+    const bool search_maximum=(metric_mode!=SlideMetric::RAW_LOSS);
+    const SlideLabelEncoding label_encoding=SlideLabelEncoding::INT_CLASS;
+
+    auto train_callback = [&](Genome *self) -> float {
+        auto self_neural=dynamic_cast<NeuralGenome*>(self);
+        if (!self_neural) {
+            throw runtime_error("Error could not find an instance of NeuralGenome!\nhint: make useNeuralGenome=true on PopulationManager construtor!");
+        }
+        tuple<Slide*,int,function<void()>> net=self_neural->buildSlide(self->getDna(),input_size,output_size,label_encoding,rehash,rebuild,border_sparsity,metric_mode,shuffle_train_data,cross_validation,adam_optimizer);
+        if (self_neural->hasWeights()){
+            get<0>(net)->setWeights(self_neural->getWeights());
+            self_neural->clearWeights();
+        }
+
+        vector<pair<float,float>> metric=get<0>(net)->train(train_data,get<1>(net));
+        // vector<float> loss=get<0>(net)->train(self_neural->getTrainData(),get<1>(net)); // not necessary since we are using lambda [&] 
+        self_neural->setWeights(get<0>(net)->getWeights());
+        delete get<0>(net); // free memory
+        get<2>(net)(); // free memory
+        float output=0;
+        for(pair<float,float> l:metric){
+            output+=l.second; // use validation
+        }
+        output/=metric.size();
+        return output;
+    };
+    
+    HallOfFame elite=HallOfFame(max_notables, search_maximum);
+    EnchancedGenetic en_ga = EnchancedGenetic(max_children,max_age,mutation_rate,sex_rate,recycle_rate);
+    // StandardGenetic en_ga = StandardGenetic(mutation_rate,sex_rate);
+    PopulationManager enchanced_population=PopulationManager(en_ga,space,train_callback,population_start_size,search_maximum,use_neural_genome,true);
+    enchanced_population.setHallOfFame(elite);
+    cout<<"Starting natural selection"<<endl;
+    enchanced_population.naturalSelection(max_gens);
+    cout<<"Finished natural selection"<<endl;
+    cout<<"Best loss ("<<elite.getBest().second<<"): "<<elite.getBest().first<<endl;
+
+    auto test_callback = [&](Genome *self) {
+        auto self_neural=dynamic_cast<NeuralGenome*>(self);
+        if (!self_neural) {
+            throw runtime_error("Error could not find an instance of NeuralGenome!\nhint: make useNeuralGenome=true on PopulationManager construtor!");
+        }
+        tuple<Slide*,int,function<void()>> net=self_neural->buildSlide(self->getDna(),input_size,output_size,label_encoding,rehash,rebuild,border_sparsity,metric_mode,shuffle_train_data,cross_validation,adam_optimizer);
+        if (self_neural->hasWeights()){
+            get<0>(net)->setWeights(self_neural->getWeights());
+        }
+
+        pair<int,vector<vector<pair<int,float>>>> predicted = get<0>(net)->evalData(test_data);
+        delete get<0>(net); // free memory
+        get<2>(net)(); // free memory
+        cout<<"Test size: "<<predicted.second.size()<<endl;
+        cout<<"Correct values: "<<predicted.first<<endl;
+        Utils::printStats(Utils::statisticalAnalysis(test_data, predicted.second));
+    };
+
+    test_callback(elite.getNotables()[0]); // test best of all times
+    for (Genome* individual: elite.getNotables()){
+        cout<<dynamic_cast<NeuralGenome*>(individual)->to_string()<<endl;
+    }
     cout<<endl<<endl;
 }
 
@@ -723,6 +830,6 @@ void test() {
     // testSlide_Validation();
     // testGeneticallyTunedNeuralNetwork();
     // testMongoCveRead();
-    testSmartNeuralNetwork_cveData();
-    // testGeneticallyTunedSmartNeuralNetwork_cveData();
+    // testSmartNeuralNetwork_cveData();
+    testGeneticallyTunedSmartNeuralNetwork_cveData();
 }

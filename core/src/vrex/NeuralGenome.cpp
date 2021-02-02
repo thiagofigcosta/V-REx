@@ -220,9 +220,24 @@ void NeuralGenome::setWeights(map<string, vector<float>> Weights){
         cached=false;
     }
     if (!cached&&NeuralGenome::CACHE_WEIGHTS){
-        Utils::serializeWeigths(weights, cache_file,print_str);
-        cached=true;
-        weights.clear();
+        bool sucess=false;
+        int tries=0;
+        int max_tries=5;
+        while (!sucess&&++tries<max_tries){
+            try {
+                Utils::serializeWeigths(weights, cache_file,print_str);
+                sucess=true;
+            }catch(const exception& e){
+                cout<<e.what();
+                if (tries==max_tries-1){
+                    cache_file=genCacheFilename();
+                }
+            }
+        }
+        if (sucess){
+            cached=true;
+            weights.clear();
+        }
     }
 }
 
