@@ -642,6 +642,77 @@ void testMongoCveRead(){
     // TODO https://github.com/mongodb/mongo-cxx-driver/commit/aec77b8e3a2d01100ec1e61faf0e68303347d4a0
 }
 
+void testSmartNeuralNetwork_cveData(){
+    cout<<"Testing smart neural network on CVE data"<<endl;
+    string mongo_host;
+    if (Utils::runningOnDockerContainer()){
+        mongo_host="mongo";
+    }else{
+        mongo_host="127.0.0.1";
+    }
+    MongoDB mongo = MongoDB(mongo_host,"root","123456");
+    vector<pair<vector<int>, vector<float>>> dataset=mongo.loadCvesFromYear(2020).second;
+    float train_percentage=.7;
+    pair<vector<pair<vector<int>, vector<float>>>,vector<pair<vector<int>, vector<float>>>> dividedData=
+        Utils::divideDataSet(dataset, train_percentage);
+    vector<pair<vector<int>, vector<float>>> train_data=dividedData.first;
+    vector<pair<vector<int>, vector<float>>> test_data=dividedData.second;
+    dividedData.first.clear();
+    dividedData.second.clear();
+
+
+    int layers=1;
+    int *layer_sizes=new int[layers]{(int)train_data[0].first.size()};
+    int *range_pow=new int[layers]{6};
+    int *K=new int[layers]{2};
+    int *L=new int[layers]{20};
+    float *sparcity=new float[layers]{1};
+
+    int epochs=5;
+    float alpha=0.01;
+    int batch_size=5;
+    bool adam=true;
+    bool shuffle_train_data=true;
+    int rehash=6400;
+    int rebuild=128000;
+    bool print_deltas=true;
+    SlideLabelEncoding label_type=SlideLabelEncoding::INT_CLASS;
+
+
+    Slide* slide=new Slide(layers, layer_sizes, Slide::getStdLayerTypes(layers), train_data[0].second.size(), alpha, batch_size, adam, label_type,
+    range_pow, K, L, sparcity, rehash, rebuild,SlideMetric::RAW_LOSS,SlideMetric::RAW_LOSS,shuffle_train_data, SlideCrossValidation::NONE, SlideMode::SAMPLING, SlideHashingFunction::DENSIFIED_WTA, print_deltas);
+    vector<float>train_losses=slide->trainNoValidation(train_data,epochs);
+    for (float loss:train_losses){
+        cout<<"Train loss: "<<loss<<endl;
+    }
+    float test_loss=slide->evalLoss(test_data);
+    cout<<"Test loss: "<<test_loss<<endl;
+
+    pair<int,vector<vector<pair<int,float>>>> predicted = slide->evalData(test_data);
+    cout<<"Test size: "<<test_data.size()<<endl;
+    cout<<"Correct values: "<<predicted.first<<endl;
+
+    Utils::printStats(Utils::statisticalAnalysis(test_data, predicted.second));
+    cout<<endl<<endl;
+    delete slide;
+    delete[] range_pow;
+    delete[] K;
+    delete[] L;
+    delete[] sparcity;
+}
+
+void testGeneticallyTunedSmartNeuralNetwork_cveData(){
+    cout<<"Testing genetically tuned smart neural network on CVE data"<<endl;
+    string mongo_host;
+    if (Utils::runningOnDockerContainer()){
+        mongo_host="mongo";
+    }else{
+        mongo_host="127.0.0.1";
+    }
+    MongoDB mongo = MongoDB(mongo_host,"root","123456");
+    cout<<endl<<endl;
+}
+
 void test() {
     // testCsvRead();
     // testMongo();
@@ -650,6 +721,8 @@ void test() {
     // testStdGeneticsOnMath();
     // testEnchancedGeneticsOnMath();
     // testSlide_Validation();
-    testGeneticallyTunedNeuralNetwork();
+    // testGeneticallyTunedNeuralNetwork();
     // testMongoCveRead();
+    testSmartNeuralNetwork_cveData();
+    // testGeneticallyTunedSmartNeuralNetwork_cveData();
 }

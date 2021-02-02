@@ -183,7 +183,9 @@ float Network::ProcessInput(int **inputIndices, float **inputValues, int *length
 
     if(iter%6946==6945 ){
         //_learningRate *= 0.5;
-        _hiddenlayers[1]->updateRandomNodes();
+        int at=1;
+        if (at<_numberOfLayers)
+            _hiddenlayers[at]->updateRandomNodes();
     }
     float tmplr = _learningRate;
     if (use_adam) {

@@ -30,6 +30,10 @@ class MongoDB{
         // methods
         mongocxx::database getDB(const string &db_name);
         mongocxx::collection getCollection(const mongocxx::database &db, const string &col_name);
+        static pair<string,pair<vector<int>, vector<float>>> bsonToDatasetEntry(const bsoncxx::v_noabi::document::view bson);
+        static pair<string,pair<vector<int>, vector<float>>> bsonToDatasetEntry(bsoncxx::stdx::optional<bsoncxx::document::value> opt_bson);
+        pair<vector<string>,vector<pair<vector<int>, vector<float>>>> loadCvesFromYear(int year, int limit=0);
+        pair<vector<string>,vector<pair<vector<int>, vector<float>>>> loadCvesFromYears(vector<int> years);
 
     private:
         // methods
@@ -37,4 +41,4 @@ class MongoDB{
         // variables
         mongocxx::client client;
 
-};
+}; 

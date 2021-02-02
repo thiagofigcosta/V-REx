@@ -25,3 +25,5 @@ void testEnchancedGeneticsOnMath();
 void testSlide_Validation();
 void testGeneticallyTunedNeuralNetwork();
 void testMongoCveRead();
+void testSmartNeuralNetwork_cveData();
+void testGeneticallyTunedSmartNeuralNetwork_cveData();
