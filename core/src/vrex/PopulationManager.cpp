@@ -2,7 +2,7 @@
 #include "NeuralGenome.hpp"
 #include "HallOfFame.hpp"
 
-PopulationManager::PopulationManager(GeneticAlgorithm &galg, SPACE_SEARCH space, function<float(Genome *self)> callback,int startPopulationSize, bool searchHighestFitness, bool useNeuralGenome, bool printDeltas){
+PopulationManager::PopulationManager(GeneticAlgorithm &galg, SPACE_SEARCH space, function<float(Genome *self)> callback,int startPopulationSize, bool searchHighestFitness, bool useNeuralGenome, bool printDeltas,function<void(int pop_size,int g,float best_out,long timestamp_ms,vector<Genome*> population,HallOfFame *hall_of_fame)> afterGen_cb){
     ga=galg.clone();
     looking_highest_fitness=searchHighestFitness;
     if (typeid(*ga) == typeid(EnchancedGenetic)){
@@ -21,6 +21,7 @@ PopulationManager::PopulationManager(GeneticAlgorithm &galg, SPACE_SEARCH space,
     }
     print_deltas=printDeltas;
     hall_of_fame=nullptr;
+    after_gen_cb=afterGen_cb;
 }
 
 PopulationManager::PopulationManager(const PopulationManager& orig) {
@@ -43,12 +44,24 @@ const int PopulationManager::mt_dna_validity=15;
 void PopulationManager::naturalSelection(int gens){
     ga->setLookingHighestFitness(looking_highest_fitness);
     chrono::high_resolution_clock::time_point t1,t2;
+    float best_out;
     for (int g=0;g<gens;){
-        if (print_deltas) {
-            t1 = chrono::high_resolution_clock::now();
+        t1 = chrono::high_resolution_clock::now();
+        if (looking_highest_fitness){
+            best_out=numeric_limits<float>::min();
+        }else{
+            best_out=numeric_limits<float>::max();
         }
         for(Genome *individual:population){ // evaluate output
             individual->evaluate();
+            float ind_out=individual->getOutput();
+            if (looking_highest_fitness){
+                if (ind_out>best_out)
+                    best_out=ind_out;
+            }else{
+                if (ind_out<best_out)
+                    best_out=ind_out;
+            }
         }
         ga->fit(population); // calculate fitness
         if (hall_of_fame){
@@ -65,9 +78,13 @@ void PopulationManager::naturalSelection(int gens){
         }else{
             sort(population.begin(),population.end(),Genome::compare);
         }
+        t2 = chrono::high_resolution_clock::now();
+        long delta = chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
         if (print_deltas) {
-            t2 = chrono::high_resolution_clock::now();
-            cout<<"Generation "<<g<<" of "<<gens<<", size: "<<population.size()<<" takes: "<<Utils::msToHumanReadable(chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count())<<endl;
+            cout<<"Generation "<<g<<" of "<<gens<<", size: "<<population.size()<<" takes: "<<Utils::msToHumanReadable(delta)<<endl;
+        }
+        if(after_gen_cb){
+            after_gen_cb((int)population.size(),g,best_out,delta,population,hall_of_fame);
         }
     }
 }

@@ -42,7 +42,7 @@ class MongoDB{
         void claimGeneticSimulation(string id,string currentDatetime, string hostname);
         void finishGeneticSimulation(string id,string currentDatetime);
         void updateBestOnGeneticSimulation(string id, pair<float,int> candidate,string currentDatetime);
-        void appendResultOnGeneticSimulation(string id, vector<float> current_gen_result);
+        void appendResultOnGeneticSimulation(string id,int pop_size,int g,float best_out,long timestamp_ms);
         SPACE_SEARCH fetchEnvironmentData(string name);
 
     private:

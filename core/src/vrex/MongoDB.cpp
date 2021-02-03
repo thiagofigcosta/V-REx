@@ -287,12 +287,14 @@ void MongoDB::finishGeneticSimulation(string id,string currentDatetime){
 
 void MongoDB::updateBestOnGeneticSimulation(string id, pair<float,int> candidate,string currentDatetime){
     bsoncxx::document::value query=document{} << "_id" << bsoncxx::oid{id} << finalize;
-    bsoncxx::document::value update=document{} << "$set" << "updated_at" << currentDatetime << open_document << "best" <<  open_document << "output" <<  candidate.first << "at_gen" <<  candidate.second << close_document << close_document << finalize;
+    bsoncxx::document::value update=document{} << "$set" << open_document << "updated_at" << currentDatetime << "best" <<  open_document << "output" <<  candidate.first << "at_gen" << candidate.second << close_document << close_document << finalize;
     getCollection(getDB("genetic_db"),"simulations").update_one(query.view(),update.view());   
 }
 
-void MongoDB::appendResultOnGeneticSimulation(string id, vector<float> current_gen_result){
-    // TODO update array https://docs.mongodb.com/manual/reference/operator/update/push/
+void MongoDB::appendResultOnGeneticSimulation(string id, int pop_size,int g,float best_out,long timestamp_ms){
+    bsoncxx::document::value query=document{} << "_id" << bsoncxx::oid{id} << finalize;
+    bsoncxx::document::value update=document{} << "$push" << open_document << "results" <<  open_document << "pop_size" << pop_size << "cur_gen" <<  g << "gen_best_out" << best_out << "delta_ms" << timestamp_ms << close_document << close_document << finalize;
+    getCollection(getDB("genetic_db"),"simulations").update_one(query.view(),update.view());
 }
 
 SPACE_SEARCH MongoDB::fetchEnvironmentData(string name){

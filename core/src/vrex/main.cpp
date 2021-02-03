@@ -170,16 +170,25 @@ void runGeneticSimulation(string simulation_id){
         output/=metric.size();
         return output;
     };
+
+
+    auto after_gen_callback = [&](int pop_size,int g,float best_out,long timestamp_ms,vector<Genome*> population,HallOfFame *hall_of_fame) -> void {
+        if (hall_of_fame){
+            mongo->updateBestOnGeneticSimulation(simulation_id,hall_of_fame->getBest(),Utils::getStrNow());
+        }
+        mongo->appendResultOnGeneticSimulation(simulation_id,pop_size,g,best_out,timestamp_ms);
+        // TODO: store population
+    };
     
     mongo->claimGeneticSimulation(simulation_id,Utils::getStrNow(),Utils::getHostname());
-    // HallOfFame elite=HallOfFame(max_notables, search_maximum);
-    // EnchancedGenetic en_ga = EnchancedGenetic(max_children,max_age,mutation_rate,sex_rate,recycle_rate);
-    // PopulationManager enchanced_population=PopulationManager(en_ga,search_space,train_callback,population_start_size,search_maximum,use_neural_genome,true);
-    // enchanced_population.setHallOfFame(elite);
-    // cout<<"Starting natural selection"<<endl;
-    // enchanced_population.naturalSelection(max_gens);
-    // cout<<"Finished natural selection"<<endl;
-    // cout<<"Best loss ("<<elite.getBest().second<<"): "<<elite.getBest().first<<endl;
+    HallOfFame elite=HallOfFame(max_notables, search_maximum);
+    EnchancedGenetic en_ga = EnchancedGenetic(max_children,max_age,mutation_rate,sex_rate,recycle_rate);
+    PopulationManager enchanced_population=PopulationManager(en_ga,search_space,train_callback,population_start_size,search_maximum,use_neural_genome,true,after_gen_callback);
+    enchanced_population.setHallOfFame(elite);
+    cout<<"Starting natural selection"<<endl;
+    enchanced_population.naturalSelection(max_gens);
+    cout<<"Finished natural selection"<<endl;
+    cout<<"Best loss ("<<elite.getBest().second<<"): "<<elite.getBest().first<<endl;
     mongo->finishGeneticSimulation(simulation_id,Utils::getStrNow());
 
     cout<<"Runned genetic simulation "+simulation_id+"...OK\n";
