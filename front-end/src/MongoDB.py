@@ -14,6 +14,7 @@ class MongoDB(object){
     QUEUE_DB_NAME='queue'
     QUEUE_COL_CRAWLER_NAME='crawler'
     QUEUE_COL_PROCESSOR_NAME='processor'
+    QUEUE_COL_CORE_NAME='core'
     RAW_DATA_DB_NAME='raw_data'
     DUMMY_FOLDER='tmp/crawler/DummyMongo/'
     QUEUE_TIMEOUT_WITHOUT_PROGRESS=1500
@@ -227,6 +228,8 @@ class MongoDB(object){
         self.queues[MongoDB.QUEUE_COL_CRAWLER_NAME]=MongoQueue(collection, consumer_id=consumer_id, timeout=MongoDB.QUEUE_TIMEOUT_WITHOUT_PROGRESS, max_attempts=3)
         collection=self.client[MongoDB.QUEUE_DB_NAME][MongoDB.QUEUE_COL_PROCESSOR_NAME]
         self.queues[MongoDB.QUEUE_COL_PROCESSOR_NAME]=MongoQueue(collection, consumer_id=consumer_id, timeout=MongoDB.QUEUE_TIMEOUT_WITHOUT_PROGRESS, max_attempts=3)
+        collection=self.client[MongoDB.QUEUE_DB_NAME][MongoDB.QUEUE_COL_CORE_NAME]
+        self.queues[MongoDB.QUEUE_COL_CORE_NAME]=MongoQueue(collection, consumer_id=consumer_id, timeout=MongoDB.QUEUE_TIMEOUT_WITHOUT_PROGRESS, max_attempts=3)
     }
 
     def getQueues(self){
@@ -313,6 +316,10 @@ class MongoDB(object){
 
     def insertOnProcessorQueue(self,task,args=None){
         self.insertOnQueue(MongoDB.QUEUE_COL_PROCESSOR_NAME,task,args)
+    }
+
+    def insertOnCoreQueue(self,task,args=None){
+        self.insertOnQueue(MongoDB.QUEUE_COL_CORE_NAME,task,args)
     }
 
     def findOneOnDB(self,db,collection,query,wait_unlock=True){
@@ -444,4 +451,12 @@ class MongoDB(object){
         db[collection].delete_one(query)
     }
 
+    def quickInsertOneIgnoringLockAndRetrieveId(self,db,document,collection){
+        res=db[collection].insert_one(document)
+        if (res.acknowledged!=True){
+            return None
+        }else{
+            return str(res.inserted_id)
+        }
+    }
 }
