@@ -280,7 +280,7 @@ class MongoDB(object){
                         if datetime.timedelta(hours=2)<time_failed{
                             status='CANCELING'
                             update={"$set": {"locked_by": None, "locked_at": None},"$inc": {"attempts": 1}}
-                            queue.find_and_modify(query,update=update)
+                            queue.find_one_and_update(query,update)
                         }
                     }
                 }

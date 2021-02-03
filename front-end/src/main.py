@@ -1,6 +1,6 @@
 #!/bin/python
 
-import sys, getopt
+import sys, getopt, bson
 from Utils import Utils
 from Logger import Logger
 from MongoDB import MongoDB
@@ -180,15 +180,27 @@ def main(argv){
                     results=[]
                     simulation_data={'name':simulation_name,'env_name':env_name,'submitted_at':submitted_at,'started_by':started_by,'started_at':started_at,'finished_at':finished_at,'hall_of_fame_id':hall_of_fame_id,'population_id':population_id,'pop_start_size':pop_start_size,'max_gens':max_gens,'max_age':max_age,'max_children':max_children,'mutation_rate':mutation_rate,'recycle_rate':recycle_rate,'sex_rate':sex_rate,'max_notables':max_notables,'cross_validation':cross_validation,'metric':metric,'train_data':train_data,'best':best,'results':results}
                     LOGGER.info('Writting simulation config on genetic_db...')
-                    inserted_id=mongo.quickInsertOneIgnoringLockAndRetrieveId(mongo.getDB('genetic_db'),simulation_data,'simulations')
-                    if (inserted_id==None){
+                    simulation_id=mongo.quickInsertOneIgnoringLockAndRetrieveId(mongo.getDB('genetic_db'),simulation_data,'simulations')
+                    if (simulation_id==None){
                         LOGGER.error('Failed to insert simulation!')
                     }else{
                         LOGGER.info('Wrote simulation config on genetic_db...OK')
-                        LOGGER.info('Writting on Core queue to run genetic simulation...')
-                        job_args={'simulation_id':inserted_id}
-                        mongo.insertOnCoreQueue('Genetic',job_args)
-                        LOGGER.info('Wrote on Core queue to run genetic simulation...OK')
+                        halloffame_data={'simulation_id':simulation_id,'env_name':env_name,'updated_at':None,'neural_genomes':[]}
+                        halloffame_id=mongo.quickInsertOneIgnoringLockAndRetrieveId(mongo.getDB('neural_db'),halloffame_data,'hall_of_fame')
+                        generation_data={'simulation_id':simulation_id,'env_name':env_name,'updated_at':None,'neural_genomes':[]}
+                        population_id=mongo.quickInsertOneIgnoringLockAndRetrieveId(mongo.getDB('neural_db'),generation_data,'populations')
+                        if halloffame_id == None or population_id == None{
+                            LOGGER.error('Failed to insert hall of fame or/and generation!')
+                        }else{
+                            query={'_id':bson.ObjectId(simulation_id)}
+                            update={'$set':{'hall_of_fame_id':halloffame_id,'population_id':population_id}}
+                            mongo.getDB('genetic_db')['simulations'].find_one_and_update(query,update)
+
+                            LOGGER.info('Writting on Core queue to run genetic simulation...')
+                            job_args={'simulation_id':simulation_id}
+                            mongo.insertOnCoreQueue('Genetic',job_args)
+                            LOGGER.info('Wrote on Core queue to run genetic simulation...OK')
+                        }
                     }
                 }
             }elif opt == "--show-genetic-results"{
@@ -260,7 +272,7 @@ def main(argv){
                 activation_min=inputNumber(lower_or_eq=2)
                 print("Max: ")
                 activation_max=inputNumber(lower_or_eq=2)
-                space_search={'name':gen_name,'submitted_at':submitted_at,'space_search':{'int':[{'amount_of_layers':{'min':amount_of_layers_min,'max':amount_of_layers_max}},{'epochs':{'min':epochs_min,'max':epochs_max}},{'batch_size':{'min':batch_size_min,'max':batch_size_max}},{'layer_sizes':{'min':layer_size_min,'max':layer_size_max}},{'range_pow':{'min':range_pow_min,'max':range_pow_max}},{'K':{'min':k_min,'max':k_max}},{'L':{'min':l_min,'max':l_max}},{'activation_functions':{'min':activation_min,'max':activation_max}}],'float':[{'sparcity':{'min':sparcity_min,'max':sparcity_max}},{'alpha':{'min':alpha_min,'max':alpha_max}}]}}
+                space_search={'name':gen_name,'submitted_at':submitted_at,'space_search':{'amount_of_layers':{'min':amount_of_layers_min,'max':amount_of_layers_max},'epochs':{'min':epochs_min,'max':epochs_max},'batch_size':{'min':batch_size_min,'max':batch_size_max},'layer_sizes':{'min':layer_size_min,'max':layer_size_max},'range_pow':{'min':range_pow_min,'max':range_pow_max},'K':{'min':k_min,'max':k_max},'L':{'min':l_min,'max':l_max},'activation_functions':{'min':activation_min,'max':activation_max},'sparcity':{'min':sparcity_min,'max':sparcity_max},'alpha':{'min':alpha_min,'max':alpha_max}}}
                 LOGGER.info('Writting environment on genetic_db...')
                 mongo.insertOneOnDB(mongo.getDB('genetic_db'),space_search,'environments',index='name',ignore_lock=True)
                 LOGGER.info('Wrote environment on genetic_db...OK')
