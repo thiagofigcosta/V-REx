@@ -23,6 +23,13 @@
 #include <boost/uuid/uuid_generators.hpp> 
 #include <boost/uuid/uuid_io.hpp>
 #include <boost/filesystem.hpp>
+#ifdef WIN32
+    #include <Windows.h>
+    #include <tchar.h>
+#else
+    #include <unistd.h>
+#endif
+#include <ctime>
 
 #include "hps/hps.h"
 
@@ -93,6 +100,8 @@ class Utils{
         static void serializeWeigths(map<string, vector<float>> weights, string filename,string except_str="");
         static map<string, vector<float>> deserializeWeigths(string filename,string except_str="");
         static bool mkdir(string path);
+        static string getHostname();
+        static string getStrNow(string format="%d-%m-%Y %H:%M:%S");
 
         // variables
         static mt19937_64 RNG;

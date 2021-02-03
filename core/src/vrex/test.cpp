@@ -778,7 +778,11 @@ void testGeneticallyTunedSmartNeuralNetwork_cveData(){
         get<2>(net)(); // free memory
         float output=0;
         for(pair<float,float> l:metric){
-            output+=l.second; // use validation
+            if (cross_validation!=SlideCrossValidation::NONE){
+                output+=l.second; // use validation
+            }else{
+                output+=l.first; // use validation
+            }
         }
         output/=metric.size();
         return output;

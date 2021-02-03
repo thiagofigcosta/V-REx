@@ -467,3 +467,37 @@ bool Utils::mkdir(string path){
     boost::filesystem::create_directory(path);
     return true;
 }
+
+string Utils::getHostname(){
+    int buff_size=150;
+    string name="";
+    #ifdef WIN32
+        TCHAR infoBuf[buff_size];
+        DWORD bufCharCount = buff_size;
+        if(GetComputerName(infoBuf,&bufCharCount)){
+            for(int i=0; i<buff_size; i++){
+                if (infoBuf[i]=='\0')
+                    break;
+                name+=(char) infoBuf[i];
+            }
+        }else{
+            name="Unknown_Host_Name";
+        }
+    #else
+        char buff[buff_size];
+        gethostname(buff, buff_size);
+        name=string(buff);
+    #endif
+    return name;
+}
+
+string Utils::getStrNow(string format){
+    time_t rawtime;
+    struct tm * timeinfo;
+    char buffer[80];
+    time (&rawtime);
+    timeinfo = localtime(&rawtime);
+    strftime(buffer,sizeof(buffer),format.c_str(),timeinfo);
+    string str(buffer);
+    return str;
+}

@@ -21,6 +21,8 @@ using bsoncxx::builder::stream::open_document;
 using namespace std;
 
 #include "Utils.hpp"
+#include "NeuralGenome.hpp"
+#include "GeneticAlgorithm.hpp"
 
 class MongoDB{
     public:
@@ -35,7 +37,13 @@ class MongoDB{
         static pair<string,pair<vector<int>, vector<float>>> bsonToDatasetEntry(const bsoncxx::v_noabi::document::view bson);
         static pair<string,pair<vector<int>, vector<float>>> bsonToDatasetEntry(bsoncxx::stdx::optional<bsoncxx::document::value> opt_bson);
         pair<vector<string>,vector<pair<vector<int>, vector<float>>>> loadCvesFromYear(int year, int limit=0);
-        pair<vector<string>,vector<pair<vector<int>, vector<float>>>> loadCvesFromYears(vector<int> years);
+        pair<vector<string>,vector<pair<vector<int>, vector<float>>>> loadCvesFromYears(vector<int> years, int limit=0);
+        pair<vector<string>,vector<float>> fetchGeneticSimulationData(string id);
+        void claimGeneticSimulation(string id,string currentDatetime, string hostname);
+        void finishGeneticSimulation(string id,string currentDatetime);
+        void updateBestOnGeneticSimulation(string id, pair<float,int> candidate,string currentDatetime);
+        void appendResultOnGeneticSimulation(string id, vector<float> current_gen_result);
+        SPACE_SEARCH fetchEnvironmentData(string name);
 
     private:
         // methods
