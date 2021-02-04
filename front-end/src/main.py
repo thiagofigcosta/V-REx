@@ -72,13 +72,13 @@ def inputArrayNumber(is_float=False,postive_number=True,greater_or_eq=None,lower
 }
 
 def main(argv){
-    HELP_STR='main.py [-h]\n\t[--check-jobs]\n\t[--create-genetic-env]\n\t[--list-genetic-envs]\n\t[--run-genetic]\n\t[--show-genetic-results]\n\t[--rm-genetic-env <env name>]\n\t[--get-queue-names]\n\t[--get-all-db-names]\n\t[-q | --quit]\n\t[--run-processor-pipeline]\n\t[--run-merge-cve]\n\t[--run-flattern-and-simplify-all]\n\t[--run-flattern-and-simplify [cve|oval|capec|cwe]]\n\t[--run-filter-exploits]\n\t[--run-transform-all]\n\t[--run-transform [cve|oval|capec|cwe|exploits]]\n\t[--run-enrich]\n\t[--run-analyze]\n\t[--run-filter-and-normalize]\n\t[--download-source <source ID>]\n\t[--download-all-sources]\n\t[--empty-queue <queue name>]\n\t[--empty-all-queues]\n\t[--dump-db <db name>#<folder path to export> | --dump-db <db name> {saves on default tmp folder} \n\t\te.g. --dump-db queue#/home/thiago/Desktop]\n\t[--restore-db <file path to import>#<db name> | --restore-db <file path to import> {saves db under file name} \n\t\te.g. --restore-db /home/thiago/Desktop/queue.zip#restored_queue]\n\t[--keep-alive-as-zombie]'
+    HELP_STR='main.py [-h]\n\t[--check-jobs]\n\t[--create-genetic-env]\n\t[--list-genetic-envs]\n\t[--run-genetic]\n\t[--show-genetic-results]\n\t[--rm-genetic-env <env name>]\n\t[--create-smart-neural-hyperparams]\n\t[--get-queue-names]\n\t[--get-all-db-names]\n\t[-q | --quit]\n\t[--run-processor-pipeline]\n\t[--run-merge-cve]\n\t[--run-flattern-and-simplify-all]\n\t[--run-flattern-and-simplify [cve|oval|capec|cwe]]\n\t[--run-filter-exploits]\n\t[--run-transform-all]\n\t[--run-transform [cve|oval|capec|cwe|exploits]]\n\t[--run-enrich]\n\t[--run-analyze]\n\t[--run-filter-and-normalize]\n\t[--download-source <source ID>]\n\t[--download-all-sources]\n\t[--empty-queue <queue name>]\n\t[--empty-all-queues]\n\t[--dump-db <db name>#<folder path to export> | --dump-db <db name> {saves on default tmp folder} \n\t\te.g. --dump-db queue#/home/thiago/Desktop]\n\t[--restore-db <file path to import>#<db name> | --restore-db <file path to import> {saves db under file name} \n\t\te.g. --restore-db /home/thiago/Desktop/queue.zip#restored_queue]\n\t[--keep-alive-as-zombie]'
     args=[]
     zombie=False
     global ITERATIVE
     to_run=[]
     try{ 
-        opts, args = getopt.getopt(argv,"hq",["keep-alive-as-zombie","download-source=","download-all-sources","check-jobs","quit","get-queue-names","empty-queue=","empty-all-queues","get-all-db-names","dump-db=","restore-db=","run-processor-pipeline","run-flattern-and-simplify-all","run-flattern-and-simplify=","run-filter-exploits","run-transform-all","run-transform=","run-enrich","run-analyze","run-filter-and-normalize","run-merge-cve","create-genetic-env","list-genetic-envs","rm-genetic-env=","run-genetic","show-genetic-results"])
+        opts, args = getopt.getopt(argv,"hq",["keep-alive-as-zombie","download-source=","download-all-sources","check-jobs","quit","get-queue-names","empty-queue=","empty-all-queues","get-all-db-names","dump-db=","restore-db=","run-processor-pipeline","run-flattern-and-simplify-all","run-flattern-and-simplify=","run-filter-exploits","run-transform-all","run-transform=","run-enrich","run-analyze","run-filter-and-normalize","run-merge-cve","create-genetic-env","list-genetic-envs","rm-genetic-env=","run-genetic","show-genetic-results","create-smart-neural-hyperparams"])
     }except getopt.GetoptError{
         print (HELP_STR)
         if not ITERATIVE {
@@ -104,6 +104,78 @@ def main(argv){
                 }else{
                     LOGGER.error('Invalid argument, type the db_name or "db_name#path": {}'.format(arg))
                 }
+            }elif opt == "--create-smart-neural-hyperparams"{
+                print('Now type the hyperparameters for the Smart Neural Network...')
+                print('Enter the hyperparameters config name (unique): ', end = '')
+                hyper_name=input().strip()
+                submitted_at=Utils.getTodayDate('%d/%m/%Y %H:%M:%S')
+                print('Enter the batch size: ', end = '')
+                batch_size=inputNumber()
+                print('Enter the alpha: ', end = '')
+                alpha=inputNumber(is_float=True,lower_or_eq=1)
+                print('Enter 1 to shuffle train data or 0 otherwise: ', end = '')
+                shuffle=inputNumber(lower_or_eq=1)==1
+                print('Enter 1 to use adam optimizer or 0 otherwise: ', end = '')
+                adam=inputNumber(lower_or_eq=1)==1
+                print('Enter the rehash (6400): ', end = '')
+                rehash=inputNumber()
+                print('Enter the rebuild (128000): ', end = '')
+                rebuild=inputNumber()
+                print('Enter the label type (0-2):')
+                print('\t0 - INT_CLASS')
+                print('\t1 - NEURON_BY_NEURON')
+                print('\t2 - NEURON_BY_NEURON_LOG_LOSS')
+                label_type=inputNumber(lower_or_eq=2)
+                print('Enter amount of layers: ', end = '')
+                layers=inputNumber(greater_or_eq=1)
+                layer_sizes=[]
+                for i in range(layers){
+                    if i==0{
+                        print('Enter the layer size for layer 0 (output size): ', end = '')
+                    }else{
+                        print('Enter the layer size for layer {}: '.format(i), end = '')
+                    }
+                    layer_sizes.append(inputNumber())
+                }
+                range_pow=[]
+                for i in range(layers){
+                    print('Enter the range pow for layer {}: '.format(i), end = '')
+                    range_pow.append(inputNumber())
+                }
+                K=[]
+                for i in range(layers){
+                    print('Enter the K for layer {}: '.format(i), end = '')
+                    K.append(inputNumber())
+                }
+                L=[]
+                for i in range(layers){
+                    print('Enter the L for layer {}: '.format(i), end = '')
+                    L.append(inputNumber())
+                }
+                if layers > 1 {
+                    print('Node types (0-2):')
+                    print('\t0 - ReLU')
+                    print('\t1 - Softmax')
+                    print('\t2 - Sigmoid')
+                }
+                node_types=[]
+                for i in range(layers-1){
+                    print('Enter the node type for layer {}: '.format(i), end = '')
+                    node_types.append(inputNumber(lower_or_eq=2))
+                }
+                node_types.append(1) # softmax
+                sparcity=[1] # border
+                for i in range(layers-2){
+                    print('Enter the sparcity for layer {}: '.format(i), end = '')
+                    sparcity.append(inputNumber(is_float=True,lower_or_eq=1))
+                }
+                if layers > 1 {
+                    sparcity.append(1); # border
+                }
+                hyperparams={'hyper_name':hyper_name,'submitted_at':submitted_at,'batch_size':batch_size,'alpha':alpha,'shuffle':shuffle,'adam':adam,'rehash':rehash,'rebuild':rebuild,'label_type':label_type,'layers':layers,'layer_sizes':layer_sizes,'range_pow':range_pow,'K':K,'L':L,'node_types':node_types,'sparcity':sparcity}
+                LOGGER.info('Writting hyperparameters on neural_db...')
+                mongo.insertOneOnDB(mongo.getDB('neural_db'),hyperparams,'snn_hyperparameters',index='name',ignore_lock=True)
+                LOGGER.info('Wrote hyperparameters on neural_db...OK')
             }elif opt == "--list-genetic-envs"{
                 LOGGER.info('Getting genetic environments...')
                 for env in mongo.findAllOnDB(mongo.getDB('genetic_db'),'environments',wait_unlock=False){
