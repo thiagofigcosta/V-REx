@@ -501,3 +501,11 @@ string Utils::getStrNow(string format){
     string str(buffer);
     return str;
 }
+
+string Utils::serializeWeigthsToStr(map<string, vector<float>> weights){
+    return hps::to_string(weights);
+}
+
+map<string, vector<float>> Utils::deserializeWeigths(string serialized_str){
+    return hps::from_string<map<string, vector<float>>>(serialized_str);
+}

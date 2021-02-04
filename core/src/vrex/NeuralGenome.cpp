@@ -213,8 +213,13 @@ map<string, vector<float>> NeuralGenome::getWeights(){
     return weights;
 }
 
-void NeuralGenome::setWeights(map<string, vector<float>> Weights){
-    weights=Weights;
+void NeuralGenome::clearWeightsIfCached(){
+     if (cached&&NeuralGenome::CACHE_WEIGHTS){
+        weights.clear();
+    }
+}
+
+void NeuralGenome::forceCache(){
     if(cached&&NeuralGenome::CACHE_WEIGHTS){
         Utils::rmFile(cache_file);
         cached=false;
@@ -239,6 +244,11 @@ void NeuralGenome::setWeights(map<string, vector<float>> Weights){
             weights.clear();
         }
     }
+}
+
+void NeuralGenome::setWeights(map<string, vector<float>> Weights){
+    weights=Weights;
+    forceCache();
 }
 
 void NeuralGenome::setNeuralTrainData(vector<pair<vector<int>, vector<float>>> data){

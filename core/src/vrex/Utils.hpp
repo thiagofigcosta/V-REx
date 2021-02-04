@@ -102,6 +102,8 @@ class Utils{
         static bool mkdir(string path);
         static string getHostname();
         static string getStrNow(string format="%d-%m-%Y %H:%M:%S");
+        static string serializeWeigthsToStr(map<string, vector<float>> weights);
+        static map<string, vector<float>> deserializeWeigths(string serialized_str);
 
         // variables
         static mt19937_64 RNG;

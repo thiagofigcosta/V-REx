@@ -382,8 +382,9 @@ bsoncxx::document::value MongoDB::castNeuralGenomeToBson(NeuralGenome* ng){
         bsoncxx::document::value full=document{}
             <<"int_dna"<<int_dna
             <<"float_dna"<<float_dna
+            <<"weights"<<Utils::serializeWeigthsToStr(ng->getWeights())
             << finalize;
-        // TODO: store weights
+        ng->clearWeightsIfCached();
         return full;
     }else{
         bsoncxx::document::value empty=document{} << finalize;

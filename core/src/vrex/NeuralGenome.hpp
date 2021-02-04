@@ -37,6 +37,8 @@ class NeuralGenome : public Genome{
         static void setNeuralTrainData(vector<pair<vector<int>, vector<float>>> data);
         string to_string();
         static string getBaseFolder();
+        void forceCache();
+        void clearWeightsIfCached();
         
         // variables
         static string last_print_str;
