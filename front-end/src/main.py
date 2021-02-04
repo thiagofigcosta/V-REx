@@ -207,17 +207,39 @@ def main(argv){
                 LOGGER.info('Getting genetic results...')
                 for sim in mongo.findAllOnDB(mongo.getDB('genetic_db'),'simulations',wait_unlock=False){
                     for k,v in sim.items(){
-                        if type(v) is list{
-                            if (len(v)==0){
-                                LOGGER.clean('{}: []'.format(k))
+                        if k=="hall_of_fame_id"{
+                            hall=mongo.findOneOnDBFromIndex(mongo.getDB('neural_db'),'hall_of_fame','_id',bson.ObjectId(v),wait_unlock=False)
+                            LOGGER.clean('Hall Of Fame:')
+                            if (len( hall['neural_genomes'])==0){
+                                LOGGER.clean('\t[]')
                             }else{
-                                LOGGER.clean('{}:'.format(k))
-                                for el in v{
-                                LOGGER.clean('\t{}:'.format(str(el))) 
+                                for el in hall['neural_genomes']{
+                                    LOGGER.clean('\t{}:'.format(str(el))) 
+                                }
+                            }
+                        }elif k=="population_id"{
+                            pop=mongo.findOneOnDBFromIndex(mongo.getDB('neural_db'),'populations','_id',bson.ObjectId(v),wait_unlock=False)
+                            LOGGER.clean('Population:')
+                            if (len(pop['neural_genomes'])==0){
+                                LOGGER.clean('\t[]')
+                            }else{
+                                for el in pop['neural_genomes']{
+                                    LOGGER.clean('\t{}:'.format(str(el))) 
                                 }
                             }
                         }else{
-                            LOGGER.clean('{}: {}'.format(k,str(v)))
+                             if type(v) is list{
+                                if (len(v)==0){
+                                    LOGGER.clean('{}: []'.format(k))
+                                }else{
+                                    LOGGER.clean('{}:'.format(k))
+                                    for el in v{
+                                        LOGGER.clean('\t{}:'.format(str(el))) 
+                                    }
+                                }
+                            }else{
+                                LOGGER.clean('{}: {}'.format(k,str(v)))
+                            }
                         }
                     }
                     LOGGER.clean('\n')
