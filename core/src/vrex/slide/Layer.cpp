@@ -243,7 +243,7 @@ int Layer::queryActiveNodeandComputeActivations(int** activenodesperlayer, float
                 hashes = _srp->getHashSparse(activenodesperlayer[layerIndex], activeValuesperlayer[layerIndex], lengths[layerIndex]);
             }
             int *hashIndices = _hashTables->hashesToIndex(hashes);
-            int **actives = _hashTables->retrieveRaw(hashIndices);
+            int_array_pointer_2d actives = _hashTables->retrieveRaw(hashIndices);
             
 
             // Get candidates from hashtable
@@ -294,9 +294,9 @@ int Layer::queryActiveNodeandComputeActivations(int** activenodesperlayer, float
             delete[] hashes;
             #pragma GCC diagnostic pop 
             delete[] hashIndices;
-            delete[] actives;
-            
-
+            #if Slide_USE_SMART_POINTERS == 0
+                delete[] actives;
+            #endif
         }
         if (mode==SlideMode::SAMPLING) {
             int *hashes;
@@ -311,7 +311,7 @@ int Layer::queryActiveNodeandComputeActivations(int** activenodesperlayer, float
                 hashes = _srp->getHashSparse(activenodesperlayer[layerIndex], activeValuesperlayer[layerIndex], lengths[layerIndex]);
             }
             int *hashIndices = _hashTables->hashesToIndex(hashes);
-            int **actives = _hashTables->retrieveRaw(hashIndices);
+            int_array_pointer_2d actives = _hashTables->retrieveRaw(hashIndices);
             // we now have a sparse array of indices of active nodes
 
             // Get candidates from hashtable
@@ -380,7 +380,9 @@ int Layer::queryActiveNodeandComputeActivations(int** activenodesperlayer, float
             delete[] hashes;
             #pragma GCC diagnostic pop 
             delete[] hashIndices;
-            delete[] actives;
+             #if Slide_USE_SMART_POINTERS == 0
+                delete[] actives;
+            #endif
 
         }
         else if ((mode == SlideMode::UNKNOWN_MODE1) & (_type== NodeType::Softmax)) {

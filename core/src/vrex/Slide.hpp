@@ -7,6 +7,7 @@
 
 #define Slide_MAPLEN 325056
 // Slide_HUGEPAGES defined in Node.h
+#define Slide_USE_SMART_POINTERS 1 // 1 to use smart pointer or 0 to not. WARNING smart pointers are not thread safe 
 
 class Bucket;
 class Network;
@@ -18,6 +19,16 @@ enum class SlideMetric { RAW_LOSS, F1, RECALL, ACCURACY, PRECISION };
 enum class SlideCrossValidation { NONE, ROLLING_FORECASTING_ORIGIN, KFOLDS, TWENTY_PERCENT };
 
 using namespace std;
+
+#if Slide_USE_SMART_POINTERS == 1
+    typedef vector<vector<shared_ptr<Bucket>>> bucket_pointer_2d;
+    typedef shared_ptr<int[]> int_array_pointer;
+    typedef vector<shared_ptr<int[]>> int_array_pointer_2d;
+#else
+    typedef Bucket** bucket_pointer_2d;
+    typedef int* int_array_pointer;
+    typedef int** int_array_pointer_2d;
+#endif
 
 class Slide{
     public:

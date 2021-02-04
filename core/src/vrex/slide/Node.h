@@ -17,7 +17,7 @@
 
 enum class NodeType { ReLU, Softmax, Sigmoid };
 
-#define Slide_HUGEPAGES 0
+#define Slide_HUGEPAGES 0 // 1 to use huge pages or 0 to not 
 
 struct train_with_huge_pages {
     float _lastDeltaforBPs;
