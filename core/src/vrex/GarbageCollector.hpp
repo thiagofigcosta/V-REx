@@ -43,6 +43,7 @@ class GarbageCollector{
                 singleton=nullptr;
             }
             Utils::rmFile(NeuralGenome::getBaseFolder());
+            Utils::mkdir(NeuralGenome::getBaseFolder());
         }
     
         void addInt1d(int* obj);
