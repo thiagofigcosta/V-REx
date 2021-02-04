@@ -15,6 +15,7 @@ using namespace std;
 
 MongoDB* mongo=nullptr;
 const bool trap_signals=false;
+const bool connect_mongo=false;
 
 void exceptionHandler(int signum) {
     ::signal(signum, SIG_DFL);
@@ -56,15 +57,17 @@ void setup(){
     //     }
     // }
     // cout<<"Set up stack size...OK\n";
-    cout<<"Connecting on Mongo...\n";
-    string mongo_host;
-    if (Utils::runningOnDockerContainer()){
-        mongo_host="mongo";
-    }else{
-        mongo_host="127.0.0.1";
+    if(connect_mongo){
+        cout<<"Connecting on Mongo...\n";
+        string mongo_host;
+        if (Utils::runningOnDockerContainer()){
+            mongo_host="mongo";
+        }else{
+            mongo_host="127.0.0.1";
+        }
+        mongo = new MongoDB(mongo_host,"root","123456");
+        cout<<"Connected on Mongo...OK\n";
     }
-    mongo = new MongoDB(mongo_host,"root","123456");
-    cout<<"Connected on Mongo...OK\n";
     if (Slide::MAX_THREADS > 0){
         cout<<"Limiting amount of threads...\n";
         omp_set_dynamic(0);
@@ -208,7 +211,7 @@ void runGeneticSimulation(string simulation_id){
 }
 
 int main() {
-    // setup();
+    setup();
     test();
     // runGeneticSimulation("601b063dbc85e6419b8462ca");
     tearDown();

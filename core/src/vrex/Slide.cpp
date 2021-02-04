@@ -95,6 +95,10 @@ pair<float,float> Slide::trainEpoch(vector<pair<vector<int>, vector<float>>> &tr
         train_loss+=slide_network->ProcessInput(records, values, sizes, labels, labelsize, 
                                                 iter, must_rehash, must_rebuild);
 
+        for (pair<vector<int>, vector<float>> v:batch_data){
+            v.first.clear();
+            v.second.clear();
+        }
         batch_data.clear();
         deallocSlideDataset(values,sizes,records,labels,labelsize);
     }
@@ -187,6 +191,16 @@ vector<pair<float,float>> Slide::train(vector<pair<vector<int>, vector<float>>> 
             validation_data.push_back(t_data[int(t_data.size()*Utils::getRandomBetweenZeroAndOne())]);
         }
         metrics.push_back(trainEpoch(t_data,validation_data,j));
+        for (pair<vector<int>, vector<float>> v:t_data){
+            v.first.clear();
+            v.second.clear();
+        }
+        t_data.clear();
+        for (pair<vector<int>, vector<float>> v:validation_data){
+            v.first.clear();
+            v.second.clear();
+        }
+        validation_data.clear();
     }
     if (print_deltas) {
         t2 = chrono::high_resolution_clock::now();
@@ -212,6 +226,10 @@ float Slide::evalLoss(vector<pair<vector<int>, vector<float>>> &eval_data){
 
         loss+=slide_network->evalInput(records, values, sizes, labels, labelsize);
 
+        for (pair<vector<int>, vector<float>> v:batch_data){
+            v.first.clear();
+            v.second.clear();
+        }
         batch_data.clear();
         deallocSlideDataset(values,sizes,records,labels,labelsize);
     }
@@ -241,6 +259,10 @@ pair<int,vector<vector<pair<int,float>>>> Slide::evalData(vector<pair<vector<int
         output.second.insert(output.second.end(),batch_out.second.begin(),batch_out.second.end());
         output.first+=batch_out.first;
         
+        for (pair<vector<int>, vector<float>> v:batch_data){
+            v.first.clear();
+            v.second.clear();
+        }
         batch_data.clear();
         deallocSlideDataset(values,sizes,records,labels,labelsize);
     }
