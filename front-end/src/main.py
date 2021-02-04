@@ -1,6 +1,6 @@
 #!/bin/python
 
-import sys, getopt, bson
+import sys, getopt, bson, re
 from Utils import Utils
 from Logger import Logger
 from MongoDB import MongoDB
@@ -72,13 +72,13 @@ def inputArrayNumber(is_float=False,postive_number=True,greater_or_eq=None,lower
 }
 
 def main(argv){
-    HELP_STR='main.py [-h]\n\t[--check-jobs]\n\t[--create-genetic-env]\n\t[--list-genetic-envs]\n\t[--run-genetic]\n\t[--show-genetic-results]\n\t[--rm-genetic-env <env name>]\n\t[--create-smart-neural-hyperparams]\n\t[--get-queue-names]\n\t[--get-all-db-names]\n\t[-q | --quit]\n\t[--run-processor-pipeline]\n\t[--run-merge-cve]\n\t[--run-flattern-and-simplify-all]\n\t[--run-flattern-and-simplify [cve|oval|capec|cwe]]\n\t[--run-filter-exploits]\n\t[--run-transform-all]\n\t[--run-transform [cve|oval|capec|cwe|exploits]]\n\t[--run-enrich]\n\t[--run-analyze]\n\t[--run-filter-and-normalize]\n\t[--download-source <source ID>]\n\t[--download-all-sources]\n\t[--empty-queue <queue name>]\n\t[--empty-all-queues]\n\t[--dump-db <db name>#<folder path to export> | --dump-db <db name> {saves on default tmp folder} \n\t\te.g. --dump-db queue#/home/thiago/Desktop]\n\t[--restore-db <file path to import>#<db name> | --restore-db <file path to import> {saves db under file name} \n\t\te.g. --restore-db /home/thiago/Desktop/queue.zip#restored_queue]\n\t[--keep-alive-as-zombie]'
+    HELP_STR='main.py [-h]\n\t[--check-jobs]\n\t[--create-genetic-env]\n\t[--list-genetic-envs]\n\t[--run-genetic]\n\t[--show-genetic-results]\n\t[--rm-genetic-env <env name>]\n\t[--create-smart-neural-hyperparams]\n\t[--list-smart-neural-hyperparams]\n\t[--rm-smart-neural-hyperparams <hyper name>]\n\t[--train-smart-neural]\n\t[--eval-smart-neural]\n\t[--get-queue-names]\n\t[--get-all-db-names]\n\t[-q | --quit]\n\t[--run-processor-pipeline]\n\t[--run-merge-cve]\n\t[--run-flattern-and-simplify-all]\n\t[--run-flattern-and-simplify [cve|oval|capec|cwe]]\n\t[--run-filter-exploits]\n\t[--run-transform-all]\n\t[--run-transform [cve|oval|capec|cwe|exploits]]\n\t[--run-enrich]\n\t[--run-analyze]\n\t[--run-filter-and-normalize]\n\t[--download-source <source ID>]\n\t[--download-all-sources]\n\t[--empty-queue <queue name>]\n\t[--empty-all-queues]\n\t[--dump-db <db name>#<folder path to export> | --dump-db <db name> {saves on default tmp folder} \n\t\te.g. --dump-db queue#/home/thiago/Desktop]\n\t[--restore-db <file path to import>#<db name> | --restore-db <file path to import> {saves db under file name} \n\t\te.g. --restore-db /home/thiago/Desktop/queue.zip#restored_queue]\n\t[--keep-alive-as-zombie]'
     args=[]
     zombie=False
     global ITERATIVE
     to_run=[]
     try{ 
-        opts, args = getopt.getopt(argv,"hq",["keep-alive-as-zombie","download-source=","download-all-sources","check-jobs","quit","get-queue-names","empty-queue=","empty-all-queues","get-all-db-names","dump-db=","restore-db=","run-processor-pipeline","run-flattern-and-simplify-all","run-flattern-and-simplify=","run-filter-exploits","run-transform-all","run-transform=","run-enrich","run-analyze","run-filter-and-normalize","run-merge-cve","create-genetic-env","list-genetic-envs","rm-genetic-env=","run-genetic","show-genetic-results","create-smart-neural-hyperparams"])
+        opts, args = getopt.getopt(argv,"hq",["keep-alive-as-zombie","download-source=","download-all-sources","check-jobs","quit","get-queue-names","empty-queue=","empty-all-queues","get-all-db-names","dump-db=","restore-db=","run-processor-pipeline","run-flattern-and-simplify-all","run-flattern-and-simplify=","run-filter-exploits","run-transform-all","run-transform=","run-enrich","run-analyze","run-filter-and-normalize","run-merge-cve","create-genetic-env","list-genetic-envs","rm-genetic-env=","run-genetic","show-genetic-results","create-smart-neural-hyperparams","list-smart-neural-hyperparams","rm-smart-neural-hyperparams=","train-smart-neural","eval-smart-neural"])
     }except getopt.GetoptError{
         print (HELP_STR)
         if not ITERATIVE {
@@ -104,6 +104,17 @@ def main(argv){
                 }else{
                     LOGGER.error('Invalid argument, type the db_name or "db_name#path": {}'.format(arg))
                 }
+            }elif opt == "--list-smart-neural-hyperparams"{
+                LOGGER.info('Getting hyperparameters...')
+                for hyp in mongo.findAllOnDB(mongo.getDB('neural_db'),'snn_hyperparameters',wait_unlock=False){
+                    for k,v in hyp.items(){
+                        if k!='_id'{
+                            LOGGER.clean('{}: {}'.format(k,str(v)))
+                        }
+                    }
+                    LOGGER.clean('\n')
+                }
+                LOGGER.info('Gotten hyperparameters...OK')
             }elif opt == "--create-smart-neural-hyperparams"{
                 print('Now type the hyperparameters for the Smart Neural Network...')
                 print('Enter the hyperparameters config name (unique): ', end = '')
@@ -125,6 +136,7 @@ def main(argv){
                 print('\t0 - INT_CLASS')
                 print('\t1 - NEURON_BY_NEURON')
                 print('\t2 - NEURON_BY_NEURON_LOG_LOSS')
+                print('value: ', end='')
                 label_type=inputNumber(lower_or_eq=2)
                 print('Enter amount of layers: ', end = '')
                 layers=inputNumber(greater_or_eq=1)
@@ -157,6 +169,7 @@ def main(argv){
                     print('\t0 - ReLU')
                     print('\t1 - Softmax')
                     print('\t2 - Sigmoid')
+                    print('value: ', end='')
                 }
                 node_types=[]
                 for i in range(layers-1){
@@ -172,7 +185,7 @@ def main(argv){
                 if layers > 1 {
                     sparcity.append(1); # border
                 }
-                hyperparams={'hyper_name':hyper_name,'submitted_at':submitted_at,'batch_size':batch_size,'alpha':alpha,'shuffle':shuffle,'adam':adam,'rehash':rehash,'rebuild':rebuild,'label_type':label_type,'layers':layers,'layer_sizes':layer_sizes,'range_pow':range_pow,'K':K,'L':L,'node_types':node_types,'sparcity':sparcity}
+                hyperparams={'name':hyper_name,'submitted_at':submitted_at,'batch_size':batch_size,'alpha':alpha,'shuffle':shuffle,'adam':adam,'rehash':rehash,'rebuild':rebuild,'label_type':label_type,'layers':layers,'layer_sizes':layer_sizes,'range_pow':range_pow,'K':K,'L':L,'node_types':node_types,'sparcity':sparcity}
                 LOGGER.info('Writting hyperparameters on neural_db...')
                 mongo.insertOneOnDB(mongo.getDB('neural_db'),hyperparams,'snn_hyperparameters',index='name',ignore_lock=True)
                 LOGGER.info('Wrote hyperparameters on neural_db...OK')
@@ -197,6 +210,107 @@ def main(argv){
                     LOGGER.clean('\n')
                 }
                 LOGGER.info('Gotten genetic environments...OK')
+            }elif opt == "--eval-smart-neural"{
+                print('Enter a existing independent network name to be used: ', end = '')
+                independent_net_name=input().strip()
+                independent_net=mongo.findOneOnDBFromIndex(mongo.getDB('neural_db'),'independent_net','name',independent_net_name,wait_unlock=False)
+                if not independent_net{
+                    LOGGER.error('Not found a independent network for the given name!')
+                }else{
+                    print('Eval single CVE or multiple (0 - single | 1 - multiple): ')
+                    if inputNumber(lower_or_eq=1)==1{
+                        print('Enter the years to be used as eval data splitted by comma (,) (1999-2020):')
+                        eval_data=inputArrayNumber(greater_or_eq=1999,lower_or_eq=2020)
+                        print('Enter a limit of CVEs for each year (0 = unlimitted): ')
+                        eval_data+=':{}'.format(inputNumber())
+                        job_args={'eval_data':eval_data,'independent_net_name':independent_net_name}
+                    }else{
+                        print('Enter a CVE id following the format CVE-####-#*: ')
+                        not_filled=True
+                        eval_cve=''
+                        while not_filled {
+                            eval_cve=input().strip()
+                            if re.match(r'^CVE-[0-9]{4}-[0-9]*$',eval_cve){
+                                not_filled=False
+                            }else{
+                                print('ERROR - Wrong CVE format')
+                            }
+                        }
+                        job_args={'eval_cve':eval_cve,'independent_net_name':independent_net_name}
+                    }
+                    LOGGER.info('Writting on Core queue to eval network...')
+                    mongo.insertOnCoreQueue('Eval SNN',job_args)
+                    LOGGER.info('Wrote on Core queue to eval network...OK')
+                }
+            }elif opt == "--train-smart-neural"{
+                print('Now enter the data to train the neural network...')
+                print('Enter a existing hyperparameters name to be used: ', end = '')
+                hyper_name=input().strip()
+                hyper=mongo.findOneOnDBFromIndex(mongo.getDB('neural_db'),'snn_hyperparameters','name',hyper_name,wait_unlock=False)
+                if not hyper{
+                    LOGGER.error('Not found a hyperparameter for the given name!')
+                }else{
+                    print('Enter a name for the train (unique): ', end = '')
+                    train_name=input().strip()
+                    submitted_at=Utils.getTodayDate('%d/%m/%Y %H:%M:%S')
+                    started_by=None
+                    started_at=None
+                    finished_at=None
+                    weights=None
+                    print('Enter the epochs: ',end='')
+                    epochs=inputNumber()
+                    print('Enter the cross validation method (0-4):')
+                    print('\t0 - NONE')
+                    print('\t1 - ROLLING_FORECASTING_ORIGIN')
+                    print('\t2 - KFOLDS')
+                    print('\t3 - TWENTY_PERCENT')
+                    print('value: ', end='')
+                    cross_validation=inputNumber(lower_or_eq=3)
+                    print('Enter the metric to be used during training/val (0-4):')
+                    print('\t0 - RAW_LOSS (cheaper)')
+                    print('\t1 - F1')
+                    print('\t2 - RECALL')
+                    print('\t3 - ACCURACY')
+                    print('\t4 - PRECISION')
+                    print('value: ',end='')
+                    train_metric=inputNumber(lower_or_eq=4)
+                    print('Enter the years to be used as train data splitted by comma (,) (1999-2020):')
+                    train_data=inputArrayNumber(greater_or_eq=1999,lower_or_eq=2020)
+                    print('Enter a limit of CVEs for each year (0 = unlimitted): ')
+                    train_data+=':{}'.format(inputNumber())
+                    print('Run test data also (0 - no | 1 - yes): ')
+                    if inputNumber(lower_or_eq=1)==1{
+                        print('Enter the metric to be used during test (0-4):')
+                        print('\t0 - RAW_LOSS (cheaper)')
+                        print('\t1 - F1')
+                        print('\t2 - RECALL')
+                        print('\t3 - ACCURACY')
+                        print('\t4 - PRECISION')
+                        print('value: ',end='')
+                        test_metric=inputNumber(lower_or_eq=4)
+
+                        print('Enter the years to be used as test data splitted by comma (,) (1999-2020):')
+                        test_data=inputArrayNumber(greater_or_eq=1999,lower_or_eq=2020)
+                        print('Enter a limit of CVEs for each year (0 = unlimitted): ')
+                        test_data+=':{}'.format(inputNumber())
+                    }else{
+                        test_metric=0
+                        test_data=''
+                    }
+                    train_metadata={'name':train_name,'submitted_at':submitted_at,'started_by':started_by,'started_at':started_at,'finished_at':finished_at,'epochs':epochs,'cross_validation':cross_validation,'train_metric':train_metric,'train_data':train_data,'test_metric':test_metric,'test_data':test_data,'weights':weights}
+                    LOGGER.info('Writting simulation config on genetic_db...')
+                    independent_net_id=mongo.quickInsertOneIgnoringLockAndRetrieveId(mongo.getDB('neural_db'),train_metadata,'independent_net',index='name')
+                    if (independent_net_id==None){
+                        LOGGER.error('Failed to insert simulation!')
+                    }else{
+                        LOGGER.info('Wrote simulation config on genetic_db...OK')
+
+                        LOGGER.info('Writting on Core queue to train network...')
+                        job_args={'independent_net_id':independent_net_id}
+                        mongo.insertOnCoreQueue('Train SNN',job_args)
+                        LOGGER.info('Wrote on Core queue to train network...OK')
+                    }
+                }
             }elif opt == "--run-genetic"{
                 print('Now enter the data to run the genetic experiment...')
                 print('Enter a existing genetic environment name to be used: ', end = '')
@@ -286,7 +400,7 @@ def main(argv){
                                 LOGGER.clean('\t[]')
                             }else{
                                 for el in hall['neural_genomes']{
-                                    LOGGER.clean('\t{}:'.format(str(el))) 
+                                    LOGGER.clean('\t{}'.format(str(el))) 
                                 }
                             }
                         }elif k=="population_id"{
@@ -375,7 +489,12 @@ def main(argv){
                 LOGGER.info('Removing {} from genetic environments...'.format(arg))
                 query={'name':arg}
                 mongo.rmOneFromDB(mongo.getDB('genetic_db'),'environments',query=query)
-                # mongo.insertOnProcessorQueue('Run Pipeline')
+                LOGGER.info('Removed {} from genetic environments...OK'.format(arg))
+            }elif opt == "--rm-smart-neural-hyperparams"{
+                arg=arg.strip()
+                LOGGER.info('Removing {} from hyperparameters...'.format(arg))
+                query={'name':arg}
+                mongo.rmOneFromDB(mongo.getDB('neural_db'),'snn_hyperparameters',query=query)
                 LOGGER.info('Removed {} from genetic environments...OK'.format(arg))
             }elif opt == "--run-processor-pipeline"{
                 LOGGER.info('Writting on Processor to Run the entire Pipeline...')

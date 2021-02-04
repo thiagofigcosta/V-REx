@@ -451,7 +451,10 @@ class MongoDB(object){
         db[collection].delete_one(query)
     }
 
-    def quickInsertOneIgnoringLockAndRetrieveId(self,db,document,collection){
+    def quickInsertOneIgnoringLockAndRetrieveId(self,db,document,collection,index=None){
+        if index is not None{
+            db[collection].create_index([(index, pymongo.ASCENDING)], unique=True)
+        }
         res=db[collection].insert_one(document)
         if (res.acknowledged!=True){
             return None
