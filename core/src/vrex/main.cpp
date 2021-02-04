@@ -4,10 +4,12 @@
 #include <exception>
 #include <stdexcept>
 #include <sys/resource.h>
+#include <omp.h>
 
 #include "Utils.hpp"
 #include "NeuralGenome.hpp"
 #include "test.hpp"
+#include "Slide.hpp"
 
 using namespace std;
 
@@ -63,6 +65,12 @@ void setup(){
     }
     mongo = new MongoDB(mongo_host,"root","123456");
     cout<<"Connected on Mongo...OK\n";
+    if (Slide::MAX_THREADS > 0){
+        cout<<"Limiting amount of threads...\n";
+        omp_set_dynamic(0);
+        omp_set_num_threads(Slide::MAX_THREADS);
+        cout<<"Limited amount of threads...OK\n";
+    }
 }
 
 void tearDown(){

@@ -5,9 +5,9 @@
 #include <chrono>
 #include <memory>
 
-#define Slide_MAPLEN 325056
+#define Slide_MAPLEN 512 // was 325056
 // Slide_HUGEPAGES defined in Node.h
-#define Slide_USE_SMART_POINTERS 1 // 1 to use smart pointer or 0 to not. WARNING smart pointers are not thread safe 
+#define Slide_USE_SMART_POINTERS 0 // 1 to use smart pointer or 0 to not. WARNING smart pointers are not thread safe 
 
 class Bucket;
 class Network;
@@ -52,6 +52,8 @@ class Slide{
         void deallocSlideDataset(float **values, int *sizes, int **records, int **labels, int *labelsize);
 
         // variables
+        static const int MAX_THREADS=1; // 0 = max allowed 
+
         static const bool MEAN_ERROR_INSTEAD_OF_GRADS_SUM=true;
         #pragma omp threadprivate(MEAN_ERROR_INSTEAD_OF_GRADS_SUM)
         static constexpr float ADAM_OT_BETA1=0.9;
@@ -60,7 +62,7 @@ class Slide{
         #pragma omp threadprivate(ADAM_OT_BETA2)
         static constexpr float ADAM_OT_EPSILON=0.00000001;
         #pragma omp threadprivate(ADAM_OT_EPSILON)
-        static const int BUCKET_SIZE=128;
+        static const int BUCKET_SIZE=4; // was 128
         #pragma omp threadprivate(BUCKET_SIZE)
         static const int TOPK_HASH_TOPK=30;
         #pragma omp threadprivate(TOPK_HASH_TOPK)
@@ -82,7 +84,7 @@ class Slide{
         #pragma omp threadprivate(K_FOLDS)
         static constexpr float ROLLING_FORECASTING_ORIGIN_MIN=.5;
         #pragma omp threadprivate(ROLLING_FORECASTING_ORIGIN_MIN)
-
+        
     private:
         // methods
         pair<float,float> trainEpoch(vector<pair<vector<int>, vector<float>>> &train_data,vector<pair<vector<int>, vector<float>>> &validation_data, int cur_epoch);
