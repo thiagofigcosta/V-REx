@@ -223,7 +223,7 @@ def main(argv){
                         eval_data=inputArrayNumber(greater_or_eq=1999,lower_or_eq=2020)
                         print('Enter a limit of CVEs for each year (0 = unlimitted): ')
                         eval_data+=':{}'.format(inputNumber())
-                        job_args={'eval_data':eval_data,'independent_net_name':independent_net_name}
+                        job_args={'eval_data':eval_data,'independent_net_id':str(independent_net['_id'])}
                     }else{
                         print('Enter a CVE id following the format CVE-####-#*: ')
                         not_filled=True
@@ -236,7 +236,7 @@ def main(argv){
                                 print('ERROR - Wrong CVE format')
                             }
                         }
-                        job_args={'eval_cve':eval_cve,'independent_net_name':independent_net_name}
+                        job_args={'eval_cve':eval_cve,'independent_net_id':str(independent_net['_id'])}
                     }
                     LOGGER.info('Writting on Core queue to eval network...')
                     mongo.insertOnCoreQueue('Eval SNN',job_args)
