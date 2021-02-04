@@ -44,10 +44,14 @@ class MongoDB{
         void updateBestOnGeneticSimulation(string id, pair<float,int> candidate,string currentDatetime);
         void appendResultOnGeneticSimulation(string id,int pop_size,int g,float best_out,long timestamp_ms);
         SPACE_SEARCH fetchEnvironmentData(string name);
+        void clearPopulationNeuralGenomeVector(string pop_id,string currentDatetime);
+        void addToPopulationNeuralGenomeVector(string pop_id,NeuralGenome* ng,string currentDatetime);
+        void addToHallOfFameNeuralGenomeVector(string hall_id,NeuralGenome* ng,string currentDatetime);
 
     private:
         // methods
         static mongocxx::client getClient(const string &conn_str);
+        bsoncxx::document::value castNeuralGenomeToBson(NeuralGenome* ng);
         // variables
         mongocxx::client client;
 

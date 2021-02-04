@@ -639,7 +639,6 @@ void testMongoCveRead(){
         }
     }
     cout<<"Total "<<year<<" documents: "<<total<<endl;
-    // TODO https://github.com/mongodb/mongo-cxx-driver/commit/aec77b8e3a2d01100ec1e61faf0e68303347d4a0
 }
 
 void testSmartNeuralNetwork_cveData(){

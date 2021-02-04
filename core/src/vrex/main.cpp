@@ -171,13 +171,15 @@ void runGeneticSimulation(string simulation_id){
         return output;
     };
 
-
     auto after_gen_callback = [&](int pop_size,int g,float best_out,long timestamp_ms,vector<Genome*> population,HallOfFame *hall_of_fame) -> void {
         if (hall_of_fame){
             mongo->updateBestOnGeneticSimulation(simulation_id,hall_of_fame->getBest(),Utils::getStrNow());
         }
         mongo->appendResultOnGeneticSimulation(simulation_id,pop_size,g,best_out,timestamp_ms);
-        // TODO: store population
+        mongo->clearPopulationNeuralGenomeVector(population_id,Utils::getStrNow());
+        for (Genome* g:population){
+            mongo->addToPopulationNeuralGenomeVector(population_id,dynamic_cast<NeuralGenome*>(g),Utils::getStrNow());
+        }
     };
     
     mongo->claimGeneticSimulation(simulation_id,Utils::getStrNow(),Utils::getHostname());
@@ -189,6 +191,9 @@ void runGeneticSimulation(string simulation_id){
     enchanced_population.naturalSelection(max_gens);
     cout<<"Finished natural selection"<<endl;
     cout<<"Best loss ("<<elite.getBest().second<<"): "<<elite.getBest().first<<endl;
+    for (Genome* g:elite.getNotables()){
+        mongo->addToHallOfFameNeuralGenomeVector(hall_of_fame_id,dynamic_cast<NeuralGenome*>(g),Utils::getStrNow());
+    }
     mongo->finishGeneticSimulation(simulation_id,Utils::getStrNow());
 
     cout<<"Runned genetic simulation "+simulation_id+"...OK\n";

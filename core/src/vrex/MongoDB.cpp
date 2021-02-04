@@ -340,3 +340,53 @@ SPACE_SEARCH MongoDB::fetchEnvironmentData(string name){
     }
     return NeuralGenome::buildSlideNeuralNetworkSpaceSearch(amount_of_layers,epochs,alpha,batch_size,layer_size,range_pow,k_values,l_values,sparcity,activation_funcs);
 }
+
+void MongoDB::clearPopulationNeuralGenomeVector(string pop_id,string currentDatetime){
+    bsoncxx::document::value query=document{} << "_id" << bsoncxx::oid{pop_id} << finalize;
+    bsoncxx::document::value update=document{} << "$set" << open_document << "updated_at" << currentDatetime << "neural_genomes" <<  open_array << close_array << close_document << finalize;
+    getCollection(getDB("neural_db"),"populations").update_one(query.view(),update.view());
+}
+
+void MongoDB::addToPopulationNeuralGenomeVector(string pop_id,NeuralGenome* ng,string currentDatetime){
+    bsoncxx::document::value query=document{} << "_id" << bsoncxx::oid{pop_id} << finalize;
+    bsoncxx::document::value update=document{} << "$push" << open_document << "neural_genomes" << castNeuralGenomeToBson(ng) << close_document << "$set" << open_document << "updated_at" << currentDatetime << close_document << finalize;
+    getCollection(getDB("neural_db"),"populations").update_one(query.view(),update.view());
+}
+
+void MongoDB::addToHallOfFameNeuralGenomeVector(string hall_id,NeuralGenome* ng,string currentDatetime){
+    bsoncxx::document::value query=document{} << "_id" << bsoncxx::oid{hall_id} << finalize;
+    bsoncxx::document::value update=document{} << "$push" << open_document << "neural_genomes" << castNeuralGenomeToBson(ng) << close_document << "$set" << open_document << "updated_at" << currentDatetime << close_document << finalize;
+    getCollection(getDB("neural_db"),"hall_of_fame").update_one(query.view(),update.view());
+}
+
+bsoncxx::document::value MongoDB::castNeuralGenomeToBson(NeuralGenome* ng){
+    // bsoncxx::builder::stream::document bson_stream_ng=document{};
+    if (ng){
+        pair<vector<int>,vector<float>> dna = ng->getDna();
+        string int_dna="[ ";
+        for(size_t i=0;i<dna.first.size();){
+            int_dna+=to_string(dna.first[i]);
+            if (++i<dna.first.size()-1){
+                int_dna+=", ";
+            }
+        }
+        int_dna+=" ]";
+        string float_dna="[ ";
+        for(size_t i=0;i<dna.second.size();){
+            float_dna+=to_string(dna.second[i]);
+            if (++i<dna.second.size()-1){
+                float_dna+=", ";
+            }
+        }
+        float_dna+=" ]";
+        bsoncxx::document::value full=document{}
+            <<"int_dna"<<int_dna
+            <<"float_dna"<<float_dna
+            << finalize;
+        // TODO: store weights
+        return full;
+    }else{
+        bsoncxx::document::value empty=document{} << finalize;
+        return empty;
+    }
+}
