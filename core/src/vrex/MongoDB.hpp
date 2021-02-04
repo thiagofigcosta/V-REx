@@ -51,7 +51,7 @@ class MongoDB{
     private:
         // methods
         static mongocxx::client getClient(const string &conn_str);
-        bsoncxx::document::value castNeuralGenomeToBson(NeuralGenome* ng);
+        bsoncxx::document::value castNeuralGenomeToBson(NeuralGenome* ng,bool store_weights=true);
         // variables
         mongocxx::client client;
 

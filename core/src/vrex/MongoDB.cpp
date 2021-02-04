@@ -359,7 +359,7 @@ void MongoDB::addToHallOfFameNeuralGenomeVector(string hall_id,NeuralGenome* ng,
     getCollection(getDB("neural_db"),"hall_of_fame").update_one(query.view(),update.view());
 }
 
-bsoncxx::document::value MongoDB::castNeuralGenomeToBson(NeuralGenome* ng){
+bsoncxx::document::value MongoDB::castNeuralGenomeToBson(NeuralGenome* ng,bool store_weights){
     // bsoncxx::builder::stream::document bson_stream_ng=document{};
     if (ng){
         pair<vector<int>,vector<float>> dna = ng->getDna();
@@ -379,13 +379,21 @@ bsoncxx::document::value MongoDB::castNeuralGenomeToBson(NeuralGenome* ng){
             }
         }
         float_dna+=" ]";
-        bsoncxx::document::value full=document{}
+        if (store_weights){
+            bsoncxx::document::value full=document{}
             <<"int_dna"<<int_dna
             <<"float_dna"<<float_dna
             <<"weights"<<Utils::serializeWeigthsToStr(ng->getWeights())
             << finalize;
-        ng->clearWeightsIfCached();
-        return full;
+            ng->clearWeightsIfCached();
+            return full;
+        }else{
+            bsoncxx::document::value full=document{}
+            <<"int_dna"<<int_dna
+            <<"float_dna"<<float_dna
+            << finalize;
+            return full;
+        }
     }else{
         bsoncxx::document::value empty=document{} << finalize;
         return empty;
