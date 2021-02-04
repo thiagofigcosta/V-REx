@@ -511,8 +511,10 @@ Layer::~Layer()
     delete _srp;
     delete _MinHasher;
     delete [] _randNode;
-    for (size_t d=0;d<_noOfNodes*_batchsize;d++){
-        delete &_train_array[d];
+    if (Node::HUGEPAGES){
+        for (size_t d=0;d<_noOfNodes*_batchsize;d++){
+            delete &_train_array[d];
+        }
     }
     delete[] _train_array;
 }

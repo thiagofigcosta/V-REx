@@ -17,7 +17,7 @@
 
 enum class NodeType { ReLU, Softmax, Sigmoid };
 
-#define Slide_HUGEPAGES 1
+#define Slide_HUGEPAGES 0
 
 struct train_with_huge_pages {
     float _lastDeltaforBPs;
@@ -73,38 +73,6 @@ struct train_without_huge_pages {
     float _lastActivations;
     float _lastGradients;
     int _ActiveinputIds;
-
-    void * operator new(size_t size){
-        void* ptr = mmap(NULL, size,
-            PROT_READ | PROT_EXEC | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS,
-            -1, 0);
-        if (ptr == MAP_FAILED){
-            std::cout << "mmap failed at train." << std::endl;
-        }
-        return ptr;
-    }
-    void* operator new (std::size_t size, const std::nothrow_t& nothrow_value){return operator new (size);};
-    void* operator new (std::size_t size, void* ptr){return operator new (size);};
-    void* operator new[] (std::size_t size){
-        void* ptr = mmap(NULL, size,
-            PROT_READ | PROT_EXEC | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS,
-            -1, 0);
-        if (ptr == MAP_FAILED){
-            std::cout << "mmap fail! No train array!" << std::endl;
-        }
-        return ptr;
-    }
-    void* operator new[] (std::size_t size, const std::nothrow_t& nothrow_value){return operator new (size);};
-    void* operator new[] (std::size_t size, void* ptr){return operator new (size);};
-
-    void operator delete(void * ptr){munmap(ptr, sizeof(train_without_huge_pages));};
-    void operator delete (void* ptr, const std::nothrow_t& nothrow_constant){munmap(ptr, sizeof(train_without_huge_pages));};
-    void operator delete (void* ptr, void* voidptr2){};
-    // TODO: The size to be munmap'd should be the entire array, not just a single object
-    void operator delete[](void * ptr){munmap(ptr, sizeof(train_without_huge_pages));};
-    void operator delete[] (void* ptr, const std::nothrow_t& nothrow_constant){munmap(ptr, sizeof(train_without_huge_pages));};
-    void operator delete[] (void* ptr, void* voidptr2){};
-
 };
 
 #if Slide_HUGEPAGES == 1
@@ -143,6 +111,11 @@ public:
 	float _adamAvgMombias=0;
 	float _adamAvgVelbias=0;
 	float _mirrorbias =0;
+    #if Slide_HUGEPAGES == 1
+        static const bool HUGEPAGES=true;
+    #else
+        static const bool HUGEPAGES=false;
+    #endif
 
 	Node(int dim, int nodeID, int layerID, NodeType type, int batchsize, bool useAdamOt, float *weights, float bias, float *adamAvgMom, float *adamAvgVel);
 	void Update(int dim, int nodeID, int layerID, NodeType type, int batchsize, float *weights, float bias, float *adamAvgMom, float *adamAvgVel, train* train_blob);

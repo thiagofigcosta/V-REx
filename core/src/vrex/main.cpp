@@ -200,9 +200,9 @@ void runGeneticSimulation(string simulation_id){
 }
 
 int main() {
-    setup();
-    // test();
-    runGeneticSimulation("601b063dbc85e6419b8462ca");
+    // setup();
+    test();
+    // runGeneticSimulation("601b063dbc85e6419b8462ca");
     tearDown();
     return 0;
 }
