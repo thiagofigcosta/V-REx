@@ -123,7 +123,7 @@ pair<float,float> Slide::trainEpoch(vector<pair<vector<int>, vector<float>>> &tr
             break;
     }
 
-    float val=0;
+    float val=-666;
     if (validation_data.size()>0){
         switch(val_metric){
             case SlideMetric::RAW_LOSS:
@@ -187,7 +187,7 @@ vector<pair<float,float>> Slide::train(vector<pair<vector<int>, vector<float>>> 
                 validation_data=Utils::extractSubVector(train_data, train_data.size()-val_size, val_size);
                 }break;
         }
-        while((int)validation_data.size()<batch_size){
+        while((int)validation_data.size()<batch_size && cross_validation!=SlideCrossValidation::NONE){
             validation_data.push_back(t_data[int(t_data.size()*Utils::getRandomBetweenZeroAndOne())]);
         }
         metrics.push_back(trainEpoch(t_data,validation_data,j));

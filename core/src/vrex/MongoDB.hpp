@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <iostream>
 #include <vector>
+#include <map>
 #include <utility> // std::pair
 #include <bsoncxx/json.hpp>
 #include <mongocxx/client.hpp>
@@ -54,12 +55,16 @@ class MongoDB{
         void claimNeuralNetTrain(string id,string currentDatetime, string hostname);
         void finishNeuralNetTrain(string id,string currentDatetime);
         Hyperparameters* fetchHyperparametersData(string name);
+        void appendTMetricsOnNeuralNet(string id,vector<pair<float,float>> metrics);
+        void appendStatsOnNeuralNet(string id,string field_name,snn_stats stats);
+        void appendWeightsOnNeuralNet(string id,map<string, vector<float>> weights);
 
     private:
         // methods
         static mongocxx::client getClient(const string &conn_str);
         bsoncxx::document::value castNeuralGenomeToBson(NeuralGenome* ng,bool store_weights=true);
         // variables
+        // static mongocxx::instance inst;
         mongocxx::client client;
 
 }; 

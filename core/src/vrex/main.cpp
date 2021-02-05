@@ -15,7 +15,7 @@ using namespace std;
 
 MongoDB* mongo=nullptr;
 const bool trap_signals=false;
-const bool connect_mongo=false;
+const bool connect_mongo=true;
 
 void exceptionHandler(int signum) {
     ::signal(signum, SIG_DFL);
@@ -273,9 +273,9 @@ void trainNeuralNetwork(string independent_net_id){
     vector<pair<float,float>> train_metrics=slide->train(train_data,epochs);
     vector<vector<pair<int,float>>> train_predicted=slide->evalData(train_data).second;
     snn_stats train_stats=Utils::statisticalAnalysis(train_data,train_predicted);
-    // TODO insert train_metrics
-    // TODO insert train_stats
-    // TODO insert weights
+    mongo->appendTMetricsOnNeuralNet(independent_net_id,train_metrics);
+    mongo->appendStatsOnNeuralNet(independent_net_id,"train_stats",train_stats);
+    mongo->appendWeightsOnNeuralNet(independent_net_id,slide->getWeights());
     if (str_cve_years_test.size()>0){
         for (pair<vector<int>, vector<float>> v:train_data){
             v.first.clear();
@@ -290,7 +290,7 @@ void trainNeuralNetwork(string independent_net_id){
         vector<pair<vector<int>, vector<float>>> test_data = mongo->loadCvesFromYears(cve_years_test, test_limit).second;
         vector<vector<pair<int,float>>> test_predicted=slide->evalData(test_data).second;
         snn_stats test_stats=Utils::statisticalAnalysis(test_data,train_predicted);
-        // TODO insert test_stats
+        mongo->appendStatsOnNeuralNet(independent_net_id,"test_stats",test_stats);
     }
     mongo->finishNeuralNetTrain(independent_net_id,Utils::getStrNow());
     cout<<"Trained neural network "+independent_net_id+"...OK\n";
@@ -305,8 +305,9 @@ void evalNeuralNetwork(string independent_net_id, string eval_data){
 
 int main() {
     setup();
-    test();
+    // test();
     // runGeneticSimulation("601b063dbc85e6419b8462ca");
+    trainNeuralNetwork("601b6576d6b384e479047d56");
     tearDown();
     return 0;
 }

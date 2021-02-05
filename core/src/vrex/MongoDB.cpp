@@ -1,6 +1,7 @@
 #include "MongoDB.hpp"
 
-// http://mongocxx.org/mongocxx-v3/tutorial/
+// mongocxx::instance MongoDB::inst{}; // This should be done only once.
+
 MongoDB::MongoDB(string host, string user, string password, int port) {
     // to fix mongo driver run the commands below if needed
     // sudo ln -s /usr/local/lib/libmogocxx.so.3.4.0 libmongocxx.so._noabi
@@ -360,7 +361,6 @@ void MongoDB::addToHallOfFameNeuralGenomeVector(string hall_id,NeuralGenome* ng,
 }
 
 bsoncxx::document::value MongoDB::castNeuralGenomeToBson(NeuralGenome* ng,bool store_weights){
-    // bsoncxx::builder::stream::document bson_stream_ng=document{};
     if (ng){
         pair<vector<int>,vector<float>> dna = ng->getDna();
         string int_dna="[ ";
@@ -588,4 +588,42 @@ Hyperparameters* MongoDB::fetchHyperparametersData(string name){
         idx++;
     }
     return hyper;
+}
+
+void MongoDB::appendTMetricsOnNeuralNet(string id,vector<pair<float,float>> metrics){
+    string metrics_str="[ ";
+    for(size_t i=0;i<metrics.size();){
+        if (metrics[i].second==-666){
+            metrics_str+=to_string(metrics[i].first);
+        }else{
+            metrics_str+="{ "+to_string(metrics[i].first)+", "+to_string(metrics[i].second)+" }";
+        }
+        if (++i<metrics.size()-1){
+            metrics_str+=", ";
+        }
+    }
+    metrics_str+=" ]";
+    bsoncxx::document::value query=document{} << "_id" << bsoncxx::oid{id} << finalize;
+    bsoncxx::document::value update=document{} << "$set" << open_document << "train_metrics" <<  metrics_str << close_document << finalize;
+    getCollection(getDB("neural_db"),"independent_net").update_one(query.view(),update.view());
+}
+
+void MongoDB::appendStatsOnNeuralNet(string id,string field_name,snn_stats stats){
+    bsoncxx::v_noabi::builder::stream::key_context<> stats_stream_bson=document{} << "accuracy" << stats.accuracy;
+    if (stats.precision!=-1)
+        stats_stream_bson=stats_stream_bson << "precision" << stats.precision;
+    if (stats.recall!=-1)
+        stats_stream_bson=stats_stream_bson << "recall" << stats.recall;
+    if (stats.f1!=-1)
+        stats_stream_bson=stats_stream_bson << "F1" << stats.f1;
+    bsoncxx::document::value stats_bson=stats_stream_bson << finalize;
+    bsoncxx::document::value query=document{} << "_id" << bsoncxx::oid{id} << finalize;
+    bsoncxx::document::value update=document{} << "$set" << open_document << field_name <<  stats_bson << close_document << finalize;
+    getCollection(getDB("neural_db"),"independent_net").update_one(query.view(),update.view());
+}
+
+void MongoDB::appendWeightsOnNeuralNet(string id,map<string, vector<float>> weights){
+    bsoncxx::document::value query=document{} << "_id" << bsoncxx::oid{id} << finalize;
+    bsoncxx::document::value update=document{} << "$set" << open_document << "weights" <<  Utils::serializeWeigthsToStr(weights) << close_document << finalize;
+    getCollection(getDB("neural_db"),"independent_net").update_one(query.view(),update.view());
 }
