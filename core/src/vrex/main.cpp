@@ -14,8 +14,9 @@
 using namespace std;
 
 MongoDB* mongo=nullptr;
-const bool trap_signals=false;
-const bool connect_mongo=true;
+bool trap_signals=false;
+bool connect_mongo=true;
+bool set_stack_size=false;
 
 void exceptionHandler(int signum) {
     ::signal(signum, SIG_DFL);
@@ -42,21 +43,23 @@ void setup(){
         ::signal(SIGABRT, &exceptionHandler);
         cout<<"Set up signal trap...OK\n";
     }
-    // cout<<"Setting up stack size...\n";
-    // const rlim_t kStackSize = 1 * 1024 * 1024 * 1024;   // 1 * 1024 * 1024 * 1024 = 1 GB
-    // struct rlimit rl;
-    // int result;
-    // result = getrlimit(RLIMIT_STACK, &rl);
-    // if (result == 0){
-    //     if (rl.rlim_cur < kStackSize){
-    //         rl.rlim_cur = kStackSize;
-    //         result = setrlimit(RLIMIT_STACK, &rl);
-    //         if (result != 0){
-    //             fprintf(stderr, "setrlimit returned result = %d\n", result);
-    //         }
-    //     }
-    // }
-    // cout<<"Set up stack size...OK\n";
+    if (set_stack_size){
+        cout<<"Setting up stack size...\n";
+        const rlim_t kStackSize = 1 * 1024 * 1024 * 1024;   // 1 * 1024 * 1024 * 1024 = 1 GB
+        struct rlimit rl;
+        int result;
+        result = getrlimit(RLIMIT_STACK, &rl);
+        if (result == 0){
+            if (rl.rlim_cur < kStackSize){
+                rl.rlim_cur = kStackSize;
+                result = setrlimit(RLIMIT_STACK, &rl);
+                if (result != 0){
+                    fprintf(stderr, "setrlimit returned result = %d\n", result);
+                }
+            }
+        }
+        cout<<"Set up stack size...OK\n";
+    }
     if(connect_mongo){
         cout<<"Connecting on Mongo...\n";
         string mongo_host;
@@ -298,16 +301,82 @@ void trainNeuralNetwork(string independent_net_id){
     delete hyper;
 }
 
-void evalNeuralNetwork(string independent_net_id, string eval_data){
-    // TODO check if data is CVE or several CVES
-    // TODO everything else
+void evalNeuralNetwork(string independent_net_id, string result_id, string eval_data){
+    cout<<"Evaluating neural network "+independent_net_id+" for data: "+eval_data+"...\n";
+    vector<pair<vector<int>, vector<float>>> cve_data;
+    vector<string> cve_ids;
+    if (eval_data.rfind("CVE", 0) == 0) {
+        cve_data = mongo->loadCveFromId(eval_data);
+        cve_ids.push_back(eval_data);
+    }else{
+        int limit=0;
+        string::size_type pos=eval_data.find(':');
+        if (pos!=string::npos){
+            limit=stof(eval_data.substr(pos+1,eval_data.size()-pos-1));
+            eval_data=eval_data.substr(0,pos);
+        }
+        vector<string> str_cve_years=Utils::splitString(eval_data,",");
+        vector<int> cve_years;
+        for(string y:str_cve_years){
+            cve_years.push_back(stoi(y));
+        }
+        str_cve_years.clear();
+        pair<vector<string>,vector<pair<vector<int>, vector<float>>>> loaded_cves=mongo->loadCvesFromYears(cve_years, limit);
+        cve_ids = loaded_cves.first;
+        cve_data = loaded_cves.second;
+    }
+    pair<vector<string>,vector<int>> eval_mdata=mongo->fetchNeuralNetworkTrainMetadata(independent_net_id);
+    string hyper_name=eval_mdata.first[0];
+    SlideCrossValidation cross_validation=SlideCrossValidation::NONE;
+    switch(eval_mdata.second[1]){
+        case 0:
+            cross_validation=SlideCrossValidation::NONE;
+            break;
+        case 1:
+            cross_validation=SlideCrossValidation::ROLLING_FORECASTING_ORIGIN;
+            break;
+        case 2:
+            cross_validation=SlideCrossValidation::KFOLDS;
+            break;
+        case 3:
+            cross_validation=SlideCrossValidation::TWENTY_PERCENT;
+            break;
+    }
+    SlideMetric test_metric=SlideMetric::RAW_LOSS;
+    switch(eval_mdata.second[2]){
+        case 0:
+            test_metric=SlideMetric::RAW_LOSS;
+            break;
+        case 1:
+            test_metric=SlideMetric::F1;
+            break;
+        case 2:
+            test_metric=SlideMetric::RECALL;
+            break;
+        case 3:
+            test_metric=SlideMetric::ACCURACY;
+            break;
+        case 4:
+            test_metric=SlideMetric::PRECISION;
+            break;
+    }
+
+    Hyperparameters* hyper=mongo->fetchHyperparametersData(hyper_name);
+
+    const bool print_deltas=true;
+    Slide* slide=new Slide(hyper->layers,hyper->layer_sizes,hyper->node_types,cve_data[0].second.size(),hyper->alpha,hyper->batch_size,hyper->adam,hyper->label_type,
+    hyper->range_pow,hyper->K,hyper->L,hyper->sparcity,hyper->rehash,hyper->rebuild,test_metric,test_metric,hyper->shuffle,cross_validation,SlideMode::SAMPLING,SlideHashingFunction::DENSIFIED_WTA,print_deltas);
+    slide->setWeights(mongo->loadWeightsFromNeuralNet(independent_net_id));
+    pair<int,vector<vector<pair<int,float>>>> predicted = slide->evalData(cve_data);
+    mongo->storeEvalNeuralNetResult(result_id,predicted.first,cve_ids,predicted.second);
+    cout<<"Evaluated neural network "+independent_net_id+"...\n";
+    delete slide;
+    delete hyper;
 }
 
 int main() {
     setup();
     // test();
-    // runGeneticSimulation("601b063dbc85e6419b8462ca");
-    trainNeuralNetwork("601b6576d6b384e479047d56");
     tearDown();
     return 0;
 }

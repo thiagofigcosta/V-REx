@@ -627,3 +627,43 @@ void MongoDB::appendWeightsOnNeuralNet(string id,map<string, vector<float>> weig
     bsoncxx::document::value update=document{} << "$set" << open_document << "weights" <<  Utils::serializeWeigthsToStr(weights) << close_document << finalize;
     getCollection(getDB("neural_db"),"independent_net").update_one(query.view(),update.view());
 }
+
+vector<pair<vector<int>, vector<float>>> MongoDB::loadCveFromId(string cve){
+    bsoncxx::stdx::optional<bsoncxx::document::value> maybe_result = getCollection(getDB("processed_data"),"dataset").find_one(document{} << "cve" << cve << finalize);
+    vector<pair<vector<int>, vector<float>>> cve_parsed;
+    cve_parsed.push_back(bsonToDatasetEntry(maybe_result).second);
+    return cve_parsed;
+}
+
+map<string, vector<float>> MongoDB::loadWeightsFromNeuralNet(string id){
+    bsoncxx::stdx::optional<bsoncxx::document::value> maybe_result=getCollection(getDB("neural_db"),"independent_net").find_one(document{} << "_id" << bsoncxx::oid{id} << finalize);
+    string weights_str="";
+    if(maybe_result) {
+        bsoncxx::document::element weights_el = maybe_result->view()["weights"];
+        if (weights_el.type() == bsoncxx::type::k_utf8){
+            weights_str=weights_el.get_utf8().value.data();
+        }else{
+            throw runtime_error("Error invalid type: "+bsoncxx::to_string(weights_el.type())+"\n");
+        }
+    }
+    map<string, vector<float>> weights;
+    if (weights_str!=""){
+        weights=Utils::deserializeWeigthsFromStr(weights_str);
+    }
+    return weights;
+}
+
+void MongoDB::storeEvalNeuralNetResult(string id,int correct,vector<string> cve_ids,vector<vector<pair<int,float>>> pred_labels){
+    bsoncxx::document::value query=document{} << "_id" << bsoncxx::oid{id} << finalize;
+
+    string predicted_labels_str="[\n";
+    for (size_t i=0;i<cve_ids.size();i++){
+        predicted_labels_str+="{ "+cve_ids[i]+": ";
+        vector<pair<int,float>> label=pred_labels[i];
+        predicted_labels_str+="{ has_exploit: "+to_string(label[0].first)+", trust_level: "+to_string(label[0].second)+" }\n";
+    }
+    predicted_labels_str+="\n]";
+
+    bsoncxx::document::value update=document{} << "$set" << open_document << "total_test_cases" << (int)pred_labels.size() << "correct_predictions(not ground truth)" << correct << "predicted_labels" << predicted_labels_str << close_document << finalize;
+    getCollection(getDB("neural_db"),"eval_results").update_one(query.view(),update.view());
+}
