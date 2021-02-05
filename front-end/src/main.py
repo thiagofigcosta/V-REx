@@ -217,30 +217,38 @@ def main(argv){
                 if not independent_net{
                     LOGGER.error('Not found a independent network for the given name!')
                 }else{
-                    print('Eval single CVE or multiple (0 - single | 1 - multiple): ')
-                    if inputNumber(lower_or_eq=1)==1{
-                        print('Enter the years to be used as eval data splitted by comma (,) (1999-2020):')
-                        eval_data=inputArrayNumber(greater_or_eq=1999,lower_or_eq=2020)
-                        print('Enter a limit of CVEs for each year (0 = unlimitted): ')
-                        eval_data+=':{}'.format(inputNumber())
-                        job_args={'eval_data':eval_data,'independent_net_id':str(independent_net['_id'])}
+                    result_info={'expected_exploits_amount':0,'found_exploits_amount':0,'predicted_labels':None}
+                    LOGGER.info('Writting eval result holder...')
+                    result_id=mongo.quickInsertOneIgnoringLockAndRetrieveId(mongo.getDB('neural_db'),result_info,'eval_results')
+                    LOGGER.info('Wrote eval result holder...OK')
+                    if (result_id==None){
+                        LOGGER.error('Failed to insert eval result holder!')
                     }else{
-                        print('Enter a CVE id following the format CVE-####-#*: ')
-                        not_filled=True
-                        eval_cve=''
-                        while not_filled {
-                            eval_cve=input().strip()
-                            if re.match(r'^CVE-[0-9]{4}-[0-9]*$',eval_cve){
-                                not_filled=False
-                            }else{
-                                print('ERROR - Wrong CVE format')
+                        print('Eval single CVE or multiple (0 - single | 1 - multiple): ')
+                        if inputNumber(lower_or_eq=1)==1{
+                            print('Enter the years to be used as eval data splitted by comma (,) (1999-2020):')
+                            eval_data=inputArrayNumber(greater_or_eq=1999,lower_or_eq=2020)
+                            print('Enter a limit of CVEs for each year (0 = unlimitted): ')
+                            eval_data+=':{}'.format(inputNumber())
+                            job_args={'eval_data':eval_data,'result_id':result_id,'independent_net_id':str(independent_net['_id'])}
+                        }else{
+                            print('Enter a CVE id following the format CVE-####-#*: ')
+                            not_filled=True
+                            eval_cve=''
+                            while not_filled {
+                                eval_cve=input().strip()
+                                if re.match(r'^CVE-[0-9]{4}-[0-9]*$',eval_cve){
+                                    not_filled=False
+                                }else{
+                                    print('ERROR - Wrong CVE format')
+                                }
                             }
+                            job_args={'eval_data':eval_cve,'result_id':result_id,'independent_net_id':str(independent_net['_id'])}
                         }
-                        job_args={'eval_data':eval_cve,'independent_net_id':str(independent_net['_id'])}
+                        LOGGER.info('Writting on Core queue to eval network...')
+                        mongo.insertOnCoreQueue('Eval SNN',job_args)
+                        LOGGER.info('Wrote on Core queue to eval network...OK')
                     }
-                    LOGGER.info('Writting on Core queue to eval network...')
-                    mongo.insertOnCoreQueue('Eval SNN',job_args)
-                    LOGGER.info('Wrote on Core queue to eval network...OK')
                 }
             }elif opt == "--train-smart-neural"{
                 print('Now enter the data to train the neural network...')
