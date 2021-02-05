@@ -30,6 +30,38 @@ using namespace std;
     typedef int** int_array_pointer_2d;
 #endif
 
+struct Hyperparameters{
+    int batch_size;
+    float alpha;
+    bool shuffle;
+    bool adam;
+    int rehash;
+    int rebuild;
+    SlideLabelEncoding label_type;
+    int layers;
+    int *layer_sizes;
+    int *range_pow;
+    int *K;
+    int *L;
+    NodeType* node_types;
+    float *sparcity;
+
+    Hyperparameters(int amount_layers):layers(amount_layers){ 
+        layer_sizes=new int[layers];
+        range_pow=new int[layers];
+        K=new int[layers];
+        L=new int[layers];
+        node_types=new NodeType[layers];
+        sparcity=new float[layers];
+    }
+    ~Hyperparameters(){
+        delete[] range_pow;
+        delete[] K;
+        delete[] L;
+        delete[] sparcity; 
+    }
+};
+
 class Slide{
     public:
         // constructors and destructor

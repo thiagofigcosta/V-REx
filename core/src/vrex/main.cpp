@@ -210,6 +210,99 @@ void runGeneticSimulation(string simulation_id){
     cout<<"Runned genetic simulation "+simulation_id+"...OK\n";
 }
 
+void trainNeuralNetwork(string independent_net_id){
+    cout<<"Training neural network "+independent_net_id+"...\n";
+    pair<vector<string>,vector<int>> train_mdata=mongo->fetchNeuralNetworkTrainMetadata(independent_net_id);
+    string hyper_name=train_mdata.first[0];
+    vector<string> str_cve_years_train=Utils::splitString(train_mdata.first[1],",");
+    vector<string> str_cve_years_test;
+    if (!train_mdata.first[2].empty()){
+        str_cve_years_test=Utils::splitString(train_mdata.first[2],",");
+    }
+    int epochs=train_mdata.second[0];
+    SlideCrossValidation cross_validation=SlideCrossValidation::NONE;
+    switch(train_mdata.second[1]){
+        case 0:
+            cross_validation=SlideCrossValidation::NONE;
+            break;
+        case 1:
+            cross_validation=SlideCrossValidation::ROLLING_FORECASTING_ORIGIN;
+            break;
+        case 2:
+            cross_validation=SlideCrossValidation::KFOLDS;
+            break;
+        case 3:
+            cross_validation=SlideCrossValidation::TWENTY_PERCENT;
+            break;
+    }
+    SlideMetric train_metric=SlideMetric::RAW_LOSS;
+    switch(train_mdata.second[2]){
+        case 0:
+            train_metric=SlideMetric::RAW_LOSS;
+            break;
+        case 1:
+            train_metric=SlideMetric::F1;
+            break;
+        case 2:
+            train_metric=SlideMetric::RECALL;
+            break;
+        case 3:
+            train_metric=SlideMetric::ACCURACY;
+            break;
+        case 4:
+            train_metric=SlideMetric::PRECISION;
+            break;
+    }
+    // SlideMetric test_metric=SlideMetric::RAW_LOSS; // useless
+    int train_limit=train_mdata.second[4];
+    int test_limit=train_mdata.second[5];
+    vector<int> cve_years_train;
+    for(string y:str_cve_years_train){
+        cve_years_train.push_back(stoi(y));
+    }
+    str_cve_years_train.clear();
+
+    Hyperparameters* hyper=mongo->fetchHyperparametersData(hyper_name);
+
+    vector<pair<vector<int>, vector<float>>> train_data = mongo->loadCvesFromYears(cve_years_train, train_limit).second;
+   
+    mongo->claimNeuralNetTrain(independent_net_id,Utils::getStrNow(),Utils::getHostname());
+    const bool print_deltas=true;
+    Slide* slide=new Slide(hyper->layers,hyper->layer_sizes,hyper->node_types,train_data[0].second.size(),hyper->alpha,hyper->batch_size,hyper->adam,hyper->label_type,
+    hyper->range_pow,hyper->K,hyper->L,hyper->sparcity,hyper->rehash,hyper->rebuild,train_metric,train_metric,hyper->shuffle,cross_validation,SlideMode::SAMPLING,SlideHashingFunction::DENSIFIED_WTA,print_deltas);
+    vector<pair<float,float>> train_metrics=slide->train(train_data,epochs);
+    vector<vector<pair<int,float>>> train_predicted=slide->evalData(train_data).second;
+    snn_stats train_stats=Utils::statisticalAnalysis(train_data,train_predicted);
+    // TODO insert train_metrics
+    // TODO insert train_stats
+    // TODO insert weights
+    if (str_cve_years_test.size()>0){
+        for (pair<vector<int>, vector<float>> v:train_data){
+            v.first.clear();
+            v.second.clear();
+        }
+        train_data.clear();
+        vector<int> cve_years_test;
+        for(string y:str_cve_years_test){
+            cve_years_test.push_back(stoi(y));
+        }
+        str_cve_years_test.clear();
+        vector<pair<vector<int>, vector<float>>> test_data = mongo->loadCvesFromYears(cve_years_test, test_limit).second;
+        vector<vector<pair<int,float>>> test_predicted=slide->evalData(test_data).second;
+        snn_stats test_stats=Utils::statisticalAnalysis(test_data,train_predicted);
+        // TODO insert test_stats
+    }
+    mongo->finishNeuralNetTrain(independent_net_id,Utils::getStrNow());
+    cout<<"Trained neural network "+independent_net_id+"...OK\n";
+    delete slide;
+    delete hyper;
+}
+
+void evalNeuralNetwork(string independent_net_id, string eval_data){
+    // TODO check if data is CVE or several CVES
+    // TODO everything else
+}
+
 int main() {
     setup();
     test();

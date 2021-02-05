@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <iostream>
 #include <vector>
+#include <utility> // std::pair
 #include <bsoncxx/json.hpp>
 #include <mongocxx/client.hpp>
 #include <mongocxx/stdx.hpp>
@@ -21,8 +22,10 @@ using bsoncxx::builder::stream::open_document;
 using namespace std;
 
 #include "Utils.hpp"
+#include "Slide.hpp"
 #include "NeuralGenome.hpp"
 #include "GeneticAlgorithm.hpp"
+#include "slide/Node.h"
 
 class MongoDB{
     public:
@@ -47,6 +50,10 @@ class MongoDB{
         void clearPopulationNeuralGenomeVector(string pop_id,string currentDatetime);
         void addToPopulationNeuralGenomeVector(string pop_id,NeuralGenome* ng,string currentDatetime);
         void addToHallOfFameNeuralGenomeVector(string hall_id,NeuralGenome* ng,string currentDatetime);
+        pair<vector<string>,vector<int>> fetchNeuralNetworkTrainMetadata(string id);
+        void claimNeuralNetTrain(string id,string currentDatetime, string hostname);
+        void finishNeuralNetTrain(string id,string currentDatetime);
+        Hyperparameters* fetchHyperparametersData(string name);
 
     private:
         // methods
