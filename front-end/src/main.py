@@ -217,7 +217,7 @@ def main(argv){
                 if not independent_net{
                     LOGGER.error('Not found a independent network for the given name!')
                 }else{
-                    result_info={'expected_exploits_amount':0,'found_exploits_amount':0,'predicted_labels':None}
+                    result_info={'total_test_cases':0,'correct_predictions(not ground truth)':0,'predicted_labels':None}
                     LOGGER.info('Writting eval result holder...')
                     result_id=mongo.quickInsertOneIgnoringLockAndRetrieveId(mongo.getDB('neural_db'),result_info,'eval_results')
                     LOGGER.info('Wrote eval result holder...OK')
