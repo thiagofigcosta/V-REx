@@ -236,7 +236,7 @@ def main(argv){
                                 print('ERROR - Wrong CVE format')
                             }
                         }
-                        job_args={'eval_cve':eval_cve,'independent_net_id':str(independent_net['_id'])}
+                        job_args={'eval_data':eval_cve,'independent_net_id':str(independent_net['_id'])}
                     }
                     LOGGER.info('Writting on Core queue to eval network...')
                     mongo.insertOnCoreQueue('Eval SNN',job_args)
@@ -297,7 +297,7 @@ def main(argv){
                         test_metric=0
                         test_data=''
                     }
-                    train_metadata={'name':train_name,'submitted_at':submitted_at,'started_by':started_by,'started_at':started_at,'finished_at':finished_at,'epochs':epochs,'cross_validation':cross_validation,'train_metric':train_metric,'train_data':train_data,'test_metric':test_metric,'test_data':test_data,'weights':weights}
+                    train_metadata={'name':train_name,'hyperparameters_name':hyper_name,'submitted_at':submitted_at,'started_by':started_by,'started_at':started_at,'finished_at':finished_at,'epochs':epochs,'cross_validation':cross_validation,'train_metric':train_metric,'train_data':train_data,'test_metric':test_metric,'test_data':test_data,'weights':weights}
                     LOGGER.info('Writting simulation config on genetic_db...')
                     independent_net_id=mongo.quickInsertOneIgnoringLockAndRetrieveId(mongo.getDB('neural_db'),train_metadata,'independent_net',index='name')
                     if (independent_net_id==None){
