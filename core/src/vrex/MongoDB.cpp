@@ -600,7 +600,13 @@ Hyperparameters* MongoDB::fetchHyperparametersData(string name){
         if(idx>=layers){
             break;
         }
-        hyper->sparcity[idx]=(float)el.get_double();
+        if (el.type() == bsoncxx::type::k_int32){
+            hyper->sparcity[idx]=(float)el.get_int32();
+        }else if (el.type() == bsoncxx::type::k_double){
+            hyper->sparcity[idx]=(float)el.get_double();
+        }else{
+            throw runtime_error("Error invalid type: "+bsoncxx::to_string(el.type())+"\n");
+        }
         idx++;
     }
     return hyper;
@@ -614,7 +620,7 @@ void MongoDB::appendTMetricsOnNeuralNet(string id,vector<pair<float,float>> metr
         }else{
             metrics_str+="{ "+to_string(metrics[i].first)+", "+to_string(metrics[i].second)+" }";
         }
-        if (++i<metrics.size()-1){
+        if (++i<metrics.size()){
             metrics_str+=", ";
         }
     }
@@ -625,14 +631,15 @@ void MongoDB::appendTMetricsOnNeuralNet(string id,vector<pair<float,float>> metr
 }
 
 void MongoDB::appendStatsOnNeuralNet(string id,string field_name,snn_stats stats){
-    bsoncxx::v_noabi::builder::stream::key_context<> stats_stream_bson=document{} << "accuracy" << stats.accuracy;
+    bsoncxx::builder::basic::document stats_bson_builder{};
+    stats_bson_builder.append(bsoncxx::builder::basic::kvp("accuracy",stats.accuracy));
     if (stats.precision!=-1)
-        stats_stream_bson=stats_stream_bson << "precision" << stats.precision;
+        stats_bson_builder.append(bsoncxx::builder::basic::kvp("precision",stats.precision));
     if (stats.recall!=-1)
-        stats_stream_bson=stats_stream_bson << "recall" << stats.recall;
+        stats_bson_builder.append(bsoncxx::builder::basic::kvp("recall",stats.recall));
     if (stats.f1!=-1)
-        stats_stream_bson=stats_stream_bson << "F1" << stats.f1;
-    bsoncxx::document::value stats_bson=stats_stream_bson << finalize;
+        stats_bson_builder.append(bsoncxx::builder::basic::kvp("f1",stats.f1));
+    bsoncxx::document::value stats_bson = stats_bson_builder.extract();
     bsoncxx::document::value query=document{} << "_id" << bsoncxx::oid{id} << finalize;
     bsoncxx::document::value update=document{} << "$set" << open_document << field_name <<  stats_bson << close_document << finalize;
     getCollection(getDB("neural_db"),"independent_net").update_one(query.view(),update.view());
