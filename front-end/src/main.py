@@ -339,6 +339,8 @@ def main(argv){
                     pop_start_size=inputNumber()
                     print('Enter the amount of generations: ')
                     max_gens=inputNumber()
+                    print('Enter the algorithm to use (0 - Enchanced | 1 - Standard): ')
+                    algorithm=inputNumber(lower_or_eq=1)
                     print('Enter the genome max age: ')
                     max_age=inputNumber()
                     print('Enter the max amount of children at once: ')
@@ -372,7 +374,7 @@ def main(argv){
                     train_data+=':{}'.format(inputNumber())
                     best={'output':None,'at_gen':None}
                     results=[]
-                    simulation_data={'name':simulation_name,'env_name':env_name,'submitted_at':submitted_at,'started_by':started_by,'started_at':started_at,'finished_at':finished_at,'hall_of_fame_id':hall_of_fame_id,'population_id':population_id,'pop_start_size':pop_start_size,'max_gens':max_gens,'max_age':max_age,'max_children':max_children,'mutation_rate':mutation_rate,'recycle_rate':recycle_rate,'sex_rate':sex_rate,'max_notables':max_notables,'cross_validation':cross_validation,'metric':metric,'train_data':train_data,'best':best,'results':results}
+                    simulation_data={'name':simulation_name,'env_name':env_name,'submitted_at':submitted_at,'started_by':started_by,'started_at':started_at,'finished_at':finished_at,'hall_of_fame_id':hall_of_fame_id,'population_id':population_id,'pop_start_size':pop_start_size,'max_gens':max_gens,'algorithm':algorithm,'max_age':max_age,'max_children':max_children,'mutation_rate':mutation_rate,'recycle_rate':recycle_rate,'sex_rate':sex_rate,'max_notables':max_notables,'cross_validation':cross_validation,'metric':metric,'train_data':train_data,'best':best,'results':results}
                     LOGGER.info('Writting simulation config on genetic_db...')
                     simulation_id=mongo.quickInsertOneIgnoringLockAndRetrieveId(mongo.getDB('genetic_db'),simulation_data,'simulations')
                     if (simulation_id==None){
