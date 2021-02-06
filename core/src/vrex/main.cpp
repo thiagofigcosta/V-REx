@@ -112,14 +112,14 @@ void runGeneticSimulation(string simulation_id){
     string population_id=simu_data.first[3];
     int population_start_size=(int)simu_data.second[0];
     int max_gens=(int)simu_data.second[1];
-    int max_age=(int)simu_data.second[3];
-    int max_children=(int)simu_data.second[4];
-    float mutation_rate=simu_data.second[5];
-    float recycle_rate=simu_data.second[6];
-    float sex_rate=simu_data.second[7];
-    int max_notables=(int)simu_data.second[8];
+    int max_age=(int)simu_data.second[2];
+    int max_children=(int)simu_data.second[3];
+    float mutation_rate=simu_data.second[4];
+    float recycle_rate=simu_data.second[5];
+    float sex_rate=simu_data.second[6];
+    int max_notables=(int)simu_data.second[7];
     SlideCrossValidation cross_validation;
-    switch((int)simu_data.second[9]){
+    switch((int)simu_data.second[8]){
         case 0:
             cross_validation=SlideCrossValidation::NONE;
             break;
@@ -134,7 +134,7 @@ void runGeneticSimulation(string simulation_id){
             break;
     }
     SlideMetric metric_mode;
-    switch((int)simu_data.second[10]){
+    switch((int)simu_data.second[9]){
         case 0:
             metric_mode=SlideMetric::RAW_LOSS;
             break;
@@ -151,8 +151,8 @@ void runGeneticSimulation(string simulation_id){
             metric_mode=SlideMetric::PRECISION;
             break;
     }
-    int train_data_limit=(int)simu_data.second[11];
-    int algorithm=(int)simu_data.second[12];
+    int train_data_limit=(int)simu_data.second[10];
+    int algorithm=(int)simu_data.second[11];
     simu_data.first.clear();
     simu_data.second.clear();
 
