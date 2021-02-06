@@ -12,6 +12,8 @@
 #include "test.hpp"
 #include "Slide.hpp"
 
+#define GENETIC_REFERENCE_INSTEAD_OF_POINTER
+
 using namespace std;
 
 MongoDB* mongo=nullptr;
@@ -216,25 +218,54 @@ void runGeneticSimulation(string simulation_id){
     
     mongo->claimGeneticSimulation(simulation_id,Utils::getStrNow(),Utils::getHostname());
     HallOfFame* elite=new HallOfFame(max_notables, search_maximum);
-    GeneticAlgorithm* ga;
-    switch(algorithm){
-        default: // 0
-            ga=new EnchancedGenetic(max_children,max_age,mutation_rate,sex_rate,recycle_rate);
-            break;
-        case 1:
-            ga=new StandardGenetic(mutation_rate,sex_rate);
-            break;
-    }
-    PopulationManager enchanced_population=PopulationManager(ga,search_space,train_callback,population_start_size,search_maximum,use_neural_genome,true,after_gen_callback);
-    enchanced_population.setHallOfFame(elite);
-    cout<<"Starting natural selection"<<endl;
-    enchanced_population.naturalSelection(max_gens);
-    cout<<"Finished natural selection"<<endl;
-    cout<<"Best loss ("<<elite->getBest().second<<"): "<<elite->getBest().first<<endl;
-    mongo->clearHallOfFameNeuralGenomeVector(hall_of_fame_id,Utils::getStrNow());
-    for (Genome* g:elite->getNotables()){
-        mongo->addToHallOfFameNeuralGenomeVector(hall_of_fame_id,dynamic_cast<NeuralGenome*>(g),Utils::getStrNow());
-    }
+    #ifdef GENETIC_REFERENCE_INSTEAD_OF_POINTER 
+    // TODO fix genetic algorithm as pointer, to avoid having to use reference
+        if (algorithm==0){
+            EnchancedGenetic ga=EnchancedGenetic(max_children,max_age,mutation_rate,sex_rate,recycle_rate);
+            PopulationManager enchanced_population=PopulationManager(ga,search_space,train_callback,population_start_size,search_maximum,use_neural_genome,true,after_gen_callback);
+            enchanced_population.setHallOfFame(elite);
+            cout<<"Starting natural selection"<<endl;
+            enchanced_population.naturalSelection(max_gens);
+            cout<<"Finished natural selection"<<endl;
+            cout<<"Best loss ("<<elite->getBest().second<<"): "<<elite->getBest().first<<endl;
+            mongo->clearHallOfFameNeuralGenomeVector(hall_of_fame_id,Utils::getStrNow());
+            for (Genome* g:elite->getNotables()){
+                mongo->addToHallOfFameNeuralGenomeVector(hall_of_fame_id,dynamic_cast<NeuralGenome*>(g),Utils::getStrNow());
+            }
+        }else{
+            StandardGenetic ga=StandardGenetic(mutation_rate,sex_rate);
+            PopulationManager enchanced_population=PopulationManager(ga,search_space,train_callback,population_start_size,search_maximum,use_neural_genome,true,after_gen_callback);
+            enchanced_population.setHallOfFame(elite);
+            cout<<"Starting natural selection"<<endl;
+            enchanced_population.naturalSelection(max_gens);
+            cout<<"Finished natural selection"<<endl;
+            cout<<"Best loss ("<<elite->getBest().second<<"): "<<elite->getBest().first<<endl;
+            mongo->clearHallOfFameNeuralGenomeVector(hall_of_fame_id,Utils::getStrNow());
+            for (Genome* g:elite->getNotables()){
+                mongo->addToHallOfFameNeuralGenomeVector(hall_of_fame_id,dynamic_cast<NeuralGenome*>(g),Utils::getStrNow());
+            }
+        }
+    #else
+        GeneticAlgorithm* ga;
+        switch(algorithm){
+            default: // 0
+                ga=new EnchancedGenetic(max_children,max_age,mutation_rate,sex_rate,recycle_rate);
+                break;
+            case 1:
+                ga=new StandardGenetic(mutation_rate,sex_rate);
+                break;
+        }
+        PopulationManager enchanced_population=PopulationManager(ga,search_space,train_callback,population_start_size,search_maximum,use_neural_genome,true,after_gen_callback);
+        enchanced_population.setHallOfFame(elite);
+        cout<<"Starting natural selection"<<endl;
+        enchanced_population.naturalSelection(max_gens);
+        cout<<"Finished natural selection"<<endl;
+        cout<<"Best loss ("<<elite->getBest().second<<"): "<<elite->getBest().first<<endl;
+        mongo->clearHallOfFameNeuralGenomeVector(hall_of_fame_id,Utils::getStrNow());
+        for (Genome* g:elite->getNotables()){
+            mongo->addToHallOfFameNeuralGenomeVector(hall_of_fame_id,dynamic_cast<NeuralGenome*>(g),Utils::getStrNow());
+        }
+    #endif
     mongo->finishGeneticSimulation(simulation_id,Utils::getStrNow());
 
     cout<<"Runned genetic simulation "+simulation_id+"...OK\n";

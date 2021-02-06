@@ -66,7 +66,7 @@ class MongoDB{
     private:
         // methods
         static mongocxx::client getClient(const string &conn_str);
-        bsoncxx::document::value castNeuralGenomeToBson(NeuralGenome* ng,bool store_weights=true);
+        bsoncxx::document::value castNeuralGenomeToBson(NeuralGenome* ng,bool store_weights=false);
         // variables
         // static mongocxx::instance inst;
         mongocxx::client client;
