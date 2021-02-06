@@ -2,8 +2,17 @@
 #include "NeuralGenome.hpp"
 #include "HallOfFame.hpp"
 
-PopulationManager::PopulationManager(GeneticAlgorithm &galg, SPACE_SEARCH space, function<float(Genome *self)> callback,int startPopulationSize, bool searchHighestFitness, bool useNeuralGenome, bool printDeltas,function<void(int pop_size,int g,float best_out,long timestamp_ms,vector<Genome*> population,HallOfFame *hall_of_fame)> afterGen_cb){
+PopulationManager::PopulationManager(GeneticAlgorithm &galg, SPACE_SEARCH space, function<float(Genome *self)> callback,int startPopulationSize, bool searchHighestFitness, bool useNeuralGenome, bool printDeltas,function<void(int pop_size,int g,float best_out,long timestamp_ms,vector<Genome*> population,HallOfFame *hall_of_fame)> afterGen_cb)
+    :PopulationManager(space,callback,startPopulationSize,searchHighestFitness,useNeuralGenome,printDeltas,afterGen_cb){
     ga=galg.clone();
+}
+
+PopulationManager::PopulationManager(GeneticAlgorithm* galg, SPACE_SEARCH space, function<float(Genome *self)> callback,int startPopulationSize, bool searchHighestFitness, bool useNeuralGenome, bool printDeltas,function<void(int pop_size,int g,float best_out,long timestamp_ms,vector<Genome*> population,HallOfFame *hall_of_fame)> afterGen_cb)
+    :PopulationManager(space,callback,startPopulationSize,searchHighestFitness,useNeuralGenome,printDeltas,afterGen_cb){
+    ga=unique_ptr<GeneticAlgorithm>(galg);
+}
+
+PopulationManager::PopulationManager(SPACE_SEARCH space, function<float(Genome *self)> callback,int startPopulationSize, bool searchHighestFitness, bool useNeuralGenome, bool printDeltas,function<void(int pop_size,int g,float best_out,long timestamp_ms,vector<Genome*> population,HallOfFame *hall_of_fame)> afterGen_cb){
     looking_highest_fitness=searchHighestFitness;
     if (typeid(*ga) == typeid(EnchancedGenetic)){
         EnchancedGenetic* casted_ga=dynamic_cast<EnchancedGenetic*>(ga.get());

@@ -18,6 +18,7 @@ class PopulationManager{
     public:
         // constructors and destructor
         PopulationManager(GeneticAlgorithm &galg, SPACE_SEARCH space, function<float(Genome *self)> callback, int startPopulationSize, bool searchHighestFitness, bool useNeuralGenome=false, bool printDeltas=false,function<void(int pop_size,int g,float best_out,long timestamp_ms,vector<Genome*> population,HallOfFame *hall_of_fame)> afterGen_cb=nullptr);
+        PopulationManager(GeneticAlgorithm* galg, SPACE_SEARCH space, function<float(Genome *self)> callback, int startPopulationSize, bool searchHighestFitness, bool useNeuralGenome=false, bool printDeltas=false,function<void(int pop_size,int g,float best_out,long timestamp_ms,vector<Genome*> population,HallOfFame *hall_of_fame)> afterGen_cb=nullptr);
         PopulationManager(const PopulationManager& orig);
         virtual ~PopulationManager();
 
@@ -27,6 +28,9 @@ class PopulationManager{
         vector<Genome*> getPopulation();
 
     private:
+        // constructor
+        PopulationManager(SPACE_SEARCH space, function<float(Genome *self)> callback, int startPopulationSize, bool searchHighestFitness, bool useNeuralGenome=false, bool printDeltas=false,function<void(int pop_size,int g,float best_out,long timestamp_ms,vector<Genome*> population,HallOfFame *hall_of_fame)> afterGen_cb=nullptr);
+        
         // variables
         unique_ptr<GeneticAlgorithm> ga;
         vector<Genome*> population;

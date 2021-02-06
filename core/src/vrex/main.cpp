@@ -152,6 +152,7 @@ void runGeneticSimulation(string simulation_id){
             break;
     }
     int train_data_limit=(int)simu_data.second[11];
+    int algorithm=(int)simu_data.second[12];
     simu_data.first.clear();
     simu_data.second.clear();
 
@@ -215,8 +216,16 @@ void runGeneticSimulation(string simulation_id){
     
     mongo->claimGeneticSimulation(simulation_id,Utils::getStrNow(),Utils::getHostname());
     HallOfFame elite=HallOfFame(max_notables, search_maximum);
-    EnchancedGenetic en_ga = EnchancedGenetic(max_children,max_age,mutation_rate,sex_rate,recycle_rate);
-    PopulationManager enchanced_population=PopulationManager(en_ga,search_space,train_callback,population_start_size,search_maximum,use_neural_genome,true,after_gen_callback);
+    GeneticAlgorithm* ga;
+    switch(algorithm){
+        default: // 0
+            ga=new EnchancedGenetic(max_children,max_age,mutation_rate,sex_rate,recycle_rate);
+            break;
+        case 1:
+            ga=new StandardGenetic(mutation_rate,sex_rate);
+            break;
+    }
+    PopulationManager enchanced_population=PopulationManager(ga,search_space,train_callback,population_start_size,search_maximum,use_neural_genome,true,after_gen_callback);
     enchanced_population.setHallOfFame(elite);
     cout<<"Starting natural selection"<<endl;
     enchanced_population.naturalSelection(max_gens);

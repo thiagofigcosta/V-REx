@@ -154,6 +154,7 @@ pair<vector<string>,vector<float>> MongoDB::fetchGeneticSimulationData(string id
     float cross_validation;
     float metric;
     float limit=0;
+    float algorithm;
     if(maybe_result) {
         bsoncxx::document::element env_name_el = maybe_result->view()["env_name"];
         if (env_name_el.type() == bsoncxx::type::k_utf8){
@@ -240,6 +241,12 @@ pair<vector<string>,vector<float>> MongoDB::fetchGeneticSimulationData(string id
         }else{
             throw runtime_error("Error invalid type: "+bsoncxx::to_string(metric_el.type())+"\n");
         }
+        bsoncxx::document::element algorithm_el = maybe_result->view()["algorithm"];
+        if (algorithm_el.type() == bsoncxx::type::k_int32){
+            algorithm=(float)algorithm_el.get_int32();
+        }else{
+            throw runtime_error("Error invalid type: "+bsoncxx::to_string(algorithm_el.type())+"\n");
+        }
     }else{
         throw runtime_error("Unable to find simulation "+id);
     }
@@ -265,6 +272,7 @@ pair<vector<string>,vector<float>> MongoDB::fetchGeneticSimulationData(string id
     float_params.push_back(cross_validation);
     float_params.push_back(metric);
     float_params.push_back(limit);
+    float_params.push_back(algorithm);
 
     return pair<vector<string>,vector<float>>(str_params,float_params);
 }
