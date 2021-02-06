@@ -50,6 +50,7 @@ class MongoDB{
         SPACE_SEARCH fetchEnvironmentData(string name);
         void clearPopulationNeuralGenomeVector(string pop_id,string currentDatetime);
         void addToPopulationNeuralGenomeVector(string pop_id,NeuralGenome* ng,string currentDatetime);
+        void clearHallOfFameNeuralGenomeVector(string hall_id,string currentDatetime);
         void addToHallOfFameNeuralGenomeVector(string hall_id,NeuralGenome* ng,string currentDatetime);
         pair<vector<string>,vector<int>> fetchNeuralNetworkTrainMetadata(string id);
         void claimNeuralNetTrain(string id,string currentDatetime, string hostname);

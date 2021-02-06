@@ -362,6 +362,12 @@ void MongoDB::addToPopulationNeuralGenomeVector(string pop_id,NeuralGenome* ng,s
     getCollection(getDB("neural_db"),"populations").update_one(query.view(),update.view());
 }
 
+void MongoDB::clearHallOfFameNeuralGenomeVector(string hall_id,string currentDatetime){
+    bsoncxx::document::value query=document{} << "_id" << bsoncxx::oid{hall_id} << finalize;
+    bsoncxx::document::value update=document{} << "$set" << open_document << "updated_at" << currentDatetime << "neural_genomes" <<  open_array << close_array << close_document << finalize;
+    getCollection(getDB("neural_db"),"hall_of_fame").update_one(query.view(),update.view());
+}
+
 void MongoDB::addToHallOfFameNeuralGenomeVector(string hall_id,NeuralGenome* ng,string currentDatetime){
     bsoncxx::document::value query=document{} << "_id" << bsoncxx::oid{hall_id} << finalize;
     bsoncxx::document::value update=document{} << "$push" << open_document << "neural_genomes" << castNeuralGenomeToBson(ng) << close_document << "$set" << open_document << "updated_at" << currentDatetime << close_document << finalize;
@@ -391,6 +397,7 @@ bsoncxx::document::value MongoDB::castNeuralGenomeToBson(NeuralGenome* ng,bool s
             bsoncxx::document::value full=document{}
             <<"int_dna"<<int_dna
             <<"float_dna"<<float_dna
+            <<"output"<<ng->getOutput()
             <<"weights"<<Utils::serializeWeigthsToStr(ng->getWeights())
             << finalize;
             ng->clearWeightsIfCached();
@@ -399,6 +406,7 @@ bsoncxx::document::value MongoDB::castNeuralGenomeToBson(NeuralGenome* ng,bool s
             bsoncxx::document::value full=document{}
             <<"int_dna"<<int_dna
             <<"float_dna"<<float_dna
+            <<"output"<<ng->getOutput()
             << finalize;
             return full;
         }

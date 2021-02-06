@@ -215,7 +215,7 @@ void runGeneticSimulation(string simulation_id){
     };
     
     mongo->claimGeneticSimulation(simulation_id,Utils::getStrNow(),Utils::getHostname());
-    HallOfFame elite=HallOfFame(max_notables, search_maximum);
+    HallOfFame* elite=new HallOfFame(max_notables, search_maximum);
     GeneticAlgorithm* ga;
     switch(algorithm){
         default: // 0
@@ -230,13 +230,15 @@ void runGeneticSimulation(string simulation_id){
     cout<<"Starting natural selection"<<endl;
     enchanced_population.naturalSelection(max_gens);
     cout<<"Finished natural selection"<<endl;
-    cout<<"Best loss ("<<elite.getBest().second<<"): "<<elite.getBest().first<<endl;
-    for (Genome* g:elite.getNotables()){
+    cout<<"Best loss ("<<elite->getBest().second<<"): "<<elite->getBest().first<<endl;
+    mongo->clearHallOfFameNeuralGenomeVector(hall_of_fame_id,Utils::getStrNow());
+    for (Genome* g:elite->getNotables()){
         mongo->addToHallOfFameNeuralGenomeVector(hall_of_fame_id,dynamic_cast<NeuralGenome*>(g),Utils::getStrNow());
     }
     mongo->finishGeneticSimulation(simulation_id,Utils::getStrNow());
 
     cout<<"Runned genetic simulation "+simulation_id+"...OK\n";
+    delete elite;
 }
 
 void trainNeuralNetwork(string independent_net_id){
