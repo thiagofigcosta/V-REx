@@ -460,7 +460,7 @@ int main(int argc, char* argv[]) {
         independent_net_id=vm["network-id"].as<string>();
         result_id=vm["eval-result-id"].as<string>();
         eval_data=vm["eval-data"].as<string>();
-        if (!run_test&&!run_genetic&&!run_train_net&&!run_eval_net){
+        if (!run_test&&!run_genetic&&!run_train_net&&!run_eval_net&&!just_print_args){
             cout<<"No function argument found, please use --help for tips\n";
             cout<<"Nothing to do, exiting...\n";
             return 0;

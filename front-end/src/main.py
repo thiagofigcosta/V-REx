@@ -195,17 +195,8 @@ def main(argv){
                     LOGGER.clean('Name: {}'.format(env['name']))
                     LOGGER.clean('Submitted At: {}'.format(env['submitted_at']))
                     LOGGER.clean('Space Search:')
-                    LOGGER.clean('\tInt:')
-                    for el in env['space_search']['int'] {
-                        for k,v in el.items(){
-                            LOGGER.clean('\t\t{}: {}'.format(k,str(v)))
-                        }
-                    }
-                    LOGGER.clean('\tFloat:')
-                    for el in env['space_search']['float'] {
-                        for k,v in el.items(){
-                            LOGGER.clean('\t\t{}: {}'.format(k,str(v)))
-                        }
+                    for k,v in env['space_search'].items() {
+                        LOGGER.clean('\t{}: {}'.format(k,str(v)))
                     }
                     LOGGER.clean('\n')
                 }

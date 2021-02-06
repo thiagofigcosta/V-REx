@@ -65,6 +65,10 @@ or in background with replicas
 ```
 docker-compose up -d --scale data-crawler=2
 ```
+or in background without some modules
+```
+docker-compose up -d --scale data-crawler=0 --scale data-processor=0
+```
 
 To Stop run:
 ```
