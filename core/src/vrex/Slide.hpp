@@ -84,7 +84,7 @@ class Slide{
         void deallocSlideDataset(float **values, int *sizes, int **records, int **labels, int *labelsize);
 
         // variables
-        static const int MAX_THREADS=1; // 0 = max allowed 
+        static int MAX_THREADS; // 0 = max allowed 
 
         static const bool MEAN_ERROR_INSTEAD_OF_GRADS_SUM=true;
         #pragma omp threadprivate(MEAN_ERROR_INSTEAD_OF_GRADS_SUM)

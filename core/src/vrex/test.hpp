@@ -15,7 +15,7 @@
 
 using namespace std;
 
-void test();
+void test(int func_id);
 void testCsvRead();
 void testMongo();
 void testSlide_IntLabel();

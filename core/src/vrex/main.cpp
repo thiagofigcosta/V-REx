@@ -1,6 +1,7 @@
 #include <iostream>
 #include <signal.h>
 #include <boost/stacktrace.hpp>
+#include <boost/program_options.hpp>
 #include <exception>
 #include <stdexcept>
 #include <sys/resource.h>
@@ -17,6 +18,22 @@ MongoDB* mongo=nullptr;
 bool trap_signals=false;
 bool connect_mongo=true;
 bool set_stack_size=false;
+
+// Function used to check that 'opt1' and 'opt2' are not specified at the same time.
+void conflicting_options(const boost::program_options::variables_map& vm, const char* opt1, const char* opt2){
+    if (vm.count(opt1) && !vm[opt1].defaulted() 
+        && vm.count(opt2) && !vm[opt2].defaulted())
+        throw logic_error(string("Conflicting options '") 
+                          + opt1 + "' and '" + opt2 + "'.");
+}
+
+// Function used to check that of 'for_what' is specified, then 'required_option' is specified too.
+void option_dependency(const boost::program_options::variables_map& vm, const char* for_what, const char* required_option){
+    if (vm.count(for_what) && !vm[for_what].defaulted())
+        if (vm.count(required_option) == 0 || vm[required_option].defaulted())
+            throw logic_error(string("Option '") + for_what 
+                              + "' requires option '" + required_option + "'.");
+}
 
 void exceptionHandler(int signum) {
     ::signal(signum, SIG_DFL);
@@ -374,9 +391,101 @@ void evalNeuralNetwork(string independent_net_id, string result_id, string eval_
     delete hyper;
 }
 
-int main() {
+int main(int argc, char* argv[]) {
+    bool run_test;
+    bool run_genetic;
+    bool run_train_net;
+    bool run_eval_net;
+    bool just_print_args;
+    int test_function;
+    string simulation_id;
+    string independent_net_id;
+    string result_id;
+    string eval_data;
+    try {
+        boost::program_options::options_description desc("Allowed options");
+        desc.add_options()
+        ("help,h", "print usage message")
+        ("trap-signals", boost::program_options::bool_switch()->default_value(false), "trap signals to try to print stacktrace in failure scenarios")
+        ("ignore-mongo", boost::program_options::bool_switch()->default_value(false), "skip mongo connection (e.g. when there is no server)")
+        ("set-stack-size", boost::program_options::bool_switch()->default_value(false), "sets stack max size programmatically")
+        ("test", boost::program_options::bool_switch()->default_value(false), "run test functions instead of main ones")
+        ("run-genetic", boost::program_options::bool_switch()->default_value(false), "run genetic population")
+        ("train-neural", boost::program_options::bool_switch()->default_value(false), "train smart neural network")
+        ("eval-neural", boost::program_options::bool_switch()->default_value(false), "eval smart neural network")
+        ("debug-args", boost::program_options::bool_switch()->default_value(false), "just print arguments (DEBUG)")
+        ("test-function", boost::program_options::value<int>()->default_value(0), "specify the test function to run <function id>:\n\t1 - testCsvRead\n\t2 - testMongo\n\t3 - testSlide_IntLabel\n\t4 - testSlide_NeuronByNeuronLabel\n\t5 - testStdGeneticsOnMath\n\t6 - testEnchancedGeneticsOnMath\n\t7 - testSlide_Validation\n\t8 - testGeneticallyTunedNeuralNetwork\n\t9 - testMongoCveRead\n\t10 - testSmartNeuralNetwork_cveData\n\t11 - testGeneticallyTunedSmartNeuralNetwork_cveData")
+        ("simulation-id", boost::program_options::value<string>()->default_value(""), "mongo genetic simulation id to fetch data <id>")
+        ("network-id", boost::program_options::value<string>()->default_value(""), "mongo neural network id to fetch data <id>")
+        ("eval-result-id", boost::program_options::value<string>()->default_value(""), "mongo neural network result id to write results <id>")
+        ("eval-data", boost::program_options::value<string>()->default_value(""), "data info to be used during neural network eval <eval data>")
+        ;
+        boost::program_options::variables_map vm;
+        boost::program_options::store(boost::program_options::parse_command_line(argc, argv, desc), vm);
+        if (vm.count("help")){  
+            cout<<desc<<endl;
+            return 0;
+        }
+        conflicting_options(vm,"test","run-genetic");
+        conflicting_options(vm,"test","train-neural");
+        conflicting_options(vm,"test","eval-neural");
+        conflicting_options(vm,"run-genetic","train-neural");
+        conflicting_options(vm,"run-genetic","eval-neural");
+        conflicting_options(vm,"train-neural","eval-neural");
+        option_dependency(vm,"test","test-function");
+        option_dependency(vm,"run-genetic","simulation-id");
+        option_dependency(vm,"train-neural","network-id");
+        option_dependency(vm,"eval-neural","network-id");
+        option_dependency(vm,"eval-neural","eval-result-id");
+        option_dependency(vm,"eval-neural","eval-data");
+        trap_signals=vm["trap-signals"].as<bool>();
+        connect_mongo=!vm["ignore-mongo"].as<bool>();
+        set_stack_size=vm["set-stack-size"].as<bool>();
+        run_test=vm["test"].as<bool>();
+        run_genetic=vm["run-genetic"].as<bool>();
+        run_train_net=vm["train-neural"].as<bool>();
+        run_eval_net=vm["eval-neural"].as<bool>();
+        just_print_args=vm["debug-args"].as<bool>();
+        test_function=vm["test-function"].as<int>();
+        simulation_id=vm["simulation-id"].as<string>();
+        independent_net_id=vm["network-id"].as<string>();
+        result_id=vm["eval-result-id"].as<string>();
+        eval_data=vm["eval-data"].as<string>();
+    }
+    catch(exception& e) {
+        cerr<<e.what()<<endl;
+        return 2;
+    }
+    if (just_print_args){
+        cout<<"trap_signals: "<<trap_signals<<endl;
+        cout<<"connect_mongo: "<<connect_mongo<<endl;
+        cout<<"set_stack_size: "<<set_stack_size<<endl;
+        cout<<endl;
+        cout<<"run_test: "<<run_test<<endl;
+        cout<<"run_genetic: "<<run_genetic<<endl;
+        cout<<"run_train_net: "<<run_train_net<<endl;
+        cout<<"run_eval_net: "<<run_eval_net<<endl;
+        cout<<endl;
+        cout<<"test_function: "<<test_function<<endl;
+        cout<<"simulation_id: "<<simulation_id<<endl;
+        cout<<"independent_net_id: "<<independent_net_id<<endl;
+        cout<<"result_id: "<<result_id<<endl;
+        cout<<"eval_data: "<<eval_data<<endl;
+        return 0;
+    }
+    if (run_genetic){
+        Slide::MAX_THREADS=1; // Trying to reduce mem usage
+    }
     setup();
-    // test();
+    if (run_test){
+        test(test_function);
+    }else if (run_genetic){
+        runGeneticSimulation(simulation_id);
+    }else if (run_train_net){
+        trainNeuralNetwork(independent_net_id);
+    }else if (run_eval_net){
+        evalNeuralNetwork(independent_net_id,result_id,eval_data);
+    }
     tearDown();
     return 0;
 }

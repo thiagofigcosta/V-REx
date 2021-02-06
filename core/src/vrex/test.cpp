@@ -822,16 +822,43 @@ void testGeneticallyTunedSmartNeuralNetwork_cveData(){
     cout<<endl<<endl;
 }
 
-void test() {
-    // testCsvRead();
-    // testMongo();
-    testSlide_IntLabel();
-    // testSlide_NeuronByNeuronLabel();
-    // testStdGeneticsOnMath();
-    // testEnchancedGeneticsOnMath();
-    // testSlide_Validation();
-    testGeneticallyTunedNeuralNetwork();
-    // testMongoCveRead();
-    // testSmartNeuralNetwork_cveData();
-    // testGeneticallyTunedSmartNeuralNetwork_cveData();
+void test(int func_id) {
+    switch(func_id){
+        default:
+            cout<<"Next time use one of the following (instead of 0):\n1 - testCsvRead\n\t2 - testMongo\n\t3 - testSlide_IntLabel\n\t4 - testSlide_NeuronByNeuronLabel\n\t5 - testStdGeneticsOnMath\n\t6 - testEnchancedGeneticsOnMath\n\t7 - testSlide_Validation\n\t8 - testGeneticallyTunedNeuralNetwork\n\t9 - testMongoCveRead\n\t10 - testSmartNeuralNetwork_cveData\n\t11 - testGeneticallyTunedSmartNeuralNetwork_cveData\n";
+            break;
+        case 1:
+            testCsvRead();
+            break;
+        case 2:
+            testMongo();
+            break;
+        case 3:
+            testSlide_IntLabel();
+            break;
+        case 4:
+            testSlide_NeuronByNeuronLabel();
+            break;
+        case 5:
+            testStdGeneticsOnMath();
+            break;
+        case 6:
+            testEnchancedGeneticsOnMath();
+            break;
+        case 7:
+            testSlide_Validation();
+            break;
+        case 8:
+            testGeneticallyTunedNeuralNetwork();
+            break;
+        case 9:
+            testMongoCveRead();
+            break;
+        case 10:
+            testSmartNeuralNetwork_cveData();
+            break;
+        case 11:
+            testGeneticallyTunedSmartNeuralNetwork_cveData();
+            break;
+    }
 }

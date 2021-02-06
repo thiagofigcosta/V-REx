@@ -3,6 +3,9 @@
 #include "slide/Network.h"
 #include "Utils.hpp"
 
+
+int Slide::MAX_THREADS=0; // 0 = max allowed 
+
 Slide::Slide(int numLayer, int *sizesOfLayers, NodeType* layerTypes, int InputDim, float Lr, int Batchsize, bool useAdamOt, 
             SlideLabelEncoding labelType, int *RangePow, int *KValues,int *LValues,float *Sparsity, int Rehash, int Rebuild, 
             SlideMetric trainMetric,SlideMetric valMetric,bool shuffleTrainData,SlideCrossValidation crossValidation,SlideMode Mode,SlideHashingFunction HashFunc, bool printDeltas) {
