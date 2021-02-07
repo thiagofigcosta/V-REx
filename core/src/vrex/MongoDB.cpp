@@ -43,7 +43,7 @@ pair<string,pair<vector<int>, vector<float>>> MongoDB::bsonToDatasetEntry(const 
     string cve_id="";
     bsoncxx::document::element cve_el = bson["cve"];
     if (cve_el.type() == bsoncxx::type::k_utf8){
-        cve_id=cve_el.get_utf8().value.data();
+        cve_id=cve_el.get_utf8().value.to_string();
     }else{
         throw runtime_error("Error invalid type for CVE: "+bsoncxx::to_string(cve_el.type())+"\n");
     }
@@ -158,25 +158,25 @@ pair<vector<string>,vector<float>> MongoDB::fetchGeneticSimulationData(string id
     if(maybe_result) {
         bsoncxx::document::element env_name_el = maybe_result->view()["env_name"];
         if (env_name_el.type() == bsoncxx::type::k_utf8){
-            env_name=env_name_el.get_utf8().value.data();
+            env_name=env_name_el.get_utf8().value.to_string();
         }else{
             throw runtime_error("Error invalid type: "+bsoncxx::to_string(env_name_el.type())+"\n");
         }
         bsoncxx::document::element train_data_el = maybe_result->view()["train_data"];
         if (train_data_el.type() == bsoncxx::type::k_utf8){
-            train_data=train_data_el.get_utf8().value.data();
+            train_data=train_data_el.get_utf8().value.to_string();
         }else{
             throw runtime_error("Error invalid type: "+bsoncxx::to_string(train_data_el.type())+"\n");
         }
         bsoncxx::document::element hall_of_fame_id_el = maybe_result->view()["hall_of_fame_id"];
         if (hall_of_fame_id_el.type() == bsoncxx::type::k_utf8){
-            hall_of_fame_id=hall_of_fame_id_el.get_utf8().value.data();
+            hall_of_fame_id=hall_of_fame_id_el.get_utf8().value.to_string();
         }else{
             throw runtime_error("Error invalid type: "+bsoncxx::to_string(hall_of_fame_id_el.type())+"\n");
         }
         bsoncxx::document::element population_id_el = maybe_result->view()["population_id"];
         if (population_id_el.type() == bsoncxx::type::k_utf8){
-            population_id=population_id_el.get_utf8().value.data();
+            population_id=population_id_el.get_utf8().value.to_string();
         }else{
             throw runtime_error("Error invalid type: "+bsoncxx::to_string(population_id_el.type())+"\n");
         }
@@ -430,19 +430,19 @@ pair<vector<string>,vector<int>> MongoDB::fetchNeuralNetworkTrainMetadata(string
     if(maybe_result) {
         bsoncxx::document::element hyper_name_el = maybe_result->view()["hyperparameters_name"];
         if (hyper_name_el.type() == bsoncxx::type::k_utf8){
-            hyper_name=hyper_name_el.get_utf8().value.data();
+            hyper_name=hyper_name_el.get_utf8().value.to_string();
         }else{
             throw runtime_error("Error invalid type: "+bsoncxx::to_string(hyper_name_el.type())+"\n");
         }
         bsoncxx::document::element train_data_el = maybe_result->view()["train_data"];
         if (train_data_el.type() == bsoncxx::type::k_utf8){
-            train_data=train_data_el.get_utf8().value.data();
+            train_data=train_data_el.get_utf8().value.to_string();
         }else{
             throw runtime_error("Error invalid type: "+bsoncxx::to_string(train_data_el.type())+"\n");
         }
         bsoncxx::document::element test_data_el = maybe_result->view()["test_data"];
         if (test_data_el.type() == bsoncxx::type::k_utf8){
-            test_data=test_data_el.get_utf8().value.data();
+            test_data=test_data_el.get_utf8().value.to_string();
         }else{
             throw runtime_error("Error invalid type: "+bsoncxx::to_string(test_data_el.type())+"\n");
         }
@@ -664,7 +664,7 @@ map<string, vector<float>> MongoDB::loadWeightsFromNeuralNet(string id){
     if(maybe_result) {
         bsoncxx::document::element weights_el = maybe_result->view()["weights"];
         if (weights_el.type() == bsoncxx::type::k_utf8){
-            weights_str=weights_el.get_utf8().value.data();
+            weights_str=weights_el.get_utf8().value.to_string();
         }else{
             throw runtime_error("Error invalid type: "+bsoncxx::to_string(weights_el.type())+"\n");
         }
