@@ -371,14 +371,14 @@ void trainNeuralNetwork(string independent_net_id){
     cout<<"Trained network...OK\n";
     delete slide;
     cout<<"Evaluating for statistics...\n";
-    slide=new Slide(hyper->layers,hyper->layer_sizes,hyper->node_types,train_data[0].second.size(),hyper->alpha,hyper->batch_size,hyper->adam,hyper->label_type,
-    hyper->range_pow,hyper->K,hyper->L,hyper->sparcity,hyper->rehash,hyper->rebuild,train_metric,train_metric,hyper->shuffle,cross_validation,SlideMode::SAMPLING,SlideHashingFunction::DENSIFIED_WTA,print_deltas);
-    slide->setWeights(mongo->loadWeightsFromNeuralNet(independent_net_id));
+    string s_weights=Utils::serializeWeigthsToStr(slide->getWeights());
+    slide->setWeights(Utils::deserializeWeigthsFromStr(s_weights));
+    s_weights="";
     slide->eagerInit();
     vector<vector<pair<int,float>>> train_predicted=slide->evalData(train_data).second;
     snn_stats train_stats=Utils::statisticalAnalysis(train_data,train_predicted);
     cout<<"Evaluated for statistics...OK\n";
-    Utils::compareAndPrintLabel(train_data,train_predicted);
+    // Utils::compareAndPrintLabel(train_data,train_predicted);
     cout<<"Writing results...\n";
     mongo->appendTMetricsOnNeuralNet(independent_net_id,train_metrics);
     mongo->appendStatsOnNeuralNet(independent_net_id,"train_stats",train_stats);
