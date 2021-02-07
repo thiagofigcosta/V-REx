@@ -169,6 +169,27 @@ void runGeneticSimulation(string simulation_id){
         cve_years.push_back(stoi(y));
     }
     str_cve_years.clear();
+    cout<<"data: "<<simu_data.first[1]<<" limit: "<<train_data_limit<<endl;
+    cout<<"population_start_size: "<<population_start_size<<endl;
+    cout<<"max_gens: "<<max_gens<<endl;
+    cout<<"max_age: "<<max_age<<endl;
+    cout<<"max_children: "<<max_children<<endl;
+    cout<<"mutation_rate: "<<mutation_rate<<endl;
+    cout<<"recycle_rate: "<<recycle_rate<<endl;
+    cout<<"sex_rate: "<<sex_rate<<endl;
+    cout<<"max_notables: "<<max_notables<<endl;
+    cout<<"cross_validation"<<static_cast<underlying_type<SlideCrossValidation>::type>(cross_validation)<<endl;
+    cout<<"metric_mode"<<static_cast<underlying_type<SlideMetric>::type>(metric_mode)<<endl;
+    cout<<"algorithm: "<<algorithm<<endl;
+    cout<<"environment_name: "<<environment_name<<endl;
+    cout<<"Int space search:\n";
+    for(INT_SPACE_SEARCH int_s:search_space.first){
+        cout<<"\tmin: "<<int_s.first<<" max: "<<int_s.second<<endl;
+    }   
+    cout<<"Float space search:\n";
+    for(FLOAT_SPACE_SEARCH float_s:search_space.second){
+        cout<<"\tmin: "<<float_s.first<<" max: "<<float_s.second<<endl;
+    }    
     cout<<"Parsed genetic settings...OK\n";
     cout<<"Loading CVE data...\n";
     vector<pair<vector<int>, vector<float>>> train_data = mongo->loadCvesFromYears(cve_years, train_data_limit).second;
@@ -335,32 +356,38 @@ void trainNeuralNetwork(string independent_net_id){
     }
     str_cve_years_train.clear();
     Hyperparameters* hyper=mongo->fetchHyperparametersData(hyper_name);
+    cout<<"train_metric"<<static_cast<underlying_type<SlideMetric>::type>(train_metric)<<endl;
+    cout<<"cross_validation"<<static_cast<underlying_type<SlideCrossValidation>::type>(cross_validation)<<endl;
+    cout<<"epochs: "<<epochs<<endl;
+    cout<<"train data: "<<train_mdata.first[1]<<" limit: "<<train_limit<<endl;
+    cout<<"test data: "<<train_mdata.first[2]<<" limit: "<<test_limit<<endl;
+    cout<<"hyper_name: "<<hyper_name<<endl;
+    cout<<"\tbatch_size: "<<hyper->batch_size<<endl;
+    cout<<"\talpha: "<<hyper->alpha<<endl;
+    cout<<"\tshuffle: "<<hyper->shuffle<<endl;
+    cout<<"\tadam: "<<hyper->adam<<endl;
+    cout<<"\trehash: "<<hyper->rehash<<endl;
+    cout<<"\trebuild: "<<hyper->rebuild<<endl;
+    cout<<"\tlabel_type: "<<static_cast<underlying_type<SlideLabelEncoding>::type>(hyper->label_type)<<endl;
+    cout<<"\tlayers: "<<hyper->layers<<endl;
+    for(int i=0;i<hyper->layers;i++)
+        cout<<"\t\tlayer_sizes["<<i<<"]: "<<hyper->layer_sizes[i]<<endl;
+    for(int i=0;i<hyper->layers;i++)
+        cout<<"\t\trange_pow["<<i<<"]: "<<hyper->range_pow[i]<<endl;
+    for(int i=0;i<hyper->layers;i++)
+        cout<<"\t\tK["<<i<<"]: "<<hyper->K[i]<<endl;
+    for(int i=0;i<hyper->layers;i++)
+        cout<<"\t\tL["<<i<<"]: "<<hyper->L[i]<<endl;
+    for(int i=0;i<hyper->layers;i++)
+        cout<<"\t\tnode_types["<<i<<"]: "<<static_cast<underlying_type<NodeType>::type>(hyper->node_types[i])<<endl;
+    for(int i=0;i<hyper->layers;i++)
+        cout<<"\t\tsparcity["<<i<<"]: "<<hyper->sparcity[i]<<endl;
     cout<<"Parsed training settings...OK\n";
     cout<<"Loading CVE data...\n";
     vector<pair<vector<int>, vector<float>>> train_data = mongo->loadCvesFromYears(cve_years_train, train_limit).second;
     cout<<"Loaded CVE data...OK\n";
     mongo->claimNeuralNetTrain(independent_net_id,Utils::getStrNow(),Utils::getHostname());
     const bool print_deltas=true;
-    cout<<"batch_size: "<<hyper->batch_size<<endl;
-    cout<<"alpha: "<<hyper->alpha<<endl;
-    cout<<"shuffle: "<<hyper->shuffle<<endl;
-    cout<<"adam: "<<hyper->adam<<endl;
-    cout<<"rehash: "<<hyper->rehash<<endl;
-    cout<<"rebuild: "<<hyper->rebuild<<endl;
-    cout<<"label_type: "<<static_cast<underlying_type<SlideLabelEncoding>::type>(hyper->label_type)<<endl;
-    cout<<"layers: "<<hyper->layers<<endl;
-    for(int i=0;i<hyper->layers;i++)
-        cout<<"\tlayer_sizes["<<i<<"]: "<<hyper->layer_sizes[i]<<endl;
-    for(int i=0;i<hyper->layers;i++)
-        cout<<"\trange_pow["<<i<<"]: "<<hyper->range_pow[i]<<endl;
-    for(int i=0;i<hyper->layers;i++)
-        cout<<"\tK["<<i<<"]: "<<hyper->K[i]<<endl;
-    for(int i=0;i<hyper->layers;i++)
-        cout<<"\tL["<<i<<"]: "<<hyper->L[i]<<endl;
-    for(int i=0;i<hyper->layers;i++)
-        cout<<"\tnode_types["<<i<<"]: "<<static_cast<underlying_type<NodeType>::type>(hyper->node_types[i])<<endl;
-    for(int i=0;i<hyper->layers;i++)
-        cout<<"\tsparcity["<<i<<"]: "<<hyper->sparcity[i]<<endl;
     cout<<"Creating network...\n";
     Slide* slide=new Slide(hyper->layers,hyper->layer_sizes,hyper->node_types,train_data[0].second.size(),hyper->alpha,hyper->batch_size,hyper->adam,hyper->label_type,hyper->range_pow,hyper->K,hyper->L,hyper->sparcity,hyper->rehash,hyper->rebuild,train_metric,train_metric,hyper->shuffle,cross_validation,SlideMode::SAMPLING,SlideHashingFunction::DENSIFIED_WTA,print_deltas);
     slide->eagerInit();

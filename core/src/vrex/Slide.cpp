@@ -221,6 +221,7 @@ float Slide::evalLoss(vector<pair<vector<int>, vector<float>>> &eval_data){
         t1 = chrono::high_resolution_clock::now();
     }
     for (size_t i = 0; i <(size_t)num_batches; i++) {
+        // flushNetwork();
         vector<pair<vector<int>, vector<float>>> batch_data=Utils::extractSubVector(eval_data, i*batch_size, batch_size);
         float **values;
         int *sizes, *labelsize;
