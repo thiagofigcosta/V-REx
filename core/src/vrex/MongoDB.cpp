@@ -572,7 +572,7 @@ Hyperparameters* MongoDB::fetchHyperparametersData(string name){
         if(idx>=layers){
             break;
         }
-        hyper->K[idx]=el.get_int32();
+        hyper->L[idx]=el.get_int32();
         idx++;
     }
     bsoncxx::array::view node_types_arr {maybe_result->view()["node_types"].get_array().value};

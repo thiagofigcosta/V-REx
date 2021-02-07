@@ -350,17 +350,17 @@ void trainNeuralNetwork(string independent_net_id){
     cout<<"label_type: "<<static_cast<underlying_type<SlideLabelEncoding>::type>(hyper->label_type)<<endl;
     cout<<"layers: "<<hyper->layers<<endl;
     for(int i=0;i<hyper->layers;i++)
-        cout<<"layer_sizes["<<i<<"]: "<<hyper->layer_sizes[i]<<endl;
+        cout<<"\tlayer_sizes["<<i<<"]: "<<hyper->layer_sizes[i]<<endl;
     for(int i=0;i<hyper->layers;i++)
-        cout<<"range_pow["<<i<<"]: "<<hyper->range_pow[i]<<endl;
+        cout<<"\trange_pow["<<i<<"]: "<<hyper->range_pow[i]<<endl;
     for(int i=0;i<hyper->layers;i++)
-        cout<<"K["<<i<<"]: "<<hyper->K[i]<<endl;
+        cout<<"\tK["<<i<<"]: "<<hyper->K[i]<<endl;
     for(int i=0;i<hyper->layers;i++)
-        cout<<"L["<<i<<"]: "<<hyper->L[i]<<endl;
+        cout<<"\tL["<<i<<"]: "<<hyper->L[i]<<endl;
     for(int i=0;i<hyper->layers;i++)
-        cout<<"node_types["<<i<<"]: "<<static_cast<underlying_type<NodeType>::type>(hyper->node_types[i])<<endl;
+        cout<<"\tnode_types["<<i<<"]: "<<static_cast<underlying_type<NodeType>::type>(hyper->node_types[i])<<endl;
     for(int i=0;i<hyper->layers;i++)
-        cout<<"sparcity["<<i<<"]: "<<hyper->sparcity[i]<<endl;
+        cout<<"\tsparcity["<<i<<"]: "<<hyper->sparcity[i]<<endl;
     cout<<"Creating network...\n";
     Slide* slide=new Slide(hyper->layers,hyper->layer_sizes,hyper->node_types,train_data[0].second.size(),hyper->alpha,hyper->batch_size,hyper->adam,hyper->label_type,
     hyper->range_pow,hyper->K,hyper->L,hyper->sparcity,hyper->rehash,hyper->rebuild,train_metric,train_metric,hyper->shuffle,cross_validation,SlideMode::SAMPLING,SlideHashingFunction::DENSIFIED_WTA,print_deltas);
