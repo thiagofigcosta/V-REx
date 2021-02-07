@@ -245,10 +245,14 @@ float Slide::evalLoss(vector<pair<vector<int>, vector<float>>> &eval_data){
 }
 
 pair<int,vector<vector<pair<int,float>>>> Slide::evalData(vector<pair<vector<int>, vector<float>>> &test_data){
-    pair<int,vector<vector<pair<int,float>>>>  output;
+    pair<int,vector<vector<pair<int,float>>>> output;
     chrono::high_resolution_clock::time_point t1,t2;
     if (print_deltas) {
         t1 = chrono::high_resolution_clock::now();
+    }
+    size_t original_test_size=test_data.size();
+    while (test_data.size()%batch_size!=0){
+        test_data.push_back(test_data.back());
     }
     // int num_batches=(test_data.size() + batch_size-1)/batch_size; // ERROR, round UP causes segfault
     int num_batches=test_data.size()/batch_size;
@@ -268,6 +272,21 @@ pair<int,vector<vector<pair<int,float>>>> Slide::evalData(vector<pair<vector<int
         }
         batch_data.clear();
         deallocSlideDataset(values,sizes,records,labels,labelsize);
+    }
+    int offset=0;
+    if(test_data.size()>original_test_size){
+        offset=1;
+        for(size_t c=0;c<test_data.back().first.size();c++){
+            if (test_data.back().first[c]!=output.second.back()[c].first){
+                offset=0;
+                break;
+            }
+        }
+    }
+    while (test_data.size()>original_test_size){
+        test_data.pop_back();
+        output.second.pop_back();
+        output.first-=offset;
     }
     if (print_deltas) {
         t2 = chrono::high_resolution_clock::now();

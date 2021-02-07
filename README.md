@@ -144,6 +144,12 @@ docker run --memory="25G" core:v1.0.0
 sudo rm -rf docker_volumes
 ```
 
+## Cleanup RAM memory cache if needed
+```
+sudo su
+free -mh && sync && echo 3 > /proc/sys/vm/drop_caches && free -mh
+```
+
 ## Web Interfaces:
 >- Mongo-Express: http://localhost:8081/
 >- Portainer: http://localhost:9000/

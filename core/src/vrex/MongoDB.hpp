@@ -71,5 +71,5 @@ class MongoDB{
         // variables
         static mongocxx::instance inst;
         mongocxx::client client;
-        mongocxx::v_noabi::gridfs::bucket weigths_bucket;
+        mongocxx::v_noabi::gridfs::bucket weigths_bucket; // https://github.com/mongodb/mongo-cxx-driver/blob/releases/stable/examples/mongocxx/gridfs.cpp | https://stackoverflow.com/questions/60896129/delete-files-and-chunk-with-gridfsbucket
 }; 
