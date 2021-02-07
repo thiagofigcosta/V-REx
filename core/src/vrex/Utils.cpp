@@ -509,3 +509,35 @@ string Utils::serializeWeigthsToStr(map<string, vector<float>> weights){
 map<string, vector<float>> Utils::deserializeWeigthsFromStr(string serialized_str){
     return hps::from_string<map<string, vector<float>>>(serialized_str);
 }
+
+void Utils::compareAndPrintLabel(vector<vector<int>> correct, vector<vector<int>> pred){
+    for(size_t i=0;i<pred.size();i++){
+        vector<int> c=correct[i];
+        vector<int> p=pred[i];
+        cout<<"Reference label:";
+        for(size_t j=0;j<c.size();j++){
+            cout<<" "<<c[j];
+        }
+        cout<<" | Predicted label:";
+        for(size_t j=0;j<p.size();j++){
+            cout<<" "<<p[j];
+        }
+        cout<<endl;
+    }
+}
+
+void Utils::compareAndPrintLabel(vector<pair<vector<int>, vector<float>>> correct, vector<vector<pair<int,float>>> pred){
+    vector<vector<int>> c;
+    for(pair<vector<int>, vector<float>> entry: correct){
+        c.push_back(entry.first);
+    }
+    vector<vector<int>> p;
+    for(vector<pair<int,float>> entry: pred){
+        vector<int> p_tmp;
+        for(pair<int,float> val: entry){
+            p_tmp.push_back(val.first);
+        }
+        p.push_back(p_tmp);
+    }
+    Utils::compareAndPrintLabel(c,p);
+}

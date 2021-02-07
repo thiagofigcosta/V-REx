@@ -67,9 +67,9 @@ class MongoDB{
     private:
         // methods
         static mongocxx::client getClient(const string &conn_str);
-        bsoncxx::document::value castNeuralGenomeToBson(NeuralGenome* ng,bool store_weights=false);
+        bsoncxx::document::value castNeuralGenomeToBson(NeuralGenome* ng,bool store_weights=true);
         // variables
-        // static mongocxx::instance inst;
+        static mongocxx::instance inst;
         mongocxx::client client;
-
+        mongocxx::v_noabi::gridfs::bucket weigths_bucket;
 }; 

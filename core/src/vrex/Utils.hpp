@@ -104,6 +104,8 @@ class Utils{
         static string getStrNow(string format="%d-%m-%Y %H:%M:%S");
         static string serializeWeigthsToStr(map<string, vector<float>> weights);
         static map<string, vector<float>> deserializeWeigthsFromStr(string serialized_str);
+        static void compareAndPrintLabel(vector<vector<int>> correct, vector<vector<int>> pred);
+        static void compareAndPrintLabel(vector<pair<vector<int>, vector<float>>> correct, vector<vector<pair<int,float>>> pred);
 
         // variables
         static mt19937_64 RNG;

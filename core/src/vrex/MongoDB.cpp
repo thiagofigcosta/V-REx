@@ -1,14 +1,14 @@
 #include "MongoDB.hpp"
 
-// mongocxx::instance MongoDB::inst{}; // This should be done only once.
+mongocxx::instance MongoDB::inst{}; // This should be done only once.
 
 MongoDB::MongoDB(string host, string user, string password, int port) {
     // to fix mongo driver run the commands below if needed
     // sudo ln -s /usr/local/lib/libmogocxx.so.3.4.0 libmongocxx.so._noabi
     // sudo ln -s /usr/local/lib/libmongocxx.so._noabi /usr/local/lib/libmongocxx.so
-    mongocxx::instance instance{}; // This should be done only once.
     string conn_str="mongodb://"+user+":"+password+"@"+host+":"+to_string(port)+"/?authSource=admin";
-    client = MongoDB::getClient(conn_str);
+    client=MongoDB::getClient(conn_str);
+    weigths_bucket=getDB("neural_db").gridfs_bucket();
 }
 
 MongoDB::MongoDB(const MongoDB& orig) {
