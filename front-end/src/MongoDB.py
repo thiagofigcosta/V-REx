@@ -46,7 +46,7 @@ class MongoDB(object){
     }
 
     def establishConnection(self){
-        client = MongoClient(self.address, self.port,username=self.user, password=self.password)
+        client = MongoClient(self.address, self.port,username=self.user, password=self.password,unicode_decode_error_handler='ignore')
         self.client=client
     }
 
