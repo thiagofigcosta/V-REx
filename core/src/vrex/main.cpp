@@ -96,10 +96,10 @@ void setup(){
         cout<<"Connected on Mongo...OK\n";
     }
     if (Slide::MAX_THREADS > 0){
-        cout<<"Limiting amount of threads...\n";
+        cout<<"Limiting amount of threads to "+to_string(Slide::MAX_THREADS)+"...\n";
         omp_set_dynamic(0);
         omp_set_num_threads(Slide::MAX_THREADS);
-        cout<<"Limited amount of threads...OK\n";
+        cout<<"Limited amount of threads to "+to_string(Slide::MAX_THREADS)+"...OK\n";
     }
 }
 
@@ -112,6 +112,7 @@ void tearDown(){
 
 void runGeneticSimulation(string simulation_id){
     cout<<"Running genetic simulation "+simulation_id+"...\n";
+    cout<<"Parsing genetic settings...\n";
     pair<vector<string>,vector<float>> simu_data=mongo->fetchGeneticSimulationData(simulation_id);
     string environment_name=simu_data.first[0];
     vector<string> str_cve_years=Utils::splitString(simu_data.first[1],",");
@@ -162,17 +163,16 @@ void runGeneticSimulation(string simulation_id){
     int algorithm=(int)simu_data.second[11];
     simu_data.first.clear();
     simu_data.second.clear();
-
     SPACE_SEARCH search_space = mongo->fetchEnvironmentData(environment_name);
-
     vector<int> cve_years;
     for(string y:str_cve_years){
         cve_years.push_back(stoi(y));
     }
     str_cve_years.clear();
-
+    cout<<"Parsed genetic settings...OK\n";
+    cout<<"Loading CVE data...\n";
     vector<pair<vector<int>, vector<float>>> train_data = mongo->loadCvesFromYears(cve_years, train_data_limit).second;
-
+    cout<<"Loaded CVE data...OK\n";
     const bool shuffle_train_data=false;
     const int rehash=6400;
     const int rebuild=128000;
@@ -184,17 +184,21 @@ void runGeneticSimulation(string simulation_id){
     const bool use_neural_genome=true;
     const bool search_maximum=(metric_mode!=SlideMetric::RAW_LOSS);
     NeuralGenome::CACHE_WEIGHTS=true;
+    long long iterator_counter=0;
+    const int PRINT_FREQUENCY=50;
 
     auto train_callback = [&](Genome *self) -> float {
+        iterator_counter++;
         auto self_neural=dynamic_cast<NeuralGenome*>(self);
-
         tuple<Slide*,int,function<void()>> net=self_neural->buildSlide(self->getDna(),input_size,output_size,label_encoding,rehash,rebuild,border_sparsity,metric_mode,shuffle_train_data,cross_validation,adam_optimizer);
         if (self_neural->hasWeights()){
             get<0>(net)->setWeights(self_neural->getWeights());
             self_neural->clearWeights();
+            get<0>(net)->eagerInit();
         }
-
+        if (iterator_counter%PRINT_FREQUENCY==0) cout<<"Train_CB: build slide...OK\n";
         vector<pair<float,float>> metric=get<0>(net)->train(train_data,get<1>(net));
+        if (iterator_counter%PRINT_FREQUENCY==0) cout<<"Train_CB: train slide...OK\n";
         self_neural->setWeights(get<0>(net)->getWeights());
         delete get<0>(net); // free memory
         get<2>(net)(); // free memory
@@ -219,6 +223,7 @@ void runGeneticSimulation(string simulation_id){
         for (Genome* g:population){
             mongo->addToPopulationNeuralGenomeVector(population_id,dynamic_cast<NeuralGenome*>(g),Utils::getStrNow());
         }
+        if (iterator_counter%PRINT_FREQUENCY==0) cout<<"AfterGen_CB: write on mongo...OK\n";
     };
     
     mongo->claimGeneticSimulation(simulation_id,Utils::getStrNow(),Utils::getHostname());
@@ -339,6 +344,7 @@ void trainNeuralNetwork(string independent_net_id){
     cout<<"Creating network...\n";
     Slide* slide=new Slide(hyper->layers,hyper->layer_sizes,hyper->node_types,train_data[0].second.size(),hyper->alpha,hyper->batch_size,hyper->adam,hyper->label_type,
     hyper->range_pow,hyper->K,hyper->L,hyper->sparcity,hyper->rehash,hyper->rebuild,train_metric,train_metric,hyper->shuffle,cross_validation,SlideMode::SAMPLING,SlideHashingFunction::DENSIFIED_WTA,print_deltas);
+    slide->eagerInit();
     cout<<"Created network...OK\n";
     cout<<"Training network...\n";
     vector<pair<float,float>> train_metrics=slide->train(train_data,epochs);
@@ -440,6 +446,7 @@ void evalNeuralNetwork(string independent_net_id, string result_id, string eval_
     Slide* slide=new Slide(hyper->layers,hyper->layer_sizes,hyper->node_types,cve_data[0].second.size(),hyper->alpha,hyper->batch_size,hyper->adam,hyper->label_type,
     hyper->range_pow,hyper->K,hyper->L,hyper->sparcity,hyper->rehash,hyper->rebuild,test_metric,test_metric,hyper->shuffle,cross_validation,SlideMode::SAMPLING,SlideHashingFunction::DENSIFIED_WTA,print_deltas);
     slide->setWeights(mongo->loadWeightsFromNeuralNet(independent_net_id));
+    slide->eagerInit();
     pair<int,vector<vector<pair<int,float>>>> predicted = slide->evalData(cve_data);
     mongo->storeEvalNeuralNetResult(result_id,predicted.first,cve_ids,predicted.second);
     cout<<"Evaluated neural network "+independent_net_id+"...\n";
@@ -461,21 +468,21 @@ int main(int argc, char* argv[]) {
     try {
         boost::program_options::options_description desc("Allowed options");
         desc.add_options()
-        ("help,h", "print usage message")
-        ("trap-signals", boost::program_options::bool_switch()->default_value(false), "trap signals to try to print stacktrace in failure scenarios")
-        ("ignore-mongo", boost::program_options::bool_switch()->default_value(false), "skip mongo connection (e.g. when there is no server)")
-        ("set-stack-size", boost::program_options::bool_switch()->default_value(false), "sets stack max size programmatically")
-        ("test", boost::program_options::bool_switch()->default_value(false), "run test functions instead of main ones")
-        ("run-genetic", boost::program_options::bool_switch()->default_value(false), "run genetic population")
-        ("train-neural", boost::program_options::bool_switch()->default_value(false), "train smart neural network")
-        ("eval-neural", boost::program_options::bool_switch()->default_value(false), "eval smart neural network")
-        ("debug-args", boost::program_options::bool_switch()->default_value(false), "just print arguments (DEBUG)")
-        ("test-function", boost::program_options::value<int>()->default_value(0), "specify the test function to run <function id>:\n\t1 - testCsvRead\n\t2 - testMongo\n\t3 - testSlide_IntLabel\n\t4 - testSlide_NeuronByNeuronLabel\n\t5 - testStdGeneticsOnMath\n\t6 - testEnchancedGeneticsOnMath\n\t7 - testSlide_Validation\n\t8 - testGeneticallyTunedNeuralNetwork\n\t9 - testMongoCveRead\n\t10 - testSmartNeuralNetwork_cveData\n\t11 - testGeneticallyTunedSmartNeuralNetwork_cveData")
-        ("simulation-id", boost::program_options::value<string>()->default_value(""), "mongo genetic simulation id to fetch data <id>")
-        ("network-id", boost::program_options::value<string>()->default_value(""), "mongo neural network id to fetch data <id>")
-        ("eval-result-id", boost::program_options::value<string>()->default_value(""), "mongo neural network result id to write results <id>")
-        ("eval-data", boost::program_options::value<string>()->default_value(""), "data info to be used during neural network eval <eval data>")
-        ("custom-mongo-host", boost::program_options::value<string>()->default_value(""), "mongo ipv4 address <ip> (default 127.0.0.1 outside docker and \'mongo\' inside docker)")
+            ("help,h", "print usage message")
+            ("trap-signals", boost::program_options::bool_switch()->default_value(false), "trap signals to try to print stacktrace in failure scenarios")
+            ("ignore-mongo", boost::program_options::bool_switch()->default_value(false), "skip mongo connection (e.g. when there is no server)")
+            ("set-stack-size", boost::program_options::bool_switch()->default_value(false), "sets stack max size programmatically")
+            ("test", boost::program_options::bool_switch()->default_value(false), "run test functions instead of main ones")
+            ("run-genetic", boost::program_options::bool_switch()->default_value(false), "run genetic population")
+            ("train-neural", boost::program_options::bool_switch()->default_value(false), "train smart neural network")
+            ("eval-neural", boost::program_options::bool_switch()->default_value(false), "eval smart neural network")
+            ("debug-args", boost::program_options::bool_switch()->default_value(false), "just print arguments (DEBUG)")
+            ("test-function", boost::program_options::value<int>()->default_value(0), "specify the test function to run <function id>:\n\t1 - testCsvRead\n\t2 - testMongo\n\t3 - testSlide_IntLabel\n\t4 - testSlide_NeuronByNeuronLabel\n\t5 - testStdGeneticsOnMath\n\t6 - testEnchancedGeneticsOnMath\n\t7 - testSlide_Validation\n\t8 - testGeneticallyTunedNeuralNetwork\n\t9 - testMongoCveRead\n\t10 - testSmartNeuralNetwork_cveData\n\t11 - testGeneticallyTunedSmartNeuralNetwork_cveData")
+            ("simulation-id", boost::program_options::value<string>()->default_value(""), "mongo genetic simulation id to fetch data <id>")
+            ("network-id", boost::program_options::value<string>()->default_value(""), "mongo neural network id to fetch data <id>")
+            ("eval-result-id", boost::program_options::value<string>()->default_value(""), "mongo neural network result id to write results <id>")
+            ("eval-data", boost::program_options::value<string>()->default_value(""), "data info to be used during neural network eval <eval data>")
+            ("custom-mongo-host", boost::program_options::value<string>()->default_value(""), "mongo ipv4 address <ip> (default 127.0.0.1 outside docker and \'mongo\' inside docker)")
         ;
         boost::program_options::variables_map vm;
         boost::program_options::store(boost::program_options::parse_command_line(argc, argv, desc), vm);

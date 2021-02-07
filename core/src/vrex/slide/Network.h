@@ -39,8 +39,6 @@ private:
 	bool use_adam;
 	SlideLabelEncoding label_type;
 	bool init;
-
-	void lateInit();
 	float **_weight, **_bias, **_adamAvgMom, **_adamAvgVel; 
 
 public:
@@ -51,6 +49,7 @@ public:
 	float ProcessInput(int** inputIndices, float** inputValues, int* lengths, int ** labels, int *labelsize, int iter, bool rehash, bool rebuild);
 	float evalInput(int** inputIndices, float** inputValues, int* lengths, int ** labels, int *labelsize);
 	map<string, vector<float>> mapfyWeights();
+	void lateInit();
 	~Network();
 	void * operator new(size_t size){
 	    void* ptr = mmap(NULL, size,

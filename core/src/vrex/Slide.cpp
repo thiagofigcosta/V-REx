@@ -316,3 +316,8 @@ void Slide::deallocSlideDataset(float **values, int *sizes, int **records, int *
     delete[] labels;
     GarbageCollector::get()->flush();
 }
+
+
+void Slide::eagerInit(){
+    slide_network->lateInit();
+}

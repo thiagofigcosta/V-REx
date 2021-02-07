@@ -5,7 +5,7 @@
 #include <chrono>
 #include <memory>
 
-#define Slide_MAPLEN 512 // was 325056
+#define Slide_MAPLEN 2048 // was 325056
 // Slide_HUGEPAGES defined in Node.h
 #define Slide_USE_SMART_POINTERS 0 // 1 to use smart pointer or 0 to not. WARNING smart pointers are not thread safe 
 
@@ -82,6 +82,7 @@ class Slide{
         pair<int,vector<vector<pair<int,float>>>> evalData(vector<pair<vector<int>, vector<float>>> &test_data);
         void allocAndCastDatasetToSlide(vector<pair<vector<int>, vector<float>>> &data,float **&values, int *&sizes, int **&records, int **&labels, int *&labelsize);
         void deallocSlideDataset(float **values, int *sizes, int **records, int **labels, int *labelsize);
+        void eagerInit();
 
         // variables
         static int MAX_THREADS; // 0 = max allowed 
