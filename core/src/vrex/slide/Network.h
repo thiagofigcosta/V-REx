@@ -50,6 +50,7 @@ public:
 	float evalInput(int** inputIndices, float** inputValues, int* lengths, int ** labels, int *labelsize);
 	map<string, vector<float>> mapfyWeights();
 	void lateInit();
+	void flushLayers();
 	~Network();
 	void * operator new(size_t size){
 	    void* ptr = mmap(NULL, size,

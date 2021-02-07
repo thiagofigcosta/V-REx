@@ -257,6 +257,7 @@ pair<int,vector<vector<pair<int,float>>>> Slide::evalData(vector<pair<vector<int
     // int num_batches=(test_data.size() + batch_size-1)/batch_size; // ERROR, round UP causes segfault
     int num_batches=test_data.size()/batch_size;
     for (size_t i = 0; i <(size_t)num_batches; i++) {
+        flushNetwork();
         vector<pair<vector<int>, vector<float>>> batch_data=Utils::extractSubVector(test_data, i*batch_size, batch_size);
         float **values;
         int *sizes, *labelsize;
@@ -339,4 +340,8 @@ void Slide::deallocSlideDataset(float **values, int *sizes, int **records, int *
 
 void Slide::eagerInit(){
     slide_network->lateInit();
+}
+
+void Slide::flushNetwork(){
+    slide_network->flushLayers();
 }

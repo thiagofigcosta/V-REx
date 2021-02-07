@@ -493,6 +493,9 @@ map<string, vector<float>> Layer::mapfyWeights()
     return arr;
 }
 
+void Layer::flushTable(){
+    _hashTables->clear();
+}
 
 Layer::~Layer()
 {

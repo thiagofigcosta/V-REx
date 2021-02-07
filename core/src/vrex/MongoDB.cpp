@@ -681,7 +681,7 @@ void MongoDB::storeEvalNeuralNetResult(string id,int correct,vector<string> cve_
 
     string predicted_labels_str="[\n";
     for (size_t i=0;i<cve_ids.size();i++){
-        predicted_labels_str+="{ "+cve_ids[i]+": ";
+        predicted_labels_str+="{ \t"+cve_ids[i]+": ";
         vector<pair<int,float>> label=pred_labels[i];
         predicted_labels_str+="{ has_exploit: "+to_string(label[0].first)+", trust_level: "+to_string(label[0].second)+" }\n";
     }

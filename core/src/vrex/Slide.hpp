@@ -102,6 +102,7 @@ class Slide{
         void allocAndCastDatasetToSlide(vector<pair<vector<int>, vector<float>>> &data,float **&values, int *&sizes, int **&records, int **&labels, int *&labelsize);
         void deallocSlideDataset(float **values, int *sizes, int **records, int **labels, int *labelsize);
         void eagerInit();
+        void flushNetwork();
 
         // variables
         static int MAX_THREADS; // 0 = max allowed 

@@ -431,6 +431,10 @@ map<string, vector<float>> Network::mapfyWeights()
     return weights;
 }
 
+void Network::flushLayers(){
+    for (int i=0; i< _numberOfLayers; i++)
+        _hiddenlayers[i]->flushTable();
+}
 
 Network::~Network() {
     delete[] _sizesOfLayers;

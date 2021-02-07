@@ -67,6 +67,7 @@ public:
 	map<string, vector<float>> mapfyWeights();
 	void updateTable();
 	void updateRandomNodes();
+	void flushTable();
 
 	~Layer();
 
