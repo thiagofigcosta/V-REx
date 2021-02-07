@@ -60,6 +60,25 @@ struct Hyperparameters{
         delete[] L;
         delete[] sparcity; 
     }
+    Hyperparameters* clone(){
+        Hyperparameters* copy=new Hyperparameters(layers);
+        copy->batch_size=batch_size;
+        copy->alpha=alpha;
+        copy->shuffle=shuffle;
+        copy->adam=adam;
+        copy->rehash=rehash;
+        copy->rebuild=rebuild;
+        copy->layers=layers;
+        for(int i=0;i<layers;i++){
+            copy->layer_sizes[i]=layer_sizes[i];
+            copy->range_pow[i]=range_pow[i];
+            copy->K[i]=K[i];
+            copy->L[i]=L[i];
+            copy->node_types[i]=node_types[i];
+            copy->sparcity[i]=sparcity[i];
+        }
+        return copy;
+    }
 };
 
 class Slide{

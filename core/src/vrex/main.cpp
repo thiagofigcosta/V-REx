@@ -362,27 +362,28 @@ void trainNeuralNetwork(string independent_net_id){
     for(int i=0;i<hyper->layers;i++)
         cout<<"\tsparcity["<<i<<"]: "<<hyper->sparcity[i]<<endl;
     cout<<"Creating network...\n";
-    Slide* slide=new Slide(hyper->layers,hyper->layer_sizes,hyper->node_types,train_data[0].second.size(),hyper->alpha,hyper->batch_size,hyper->adam,hyper->label_type,
-    hyper->range_pow,hyper->K,hyper->L,hyper->sparcity,hyper->rehash,hyper->rebuild,train_metric,train_metric,hyper->shuffle,cross_validation,SlideMode::SAMPLING,SlideHashingFunction::DENSIFIED_WTA,print_deltas);
+    Slide* slide=new Slide(hyper->layers,hyper->layer_sizes,hyper->node_types,train_data[0].second.size(),hyper->alpha,hyper->batch_size,hyper->adam,hyper->label_type,hyper->range_pow,hyper->K,hyper->L,hyper->sparcity,hyper->rehash,hyper->rebuild,train_metric,train_metric,hyper->shuffle,cross_validation,SlideMode::SAMPLING,SlideHashingFunction::DENSIFIED_WTA,print_deltas);
     slide->eagerInit();
     cout<<"Created network...OK\n";
     cout<<"Training network...\n";
     vector<pair<float,float>> train_metrics=slide->train(train_data,epochs);
     cout<<"Trained network...OK\n";
-    delete slide;
     cout<<"Evaluating for statistics...\n";
-    string s_weights=Utils::serializeWeigthsToStr(slide->getWeights());
-    slide->setWeights(Utils::deserializeWeigthsFromStr(s_weights));
-    s_weights="";
-    slide->eagerInit();
-    vector<vector<pair<int,float>>> train_predicted=slide->evalData(train_data).second;
+    map<string, vector<float>> trained_weights=slide->getWeights();
+    Hyperparameters* hyper_2=hyper->clone();
+    delete slide;
+    delete hyper;
+    Slide* slide_2=new Slide(hyper_2->layers,hyper_2->layer_sizes,hyper_2->node_types,train_data[0].second.size(),hyper_2->alpha,hyper_2->batch_size,hyper_2->adam,hyper_2->label_type,hyper_2->range_pow,hyper_2->K,hyper_2->L,hyper_2->sparcity,hyper_2->rehash,hyper_2->rebuild,train_metric,train_metric,hyper_2->shuffle,cross_validation,SlideMode::SAMPLING,SlideHashingFunction::DENSIFIED_WTA,print_deltas);
+    slide_2->setWeights(trained_weights);
+    slide_2->eagerInit();
+    vector<vector<pair<int,float>>> train_predicted=slide_2->evalData(train_data).second;
     snn_stats train_stats=Utils::statisticalAnalysis(train_data,train_predicted);
     cout<<"Evaluated for statistics...OK\n";
     // Utils::compareAndPrintLabel(train_data,train_predicted);
     cout<<"Writing results...\n";
     mongo->appendTMetricsOnNeuralNet(independent_net_id,train_metrics);
     mongo->appendStatsOnNeuralNet(independent_net_id,"train_stats",train_stats);
-    mongo->appendWeightsOnNeuralNet(independent_net_id,slide->getWeights());
+    mongo->appendWeightsOnNeuralNet(independent_net_id,trained_weights);
     if (str_cve_years_test.size()>0){
         for (pair<vector<int>, vector<float>> v:train_data){
             v.first.clear();
@@ -395,15 +396,15 @@ void trainNeuralNetwork(string independent_net_id){
         }
         str_cve_years_test.clear();
         vector<pair<vector<int>, vector<float>>> test_data = mongo->loadCvesFromYears(cve_years_test, test_limit).second;
-        vector<vector<pair<int,float>>> test_predicted=slide->evalData(test_data).second;
+        vector<vector<pair<int,float>>> test_predicted=slide_2->evalData(test_data).second;
         snn_stats test_stats=Utils::statisticalAnalysis(test_data,train_predicted);
         mongo->appendStatsOnNeuralNet(independent_net_id,"test_stats",test_stats);
     }
     cout<<"Wrote results...OK\n";
     mongo->finishNeuralNetTrain(independent_net_id,Utils::getStrNow());
     cout<<"Trained neural network "+independent_net_id+"...OK\n";
-    delete slide;
-    delete hyper;
+    delete slide_2;
+    delete hyper_2;
 }
 
 void evalNeuralNetwork(string independent_net_id, string result_id, string eval_data){
