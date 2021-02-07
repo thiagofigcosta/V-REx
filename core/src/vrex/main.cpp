@@ -20,6 +20,7 @@ MongoDB* mongo=nullptr;
 bool trap_signals=false;
 bool connect_mongo=true;
 bool set_stack_size=false;
+string custom_mongo_ip=""; 
 
 // Function used to check that 'opt1' and 'opt2' are not specified at the same time.
 void conflicting_options(const boost::program_options::variables_map& vm, const char* opt1, const char* opt2){
@@ -82,10 +83,14 @@ void setup(){
     if(connect_mongo){
         cout<<"Connecting on Mongo...\n";
         string mongo_host;
-        if (Utils::runningOnDockerContainer()){
-            mongo_host="mongo";
+        if (custom_mongo_ip==""){
+            if (Utils::runningOnDockerContainer()){
+                mongo_host="mongo";
+            }else{
+                mongo_host="127.0.0.1";
+            }
         }else{
-            mongo_host="127.0.0.1";
+            mongo_host=custom_mongo_ip;
         }
         mongo = new MongoDB(mongo_host,"root","123456");
         cout<<"Connected on Mongo...OK\n";
@@ -274,6 +279,7 @@ void runGeneticSimulation(string simulation_id){
 
 void trainNeuralNetwork(string independent_net_id){
     cout<<"Training neural network "+independent_net_id+"...\n";
+    cout<<"Parsing training settings...\n";
     pair<vector<string>,vector<int>> train_mdata=mongo->fetchNeuralNetworkTrainMetadata(independent_net_id);
     string hyper_name=train_mdata.first[0];
     vector<string> str_cve_years_train=Utils::splitString(train_mdata.first[1],",");
@@ -323,18 +329,25 @@ void trainNeuralNetwork(string independent_net_id){
         cve_years_train.push_back(stoi(y));
     }
     str_cve_years_train.clear();
-
     Hyperparameters* hyper=mongo->fetchHyperparametersData(hyper_name);
-
+    cout<<"Parsed training settings...OK\n";
+    cout<<"Loading CVE data...\n";
     vector<pair<vector<int>, vector<float>>> train_data = mongo->loadCvesFromYears(cve_years_train, train_limit).second;
-   
+    cout<<"Loaded CVE data...OK\n";
     mongo->claimNeuralNetTrain(independent_net_id,Utils::getStrNow(),Utils::getHostname());
     const bool print_deltas=true;
+    cout<<"Creating network...\n";
     Slide* slide=new Slide(hyper->layers,hyper->layer_sizes,hyper->node_types,train_data[0].second.size(),hyper->alpha,hyper->batch_size,hyper->adam,hyper->label_type,
     hyper->range_pow,hyper->K,hyper->L,hyper->sparcity,hyper->rehash,hyper->rebuild,train_metric,train_metric,hyper->shuffle,cross_validation,SlideMode::SAMPLING,SlideHashingFunction::DENSIFIED_WTA,print_deltas);
+    cout<<"Created network...OK\n";
+    cout<<"Training network...\n";
     vector<pair<float,float>> train_metrics=slide->train(train_data,epochs);
+    cout<<"Trained network...OK\n";
+    cout<<"Evaluating for statistics...\n";
     vector<vector<pair<int,float>>> train_predicted=slide->evalData(train_data).second;
     snn_stats train_stats=Utils::statisticalAnalysis(train_data,train_predicted);
+    cout<<"Evaluated for statistics...OK\n";
+    cout<<"Writing results...\n";
     mongo->appendTMetricsOnNeuralNet(independent_net_id,train_metrics);
     mongo->appendStatsOnNeuralNet(independent_net_id,"train_stats",train_stats);
     mongo->appendWeightsOnNeuralNet(independent_net_id,slide->getWeights());
@@ -354,6 +367,7 @@ void trainNeuralNetwork(string independent_net_id){
         snn_stats test_stats=Utils::statisticalAnalysis(test_data,train_predicted);
         mongo->appendStatsOnNeuralNet(independent_net_id,"test_stats",test_stats);
     }
+    cout<<"Wrote results...OK\n";
     mongo->finishNeuralNetTrain(independent_net_id,Utils::getStrNow());
     cout<<"Trained neural network "+independent_net_id+"...OK\n";
     delete slide;
@@ -461,6 +475,7 @@ int main(int argc, char* argv[]) {
         ("network-id", boost::program_options::value<string>()->default_value(""), "mongo neural network id to fetch data <id>")
         ("eval-result-id", boost::program_options::value<string>()->default_value(""), "mongo neural network result id to write results <id>")
         ("eval-data", boost::program_options::value<string>()->default_value(""), "data info to be used during neural network eval <eval data>")
+        ("custom-mongo-host", boost::program_options::value<string>()->default_value(""), "mongo ipv4 address <ip> (default 127.0.0.1 outside docker and \'mongo\' inside docker)")
         ;
         boost::program_options::variables_map vm;
         boost::program_options::store(boost::program_options::parse_command_line(argc, argv, desc), vm);
@@ -493,6 +508,7 @@ int main(int argc, char* argv[]) {
         independent_net_id=vm["network-id"].as<string>();
         result_id=vm["eval-result-id"].as<string>();
         eval_data=vm["eval-data"].as<string>();
+        custom_mongo_ip=vm["custom-mongo-host"].as<string>();
         if (!run_test&&!run_genetic&&!run_train_net&&!run_eval_net&&!just_print_args){
             cout<<"No function argument found, please use --help for tips\n";
             cout<<"Nothing to do, exiting...\n";
