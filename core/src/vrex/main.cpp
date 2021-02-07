@@ -234,9 +234,9 @@ void runGeneticSimulation(string simulation_id){
             EnchancedGenetic ga=EnchancedGenetic(max_children,max_age,mutation_rate,sex_rate,recycle_rate);
             PopulationManager enchanced_population=PopulationManager(ga,search_space,train_callback,population_start_size,search_maximum,use_neural_genome,true,after_gen_callback);
             enchanced_population.setHallOfFame(elite);
-            cout<<"Starting natural selection"<<endl;
+            cout<<"Starting natural selection..."<<endl;
             enchanced_population.naturalSelection(max_gens);
-            cout<<"Finished natural selection"<<endl;
+            cout<<"Finished natural selection...OK"<<endl;
             cout<<"Best loss ("<<elite->getBest().second<<"): "<<elite->getBest().first<<endl;
             mongo->clearHallOfFameNeuralGenomeVector(hall_of_fame_id,Utils::getStrNow());
             for (Genome* g:elite->getNotables()){
@@ -246,9 +246,9 @@ void runGeneticSimulation(string simulation_id){
             StandardGenetic ga=StandardGenetic(mutation_rate,sex_rate);
             PopulationManager enchanced_population=PopulationManager(ga,search_space,train_callback,population_start_size,search_maximum,use_neural_genome,true,after_gen_callback);
             enchanced_population.setHallOfFame(elite);
-            cout<<"Starting natural selection"<<endl;
+            cout<<"Starting natural selection..."<<endl;
             enchanced_population.naturalSelection(max_gens);
-            cout<<"Finished natural selection"<<endl;
+            cout<<"Finished natural selection...OK"<<endl;
             cout<<"Best loss ("<<elite->getBest().second<<"): "<<elite->getBest().first<<endl;
             mongo->clearHallOfFameNeuralGenomeVector(hall_of_fame_id,Utils::getStrNow());
             for (Genome* g:elite->getNotables()){
@@ -267,9 +267,9 @@ void runGeneticSimulation(string simulation_id){
         }
         PopulationManager enchanced_population=PopulationManager(ga,search_space,train_callback,population_start_size,search_maximum,use_neural_genome,true,after_gen_callback);
         enchanced_population.setHallOfFame(elite);
-        cout<<"Starting natural selection"<<endl;
+        cout<<"Starting natural selection..."<<endl;
         enchanced_population.naturalSelection(max_gens);
-        cout<<"Finished natural selection"<<endl;
+        cout<<"Finished natural selection...OK"<<endl;
         cout<<"Best loss ("<<elite->getBest().second<<"): "<<elite->getBest().first<<endl;
         mongo->clearHallOfFameNeuralGenomeVector(hall_of_fame_id,Utils::getStrNow());
         for (Genome* g:elite->getNotables()){
@@ -411,6 +411,7 @@ void evalNeuralNetwork(string independent_net_id, string result_id, string eval_
     cout<<"Evaluating neural network "+independent_net_id+" for data: "+eval_data+"...\n";
     vector<pair<vector<int>, vector<float>>> cve_data;
     vector<string> cve_ids;
+    cout<<"Loading CVE data...\n";
     if (eval_data.rfind("CVE", 0) == 0) {
         cve_data = mongo->loadCveFromId(eval_data);
         cve_ids.push_back(eval_data);
@@ -431,6 +432,8 @@ void evalNeuralNetwork(string independent_net_id, string result_id, string eval_
         cve_ids = loaded_cves.first;
         cve_data = loaded_cves.second;
     }
+    cout<<"Loaded CVE data...OK\n";
+    cout<<"Parsing evaluate settings...\n";
     pair<vector<string>,vector<int>> eval_mdata=mongo->fetchNeuralNetworkTrainMetadata(independent_net_id);
     string hyper_name=eval_mdata.first[0];
     SlideCrossValidation cross_validation=SlideCrossValidation::NONE;
@@ -466,16 +469,20 @@ void evalNeuralNetwork(string independent_net_id, string result_id, string eval_
             test_metric=SlideMetric::PRECISION;
             break;
     }
-
     Hyperparameters* hyper=mongo->fetchHyperparametersData(hyper_name);
-
+    cout<<"Parsed evaluate settings...OK\n";
     const bool print_deltas=true;
-    Slide* slide=new Slide(hyper->layers,hyper->layer_sizes,hyper->node_types,cve_data[0].second.size(),hyper->alpha,hyper->batch_size,hyper->adam,hyper->label_type,
-    hyper->range_pow,hyper->K,hyper->L,hyper->sparcity,hyper->rehash,hyper->rebuild,test_metric,test_metric,hyper->shuffle,cross_validation,SlideMode::SAMPLING,SlideHashingFunction::DENSIFIED_WTA,print_deltas);
+    cout<<"Creating network...\n";
+    Slide* slide=new Slide(hyper->layers,hyper->layer_sizes,hyper->node_types,cve_data[0].second.size(),hyper->alpha,hyper->batch_size,hyper->adam,hyper->label_type,hyper->range_pow,hyper->K,hyper->L,hyper->sparcity,hyper->rehash,hyper->rebuild,test_metric,test_metric,hyper->shuffle,cross_validation,SlideMode::SAMPLING,SlideHashingFunction::DENSIFIED_WTA,print_deltas);
     slide->setWeights(mongo->loadWeightsFromNeuralNet(independent_net_id));
     slide->eagerInit();
+    cout<<"Created network...OK\n";
+    cout<<"Evaluating data...\n";
     pair<int,vector<vector<pair<int,float>>>> predicted = slide->evalData(cve_data);
+    cout<<"Evaluated data...OK\n";
+    cout<<"Writing results...\n";
     mongo->storeEvalNeuralNetResult(result_id,predicted.first,cve_ids,predicted.second);
+    cout<<"Wrote results...OK\n";
     cout<<"Evaluated neural network "+independent_net_id+"...\n";
     delete slide;
     delete hyper;
