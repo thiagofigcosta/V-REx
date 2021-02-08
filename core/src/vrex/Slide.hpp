@@ -4,6 +4,7 @@
 #include <vector>
 #include <chrono>
 #include <memory>
+#include <limits>
 
 #define Slide_MAPLEN 2048 // was 325056
 // Slide_HUGEPAGES defined in Node.h
@@ -87,7 +88,7 @@ class Slide{
         Slide(int numLayer, int *sizesOfLayers, NodeType* layerTypes, int InputDim, float Lr, int Batchsize, bool useAdamOt, 
             SlideLabelEncoding labelType,int *RangePow, int *KValues,int *LValues,float *Sparsity, int Rehash, int Rebuild, 
             SlideMetric trainMetric,SlideMetric valMetric, bool shuffleTrainData, SlideCrossValidation crossValidation,
-            SlideMode Mode=SlideMode::SAMPLING, SlideHashingFunction HashFunc=SlideHashingFunction::DENSIFIED_WTA, bool printDeltas=false);
+            SlideMode Mode=SlideMode::SAMPLING, SlideHashingFunction HashFunc=SlideHashingFunction::DENSIFIED_WTA, bool printDeltas=false, size_t maxLayerS = numeric_limits<size_t>::max());
         Slide(const Slide& orig);
         virtual ~Slide();
 
@@ -166,5 +167,6 @@ class Slide{
         SlideMetric val_metric;
         bool shuffle_train_data;
         SlideCrossValidation cross_validation;
+        size_t size_max_for_layer;
 
 };

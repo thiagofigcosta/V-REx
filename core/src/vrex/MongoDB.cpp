@@ -300,6 +300,12 @@ void MongoDB::updateBestOnGeneticSimulation(string id, pair<float,int> candidate
     getCollection(getDB("genetic_db"),"simulations").update_one(query.view(),update.view());   
 }
 
+void MongoDB::clearResultOnGeneticSimulation(string id){
+    bsoncxx::document::value query=document{} << "_id" << bsoncxx::oid{id} << finalize;
+    bsoncxx::document::value update=document{} << "$set" << open_document << "results" << open_array << close_array << close_document << finalize;
+    getCollection(getDB("genetic_db"),"simulations").update_one(query.view(),update.view());
+}
+
 void MongoDB::appendResultOnGeneticSimulation(string id, int pop_size,int g,float best_out,long timestamp_ms){
     bsoncxx::document::value query=document{} << "_id" << bsoncxx::oid{id} << finalize;
     bsoncxx::document::value update=document{} << "$push" << open_document << "results" <<  open_document << "pop_size" << pop_size << "cur_gen" <<  g << "gen_best_out" << best_out << "delta_ms" << timestamp_ms << close_document << close_document << finalize;

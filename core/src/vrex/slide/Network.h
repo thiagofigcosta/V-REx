@@ -13,6 +13,7 @@
 class Layer;
 
 #include "Layer.h"
+#include "Node.h"
 #include "LSH.h"
 #include "../Slide.hpp"
 #include "../GarbageCollector.hpp"
@@ -39,10 +40,11 @@ private:
 	bool use_adam;
 	SlideLabelEncoding label_type;
 	bool init;
+	size_t size_max_for_layer;
 	float **_weight, **_bias, **_adamAvgMom, **_adamAvgVel; 
 
 public:
-	Network(int* sizesOfLayers, NodeType* layersTypes, int noOfLayers, int batchsize, float lr, int inputdim, int* K, int* L, int* RangePow, float* Sparsity,SlideMode Mode,SlideHashingFunction hashFunc, bool useAdamOt,SlideLabelEncoding labelType);
+	Network(int* sizesOfLayers, NodeType* layersTypes, int noOfLayers, int batchsize, float lr, int inputdim, int* K, int* L, int* RangePow, float* Sparsity,SlideMode Mode,SlideHashingFunction hashFunc, bool useAdamOt,SlideLabelEncoding labelType, size_t maxLayerS);
 	void setWeights(map<string, vector<float>> loadedData);
 	Layer* getLayer(int LayerID);
 	pair<int,vector<vector<pair<int,float>>>> predictClass(int ** inputIndices, float ** inputValues, int * length, int ** labels, int *labelsize);
@@ -52,20 +54,22 @@ public:
 	void lateInit();
 	void flushLayers();
 	~Network();
-	void * operator new(size_t size){
-	    void* ptr = mmap(NULL, size,
-	        PROT_READ | PROT_EXEC | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_HUGETLB,
-	        -1, 0);
-	    if (ptr == MAP_FAILED){
-	        ptr = mmap(NULL, size,
-	            PROT_READ | PROT_EXEC | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS,
-	            -1, 0);
-	    }
-	    if (ptr == MAP_FAILED){
-	        std::cout << "mmap failed at Network." << std::endl;
-	    }
-	    return ptr;
-	}
-	void operator delete(void * pointer){munmap(pointer, sizeof(Network));};
+	#if Slide_HUGEPAGES == 1
+		void * operator new(size_t size){
+			void* ptr = mmap(NULL, size,
+				PROT_READ | PROT_EXEC | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_HUGETLB,
+				-1, 0);
+			if (ptr == MAP_FAILED){
+				ptr = mmap(NULL, size,
+					PROT_READ | PROT_EXEC | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS,
+					-1, 0);
+			}
+			if (ptr == MAP_FAILED){
+				std::cout << "mmap failed at Network." << std::endl;
+			}
+			return ptr;
+		}
+		void operator delete(void * pointer){munmap(pointer, sizeof(Network));};
+	#endif
 };
 

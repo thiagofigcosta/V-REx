@@ -25,7 +25,7 @@ class PopulationManager{
         // methods
         void setHallOfFame(HallOfFame &hallOfFame);
         void setHallOfFame(HallOfFame *hallOfFame);
-        void naturalSelection(int gens);
+        void naturalSelection(int gens,bool verbose=false);
         vector<Genome*> getPopulation();
 
     private:

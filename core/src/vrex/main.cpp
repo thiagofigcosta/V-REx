@@ -12,14 +12,14 @@
 #include "test.hpp"
 #include "Slide.hpp"
 
-#define GENETIC_REFERENCE_INSTEAD_OF_POINTER
-
 using namespace std;
 
 MongoDB* mongo=nullptr;
 bool trap_signals=false;
 bool connect_mongo=true;
 bool set_stack_size=false;
+bool cache_genetic=true;
+bool single_thread_for_genetic=false;
 string custom_mongo_ip=""; 
 
 // Function used to check that 'opt1' and 'opt2' are not specified at the same time.
@@ -108,6 +108,7 @@ void tearDown(){
         delete mongo;
         mongo=nullptr;
     }
+    Utils::rmFile(NeuralGenome::getBaseFolder());
 }
 
 void runGeneticSimulation(string simulation_id){
@@ -198,7 +199,6 @@ void runGeneticSimulation(string simulation_id){
 
     const int rehash=6400;
     const int rebuild=128000;
-    const int PRINT_FREQUENCY=50;
 
     const int border_sparsity=1; // first and last layers
     const SlideLabelEncoding label_encoding=SlideLabelEncoding::INT_CLASS;
@@ -207,10 +207,8 @@ void runGeneticSimulation(string simulation_id){
     const bool adam_optimizer=true;
     const bool use_neural_genome=true;
     const bool search_maximum=(metric_mode!=SlideMetric::RAW_LOSS);
-    NeuralGenome::CACHE_WEIGHTS=true;
-    long long iterator_counter=0;    
+    NeuralGenome::CACHE_WEIGHTS=cache_genetic;
     auto train_callback = [&](Genome *self) -> float {
-        iterator_counter++;
         auto self_neural=dynamic_cast<NeuralGenome*>(self);
         tuple<Slide*,int,function<void()>> net=self_neural->buildSlide(self->getDna(),input_size,output_size,label_encoding,rehash,rebuild,border_sparsity,metric_mode,shuffle_train_data,cross_validation,adam_optimizer);
         if (self_neural->hasWeights()){
@@ -218,13 +216,10 @@ void runGeneticSimulation(string simulation_id){
             self_neural->clearWeights();
             get<0>(net)->eagerInit();
         }
-        if (iterator_counter%PRINT_FREQUENCY==0) cout<<"Train_CB: build slide...OK\n";
         vector<pair<float,float>> metric=get<0>(net)->train(train_data,get<1>(net));
-        if (iterator_counter%PRINT_FREQUENCY==0) cout<<"Train_CB: train slide...OK\n";
         self_neural->setWeights(get<0>(net)->getWeights());
         delete get<0>(net); // free memory
         get<2>(net)(); // free memory
-        if (iterator_counter%PRINT_FREQUENCY==0) cout<<"Train_CB: destroy slide...OK\n";
         float output=0;
         for(pair<float,float> l:metric){
             if (cross_validation!=SlideCrossValidation::NONE){
@@ -245,60 +240,30 @@ void runGeneticSimulation(string simulation_id){
         for (Genome* g:population){
             mongo->addToPopulationNeuralGenomeVector(population_id,dynamic_cast<NeuralGenome*>(g),Utils::getStrNow());
         }
-        if (iterator_counter%PRINT_FREQUENCY==0) cout<<"AfterGen_CB: write on mongo...OK\n";
     };
+    mongo->clearResultOnGeneticSimulation(simulation_id);
     mongo->claimGeneticSimulation(simulation_id,Utils::getStrNow(),Utils::getHostname());
     HallOfFame* elite=new HallOfFame(max_notables, search_maximum);
-    #ifdef GENETIC_REFERENCE_INSTEAD_OF_POINTER 
-    // TODO fix genetic algorithm as pointer, to avoid having to use reference
-        if (algorithm==0){
-            EnchancedGenetic ga=EnchancedGenetic(max_children,max_age,mutation_rate,sex_rate,recycle_rate);
-            PopulationManager enchanced_population=PopulationManager(ga,search_space,train_callback,population_start_size,search_maximum,use_neural_genome,true,after_gen_callback);
-            enchanced_population.setHallOfFame(elite);
-            cout<<"Starting natural selection..."<<endl;
-            enchanced_population.naturalSelection(max_gens);
-            cout<<"Finished natural selection...OK"<<endl;
-            cout<<"Best loss ("<<elite->getBest().second<<"): "<<elite->getBest().first<<endl;
-            mongo->clearHallOfFameNeuralGenomeVector(hall_of_fame_id,Utils::getStrNow());
-            for (Genome* g:elite->getNotables()){
-                mongo->addToHallOfFameNeuralGenomeVector(hall_of_fame_id,dynamic_cast<NeuralGenome*>(g),Utils::getStrNow());
-            }
-        }else{
-            StandardGenetic ga=StandardGenetic(mutation_rate,sex_rate);
-            PopulationManager enchanced_population=PopulationManager(ga,search_space,train_callback,population_start_size,search_maximum,use_neural_genome,true,after_gen_callback);
-            enchanced_population.setHallOfFame(elite);
-            cout<<"Starting natural selection..."<<endl;
-            enchanced_population.naturalSelection(max_gens);
-            cout<<"Finished natural selection...OK"<<endl;
-            cout<<"Best loss ("<<elite->getBest().second<<"): "<<elite->getBest().first<<endl;
-            mongo->clearHallOfFameNeuralGenomeVector(hall_of_fame_id,Utils::getStrNow());
-            for (Genome* g:elite->getNotables()){
-                mongo->addToHallOfFameNeuralGenomeVector(hall_of_fame_id,dynamic_cast<NeuralGenome*>(g),Utils::getStrNow());
-            }
-        }
-    #else
-        GeneticAlgorithm* ga;
-        switch(algorithm){
-            default: // 0
-                ga=new EnchancedGenetic(max_children,max_age,mutation_rate,sex_rate,recycle_rate);
-                break;
-            case 1:
-                ga=new StandardGenetic(mutation_rate,sex_rate);
-                break;
-        }
-        PopulationManager enchanced_population=PopulationManager(ga,search_space,train_callback,population_start_size,search_maximum,use_neural_genome,true,after_gen_callback);
-        enchanced_population.setHallOfFame(elite);
-        cout<<"Starting natural selection..."<<endl;
-        enchanced_population.naturalSelection(max_gens);
-        cout<<"Finished natural selection...OK"<<endl;
-        cout<<"Best loss ("<<elite->getBest().second<<"): "<<elite->getBest().first<<endl;
-        mongo->clearHallOfFameNeuralGenomeVector(hall_of_fame_id,Utils::getStrNow());
-        for (Genome* g:elite->getNotables()){
-            mongo->addToHallOfFameNeuralGenomeVector(hall_of_fame_id,dynamic_cast<NeuralGenome*>(g),Utils::getStrNow());
-        }
-    #endif
+    GeneticAlgorithm* ga;
+    switch(algorithm){
+        default: // 0
+            ga=new EnchancedGenetic(max_children,max_age,mutation_rate,sex_rate,recycle_rate);
+            break;
+        case 1:
+            ga=new StandardGenetic(mutation_rate,sex_rate);
+            break;
+    }
+    PopulationManager enchanced_population=PopulationManager(ga,search_space,train_callback,population_start_size,search_maximum,use_neural_genome,true,after_gen_callback);
+    enchanced_population.setHallOfFame(elite);
+    cout<<"Starting natural selection..."<<endl;
+    enchanced_population.naturalSelection(max_gens,true);
+    cout<<"Finished natural selection...OK"<<endl;
+    cout<<"Best loss ("<<elite->getBest().second<<"): "<<elite->getBest().first<<endl;
+    mongo->clearHallOfFameNeuralGenomeVector(hall_of_fame_id,Utils::getStrNow());
+    for (Genome* g:elite->getNotables()){
+        mongo->addToHallOfFameNeuralGenomeVector(hall_of_fame_id,dynamic_cast<NeuralGenome*>(g),Utils::getStrNow());
+    }
     mongo->finishGeneticSimulation(simulation_id,Utils::getStrNow());
-
     cout<<"Runned genetic simulation "+simulation_id+"...OK\n";
     delete elite;
 }
@@ -538,6 +503,8 @@ int main(int argc, char* argv[]) {
             ("train-neural", boost::program_options::bool_switch()->default_value(false), "train smart neural network")
             ("eval-neural", boost::program_options::bool_switch()->default_value(false), "eval smart neural network")
             ("debug-args", boost::program_options::bool_switch()->default_value(false), "just print arguments (DEBUG)")
+            ("do-not-cache-genetic", boost::program_options::bool_switch()->default_value(false), "avoid disk cache during genetic algorithm")
+            ("single-thread-genetic", boost::program_options::bool_switch()->default_value(false), "use a single thread for genetic algorithm")
             ("test-function", boost::program_options::value<int>()->default_value(0), "specify the test function to run <function id>:\n\t1 - testCsvRead\n\t2 - testMongo\n\t3 - testSlide_IntLabel\n\t4 - testSlide_NeuronByNeuronLabel\n\t5 - testStdGeneticsOnMath\n\t6 - testEnchancedGeneticsOnMath\n\t7 - testSlide_Validation\n\t8 - testGeneticallyTunedNeuralNetwork\n\t9 - testMongoCveRead\n\t10 - testSmartNeuralNetwork_cveData\n\t11 - testGeneticallyTunedSmartNeuralNetwork_cveData")
             ("simulation-id", boost::program_options::value<string>()->default_value(""), "mongo genetic simulation id to fetch data <id>")
             ("network-id", boost::program_options::value<string>()->default_value(""), "mongo neural network id to fetch data <id>")
@@ -565,6 +532,8 @@ int main(int argc, char* argv[]) {
         option_dependency(vm,"eval-neural","eval-data");
         trap_signals=vm["trap-signals"].as<bool>();
         connect_mongo=!vm["ignore-mongo"].as<bool>();
+        cache_genetic=!vm["do-not-cache-genetic"].as<bool>();
+        single_thread_for_genetic=vm["single-thread-genetic"].as<bool>();
         set_stack_size=vm["set-stack-size"].as<bool>();
         run_test=vm["test"].as<bool>();
         run_genetic=vm["run-genetic"].as<bool>();
@@ -591,6 +560,8 @@ int main(int argc, char* argv[]) {
         cout<<"trap_signals: "<<trap_signals<<endl;
         cout<<"connect_mongo: "<<connect_mongo<<endl;
         cout<<"set_stack_size: "<<set_stack_size<<endl;
+        cout<<"cache_genetic: "<<cache_genetic<<endl;
+        cout<<"single_thread_for_genetic: "<<single_thread_for_genetic<<endl;
         cout<<endl;
         cout<<"run_test: "<<run_test<<endl;
         cout<<"run_genetic: "<<run_genetic<<endl;
@@ -604,7 +575,7 @@ int main(int argc, char* argv[]) {
         cout<<"eval_data: "<<eval_data<<endl;
         return 0;
     }
-    if (run_genetic){
+    if (run_genetic && single_thread_for_genetic){
         Slide::MAX_THREADS=1; // Trying to reduce mem usage
     }
     setup();

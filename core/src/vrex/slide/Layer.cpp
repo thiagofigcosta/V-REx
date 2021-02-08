@@ -1,17 +1,33 @@
 // SLIDE: https://github.com/keroro824/HashingDeepLearning 
 
 #include "Layer.h"
+#include "Node.h"
 #include "../Slide.hpp"
 
 using namespace std;
 
 
-Layer::Layer(size_t noOfNodes, int previousLayerNumOfNodes, int layerID, NodeType type, int batchsize,  int K, int L, int RangePow, float Sparsity,SlideMode Mode, SlideHashingFunction hashFunc, bool useAdamOt,SlideLabelEncoding labelType, float* weights, float* bias, float *adamAvgMom, float *adamAvgVel) {
+Layer::Layer(size_t noOfNodes, int previousLayerNumOfNodes, size_t maxNodes, int layerID, NodeType type, int batchsize,  int K, int L, int RangePow, float Sparsity,SlideMode Mode, SlideHashingFunction hashFunc, bool useAdamOt,SlideLabelEncoding labelType, float* weights, float* bias, float *adamAvgMom, float *adamAvgVel) {
     _layerID = layerID;
     _noOfNodes = noOfNodes;
+    if (maxNodes==numeric_limits<size_t>::max()){
+        size_2d=_noOfNodes * previousLayerNumOfNodes;
+        size_1d=_noOfNodes;
+    }else{
+        if (layerID!=0){
+            size_2d=maxNodes*maxNodes;
+        }else{
+            size_2d=maxNodes*previousLayerNumOfNodes;
+        }
+        size_1d=maxNodes;
+    }
     use_adam=useAdamOt;
     label_type=labelType;
-    _Nodes = Node::createNodeArray(_noOfNodes,use_adam,labelType);
+    #if Slide_HUGEPAGES == 1
+        _Nodes = Node::createNodeArray(_noOfNodes,use_adam,label_type);
+    #else
+        _Nodes = new Node *[noOfNodes];
+    #endif
     _type = type;
     _noOfActive = floor(_noOfNodes * Sparsity);
     _K = K;
@@ -56,20 +72,20 @@ Layer::Layer(size_t noOfNodes, int previousLayerNumOfNodes, int layerID, NodeTyp
         }
 
     }else{
-        _weights = new float[_noOfNodes * previousLayerNumOfNodes]();
-        _bias = new float[_noOfNodes];
+        _weights = new float[size_2d](); 
+        _bias = new float[size_1d]; 
         random_device rd;
         default_random_engine dre(rd());
         normal_distribution<float> distribution(Slide::RAND_WEIGHT_START, Slide::RAND_WEIGHT_END);
 
-        generate(_weights, _weights + _noOfNodes * previousLayerNumOfNodes, [&] () { return distribution(dre); });
-        generate(_bias, _bias + _noOfNodes, [&] () { return distribution(dre); });
+        generate(_weights, _weights + size_2d, [&] () { return distribution(dre); }); // 
+        generate(_bias, _bias + size_1d, [&] () { return distribution(dre); });  // 
 
 
         if (use_adam)
         {
-            _adamAvgMom = new float[_noOfNodes * previousLayerNumOfNodes]();
-            _adamAvgVel = new float[_noOfNodes * previousLayerNumOfNodes]();
+            _adamAvgMom = new float[size_2d]();  
+            _adamAvgVel = new float[size_2d]();
 
         }
     }
@@ -80,9 +96,14 @@ Layer::Layer(size_t noOfNodes, int previousLayerNumOfNodes, int layerID, NodeTyp
 #pragma omp parallel for
     for (size_t i = 0; i < _noOfNodes; i++)
     {
-        _Nodes[i].Update(previousLayerNumOfNodes, i, _layerID, type, batchsize, _weights+previousLayerNumOfNodes*i,
-                _bias[i], _adamAvgMom+previousLayerNumOfNodes*i , _adamAvgVel+previousLayerNumOfNodes*i, _train_array);
-        addtoHashTable(_Nodes[i]._weights, previousLayerNumOfNodes, _Nodes[i]._bias, i);
+        #if Slide_HUGEPAGES == 1
+            _Nodes[i].Update(previousLayerNumOfNodes, i, _layerID, type, batchsize, _weights+previousLayerNumOfNodes*i, _bias[i], _adamAvgMom+previousLayerNumOfNodes*i , _adamAvgVel+previousLayerNumOfNodes*i, _train_array);
+            addtoHashTable(_Nodes[i]._weights, previousLayerNumOfNodes, _Nodes[i]._bias, i);
+        #else
+            _Nodes[i] = new Node(previousLayerNumOfNodes, i, _layerID, type,label_type, batchsize, use_adam, _weights+previousLayerNumOfNodes*i, _bias[i], _adamAvgMom+previousLayerNumOfNodes*i , _adamAvgVel+previousLayerNumOfNodes*i, _train_array);
+            // _Nodes[i] = new Node(previousLayerNumOfNodes, i, _layerID, type, batchsize, _weights+previousLayerNumOfNodes*i, _bias[i], _adamAvgMom+previousLayerNumOfNodes*i , _adamAvgVel+previousLayerNumOfNodes*i);
+             addtoHashTable(_Nodes[i]->_weights, previousLayerNumOfNodes, _Nodes[i]->_bias, i);
+        #endif
     }
 
     if (type == NodeType::Softmax)
@@ -140,8 +161,13 @@ void Layer::addtoHashTable(float* weights, int length, float bias, int ID)
     int * hashIndices = _hashTables->hashesToIndex(hashes);
     int * bucketIndices = _hashTables->add(hashIndices, ID+1);
 
-    _Nodes[ID]._indicesInTables = hashIndices;
-    _Nodes[ID]._indicesInBuckets = bucketIndices;
+    #if Slide_HUGEPAGES == 1
+        _Nodes[ID]._indicesInTables = hashIndices;
+        _Nodes[ID]._indicesInBuckets = bucketIndices;
+    #else
+        _Nodes[ID]->_indicesInTables = hashIndices;
+        _Nodes[ID]->_indicesInBuckets = bucketIndices;
+    #endif
 
     #pragma GCC diagnostic push 
     #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
@@ -157,11 +183,15 @@ Node* Layer::getNodebyID(size_t nodeID)
     #pragma GCC diagnostic ignored "-Wunused-value"
     assert(("nodeID less than _noOfNodes" , nodeID < _noOfNodes));
     #pragma GCC diagnostic pop
-    return &_Nodes[nodeID];
+    #if Slide_HUGEPAGES == 1
+        return &_Nodes[nodeID];
+    #else
+        return _Nodes[nodeID];
+    #endif
 }
 
 
-Node* Layer::getAllNodes()
+node_array Layer::getAllNodes()
 {
     return _Nodes;
 }
@@ -418,9 +448,15 @@ int Layer::queryActiveNodeandComputeActivations(int** activenodesperlayer, float
             int what = 0;
 
             for (size_t s = 0; s < _noOfNodes; s++) {
-                float tmp = innerproduct(activenodesperlayer[layerIndex], activeValuesperlayer[layerIndex],
-                                         lengths[layerIndex], _Nodes[s]._weights);
-                tmp += _Nodes[s]._bias;
+                #if Slide_HUGEPAGES == 1
+                    float tmp = innerproduct(activenodesperlayer[layerIndex], activeValuesperlayer[layerIndex],
+                                            lengths[layerIndex], _Nodes[s]._weights);
+                    tmp += _Nodes[s]._bias;
+                #else
+                    float tmp = innerproduct(activenodesperlayer[layerIndex], activeValuesperlayer[layerIndex],
+                                            lengths[layerIndex], _Nodes[s]->_weights);
+                    tmp += _Nodes[s]->_bias;
+                #endif
                 if (find(label, label + labelsize, s) != label + labelsize) {
                     sortW.push_back(make_pair(-1000000000, s));
                     what++;
@@ -454,7 +490,11 @@ int Layer::queryActiveNodeandComputeActivations(int** activenodesperlayer, float
     // find activation for all ACTIVE nodes in layer
     for (int i = 0; i < len; i++)
     {
-        activeValuesperlayer[layerIndex + 1][i] = _Nodes[activenodesperlayer[layerIndex + 1][i]].getActivation(activenodesperlayer[layerIndex], activeValuesperlayer[layerIndex], lengths[layerIndex], inputID);
+        #if Slide_HUGEPAGES == 1
+            activeValuesperlayer[layerIndex + 1][i] = _Nodes[activenodesperlayer[layerIndex + 1][i]].getActivation(activenodesperlayer[layerIndex], activeValuesperlayer[layerIndex], lengths[layerIndex], inputID);
+        #else
+            activeValuesperlayer[layerIndex + 1][i] = _Nodes[activenodesperlayer[layerIndex + 1][i]]->getActivation(activenodesperlayer[layerIndex], activeValuesperlayer[layerIndex], lengths[layerIndex], inputID);
+        #endif
         if(_type == NodeType::Softmax && activeValuesperlayer[layerIndex + 1][i] > maxValue){
             maxValue = activeValuesperlayer[layerIndex + 1][i];
         }
@@ -464,7 +504,11 @@ int Layer::queryActiveNodeandComputeActivations(int** activenodesperlayer, float
         for (int i = 0; i < len; i++) {
             float realActivation = exp(activeValuesperlayer[layerIndex + 1][i] - maxValue);
             activeValuesperlayer[layerIndex + 1][i] = realActivation;
-            _Nodes[activenodesperlayer[layerIndex + 1][i]].SetlastActivation(inputID, realActivation);
+            #if Slide_HUGEPAGES == 1
+                _Nodes[activenodesperlayer[layerIndex + 1][i]].SetlastActivation(inputID, realActivation);
+            #else
+                _Nodes[activenodesperlayer[layerIndex + 1][i]]->SetlastActivation(inputID, realActivation);
+            #endif
             _normalizationConstants[inputID] += realActivation;
         }
     }
@@ -478,15 +522,19 @@ map<string, vector<float>> Layer::mapfyWeights()
     #pragma GCC diagnostic ignored "-Wsizeof-pointer-div"
     map<string, vector<float>> arr;
     if (_layerID==0) {
-        arr["w_layer_0"]=vector<float>(_weights, _weights + sizeof (_weights) / sizeof (_weights[0]));
-        arr["b_layer_0"]=vector<float>(_bias, _bias + sizeof (_bias) / sizeof (_bias[0]));
-        arr["am_layer_0"]=vector<float>(_adamAvgMom, _adamAvgMom + sizeof (_adamAvgMom) / sizeof (_adamAvgMom[0]));
-        arr["av_layer_0"]=vector<float>(_adamAvgVel, _adamAvgVel + sizeof (_adamAvgVel) / sizeof (_adamAvgVel[0]));
+        arr["w_layer_0"]=vector<float>(_weights, _weights + size_2d);
+        arr["b_layer_0"]=vector<float>(_bias, _bias + size_1d);
+        if (use_adam){
+            arr["am_layer_0"]=vector<float>(_adamAvgMom, _adamAvgMom + size_2d);
+            arr["av_layer_0"]=vector<float>(_adamAvgVel, _adamAvgVel + size_2d);
+        }
     }else{
-        arr["w_layer_"+ to_string(_layerID)]=vector<float>(_weights, _weights + sizeof (_weights) / sizeof (_weights[0]));
-        arr["b_layer_"+ to_string(_layerID)]=vector<float>(_bias, _bias + sizeof (_bias) / sizeof (_bias[0]));
-        arr["am_layer_"+ to_string(_layerID)]=vector<float>(_adamAvgMom, _adamAvgMom + sizeof (_adamAvgMom) / sizeof (_adamAvgMom[0]));
-        arr["av_layer_"+ to_string(_layerID)]=vector<float>(_adamAvgVel, _adamAvgVel + sizeof (_adamAvgVel) / sizeof (_adamAvgVel[0]));
+        arr["w_layer_"+ to_string(_layerID)]=vector<float>(_weights, _weights + size_2d);
+        arr["b_layer_"+ to_string(_layerID)]=vector<float>(_bias, _bias + size_1d);
+        if (use_adam){
+            arr["am_layer_"+ to_string(_layerID)]=vector<float>(_adamAvgMom, _adamAvgMom + size_2d);
+            arr["av_layer_"+ to_string(_layerID)]=vector<float>(_adamAvgVel, _adamAvgVel + size_2d);
+        }
     }
     // cout<<"save for layer "<<to_string(_layerID)<<endl;
     #pragma GCC diagnostic pop 
@@ -505,16 +553,28 @@ Layer::~Layer()
         delete[] _adamAvgMom;
         delete[] _adamAvgVel;
     }
-    for (size_t d=0;d<_noOfNodes;d++){
-        delete &_Nodes[d];
-    }
+    #if Slide_HUGEPAGES == 1
+        for (size_t d=0;d<_noOfNodes;d++){
+            delete &_Nodes[d];
+        }
+    #else
+        for (size_t d=0;d<_noOfNodes;d++){
+            delete _Nodes[d];
+        }
+        delete [] _Nodes;
+    #endif
     delete [] _weights;
     delete [] _bias;
     delete [] _binids;
-    delete _wtaHasher;
-    delete _dwtaHasher;
-    delete _srp;
-    delete _MinHasher;
+    if (hash_func == SlideHashingFunction::WTA) {
+        delete _wtaHasher;
+    } else if (hash_func == SlideHashingFunction::DENSIFIED_WTA) {
+        delete _dwtaHasher;
+    } else if (hash_func == SlideHashingFunction::TOPK_MIN_HASH) {
+        delete _MinHasher;
+    } else if (hash_func == SlideHashingFunction::SIMHASH) {
+        delete _srp;
+    }
     delete [] _randNode;
     if (Node::HUGEPAGES){
         for (size_t d=0;d<_noOfNodes*_batchsize;d++){

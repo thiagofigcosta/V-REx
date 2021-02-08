@@ -4,7 +4,7 @@
 
 using namespace std;
 
-Network::Network(int *sizesOfLayers, NodeType *layersTypes, int noOfLayers, int batchSize, float lr, int inputdim,  int* K, int* L, int* RangePow, float* Sparsity,SlideMode Mode,SlideHashingFunction hashFunc, bool useAdamOt,SlideLabelEncoding labelType) {
+Network::Network(int *sizesOfLayers, NodeType *layersTypes, int noOfLayers, int batchSize, float lr, int inputdim,  int* K, int* L, int* RangePow, float* Sparsity,SlideMode Mode,SlideHashingFunction hashFunc, bool useAdamOt,SlideLabelEncoding labelType, size_t maxLayerS) {
     _numberOfLayers = noOfLayers;
     _hiddenlayers = new Layer *[noOfLayers];
     _sizesOfLayers = sizesOfLayers;
@@ -20,6 +20,7 @@ Network::Network(int *sizesOfLayers, NodeType *layersTypes, int noOfLayers, int 
     mode=Mode;
     use_adam=useAdamOt;
     label_type=labelType;
+    size_max_for_layer=maxLayerS;
 
     init=false;
     _weight=nullptr;
@@ -45,9 +46,9 @@ void Network::lateInit(){
             if(_adamAvgVel)
                 adamAvgVel=_adamAvgVel[i];
             if (i != 0) {
-                _hiddenlayers[i] = new Layer(_sizesOfLayers[i], _sizesOfLayers[i - 1], i, _layersTypes[i], _currentBatchSize, _K[i], _L[i], _RangePow[i], _Sparsity[i],mode,hash_func, use_adam,label_type, weight, bias, adamAvgMom, adamAvgVel);
+                _hiddenlayers[i] = new Layer(_sizesOfLayers[i], _sizesOfLayers[i - 1],size_max_for_layer, i, _layersTypes[i], _currentBatchSize, _K[i], _L[i], _RangePow[i], _Sparsity[i],mode,hash_func, use_adam,label_type, weight, bias, adamAvgMom, adamAvgVel);
             } else {
-                _hiddenlayers[i] = new Layer(_sizesOfLayers[i], _inputDim, i, _layersTypes[i], _currentBatchSize, _K[i], _L[i], _RangePow[i], _Sparsity[i],mode,hash_func, use_adam,label_type, weight, bias, adamAvgMom, adamAvgVel);
+                _hiddenlayers[i] = new Layer(_sizesOfLayers[i], _inputDim,size_max_for_layer, i, _layersTypes[i], _currentBatchSize, _K[i], _L[i], _RangePow[i], _Sparsity[i],mode,hash_func, use_adam,label_type, weight, bias, adamAvgMom, adamAvgVel);
             }
         }
         delete[] _weight;
@@ -64,8 +65,10 @@ void Network::lateInit(){
 void Network::setWeights(map<string, vector<float>> loadedData){
     _weight=new float*[_numberOfLayers];
     _bias=new float*[_numberOfLayers];
-    _adamAvgMom=new float*[_numberOfLayers];
-    _adamAvgVel=new float*[_numberOfLayers];
+    if(use_adam){
+        _adamAvgMom=new float*[_numberOfLayers];
+        _adamAvgVel=new float*[_numberOfLayers];
+    }
     for (int i = 0; i < _numberOfLayers; i++) {
         float* weight, *bias, *adamAvgMom, *adamAvgVel;
         string str_i=to_string(i);
@@ -82,23 +85,23 @@ void Network::setWeights(map<string, vector<float>> loadedData){
         for (size_t j=0;j<loadedData[cur_map_idx].size();j++){
             bias[j]=loadedData[cur_map_idx][j];
         }
-
-        cur_map_idx="am_layer_"+str_i;
-        adamAvgMom=new float[loadedData[cur_map_idx].size()];
-        for (size_t j=0;j<loadedData[cur_map_idx].size();j++){
-            adamAvgMom[j]=loadedData[cur_map_idx][j];
-        }
-
-        cur_map_idx="av_layer_"+str_i;
-        adamAvgVel=new float[loadedData[cur_map_idx].size()];
-        for (size_t j=0;j<loadedData[cur_map_idx].size();j++){
-            adamAvgVel[j]=loadedData[cur_map_idx][j];
-        }
-
         _weight[i]=weight;
         _bias[i]=bias;
-        _adamAvgMom[i]=adamAvgMom;
-        _adamAvgVel[i]=adamAvgVel;
+        if(use_adam){
+            cur_map_idx="am_layer_"+str_i;
+            adamAvgMom=new float[loadedData[cur_map_idx].size()];
+            for (size_t j=0;j<loadedData[cur_map_idx].size();j++){
+                adamAvgMom[j]=loadedData[cur_map_idx][j];
+            }
+
+            cur_map_idx="av_layer_"+str_i;
+            adamAvgVel=new float[loadedData[cur_map_idx].size()];
+            for (size_t j=0;j<loadedData[cur_map_idx].size();j++){
+                adamAvgVel[j]=loadedData[cur_map_idx][j];
+            }
+            _adamAvgMom[i]=adamAvgMom;
+            _adamAvgVel[i]=adamAvgVel;
+        }
     }
 }
 
@@ -297,7 +300,7 @@ float Network::ProcessInput(int **inputIndices, float **inputValues, int *length
             Node *tmp = _hiddenlayers[l]->getNodebyID(m);
             int dim = tmp->_dim;
             float* local_weights = new float[dim];
-            std::copy(tmp->_weights, tmp->_weights + dim, local_weights);
+            std::copy(tmp->_weights, tmp->_weights + _hiddenlayers[l]->size_2d, local_weights);
 
             if(use_adam){
                 for (int d=0; d < dim;d++){
@@ -316,11 +319,11 @@ float Network::ProcessInput(int **inputIndices, float **inputValues, int *length
                 tmp->_adamAvgVelbias = Slide::ADAM_OT_BETA2 * tmp->_adamAvgVelbias + (1 - Slide::ADAM_OT_BETA2) * tmp->_tbias * tmp->_tbias;
                 tmp->_bias += ratio*tmplr * tmp->_adamAvgMombias / (sqrt(tmp->_adamAvgVelbias) + Slide::ADAM_OT_EPSILON);
                 tmp->_tbias = 0;
-                std::copy(local_weights, local_weights + dim, tmp->_weights);
+                std::copy(local_weights, local_weights + _hiddenlayers[l]->size_2d, tmp->_weights);
             }
             else
             {
-                std::copy(tmp->_mirrorWeights, tmp->_mirrorWeights+(tmp->_dim) , tmp->_weights);
+                std::copy(tmp->_mirrorWeights, tmp->_mirrorWeights+ _hiddenlayers[l]->size_2d , tmp->_weights);
                 tmp->_bias = tmp->_mirrorbias;
             }
             if (tmpRehash) {

@@ -4,6 +4,7 @@
 #include <utility>
 #include <vector>
 #include <set>
+#include <chrono>
 
 using namespace std;
 class Genome;

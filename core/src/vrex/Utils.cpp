@@ -428,9 +428,8 @@ void Utils::printStats(snn_stats stats){
 }
 
 void Utils::copyFile(string source, string dst){
-    ifstream ifs(source, ios::binary);
-    ofstream ofs(dst, ios::binary);
-    ofs<<ifs.rdbuf();
+    if (Utils::checkIfFileExists(source))
+        boost::filesystem::copy_file(source, dst, boost::filesystem::copy_option::overwrite_if_exists);
 }
 
 bool Utils::rmFile(string file){
@@ -444,10 +443,10 @@ void Utils::serializeWeigths(map<string, vector<float>> weights, string filename
     ofstream ofs (filename,ofstream::binary);
     if (ofs.is_open()){
         hps::to_stream(weights,ofs);
+        ofs.close();
     }else{
         throw runtime_error("Could not serialize at: "+filename+"\n"+except_str);
     }
-    ofs.close();
 }
 
 map<string, vector<float>> Utils::deserializeWeigths(string filename,string except_str){

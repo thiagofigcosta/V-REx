@@ -30,6 +30,32 @@ Node::Node(int dim, int nodeID, int layerID, NodeType type, int batchsize, bool 
 
 }
 
+Node::Node(int dim, int nodeID, int layerID, NodeType type,SlideLabelEncoding labelType, int batchsize, bool useAdamOt, float *weights, float bias, float *adamAvgMom, float *adamAvgVel, train* train_blob){
+    use_adam=useAdamOt;
+	label_type=labelType;
+	_dim = dim;
+    _IDinLayer = nodeID;
+    _type = type;
+    _layerNum = layerID;
+    _currentBatchsize = batchsize;
+
+    if (use_adam)
+    {
+        _adamAvgMom = adamAvgMom;
+        _adamAvgVel = adamAvgVel;
+        _t = new float[_dim]();
+
+    }
+
+    _train = train_blob + nodeID * batchsize;
+    _activeInputs = 0;
+
+    _weights = weights;
+    _bias = bias;
+    _mirrorbias = _bias;
+}
+
+
 Node* Node::createNodeArray(int size, bool useAdamOt,SlideLabelEncoding labelType){
 	Node* nodes=new Node[size];
 	for (int i=0;i<size;i++){
@@ -100,9 +126,14 @@ float Node::getActivation(int* indices, float* values, int length, int inputID)
 	#pragma GCC diagnostic pop 
 
 	//FUTURE TODO: shrink batchsize and check if input is alread active then ignore and ensure backpopagation is ignored too.
-	if (_train[inputID]._ActiveinputIds != 1) {
-	    _train[inputID]._ActiveinputIds = 1; //activate input
-	    _activeInputs++;
+	if (Node::HUGEPAGES){
+		if (_train[inputID]._ActiveinputIds != 1) {
+			_train[inputID]._ActiveinputIds = 1; //activate input
+			_activeInputs++;
+		}
+	}else{
+		_train[inputID]._ActiveinputIds = 1; //activate input
+		_activeInputs++;
 	}
 
 	_train[inputID]._lastActivations = 0;
@@ -172,7 +203,7 @@ float Node::ComputeExtaStatsForSoftMax(float normalizationConstant, int inputID,
 }
 
 
-float Node::backPropagate(Node* previousNodes, int* previousLayerActiveNodeIds, int previousLayerActiveNodeSize, float learningRate, int inputID)
+float Node::backPropagate(node_array previousNodes, int* previousLayerActiveNodeIds, int previousLayerActiveNodeSize, float learningRate, int inputID)
 {
 	float total_grad=0;
 	#pragma GCC diagnostic push 
@@ -182,7 +213,12 @@ float Node::backPropagate(Node* previousNodes, int* previousLayerActiveNodeIds, 
 	for (int i = 0; i < previousLayerActiveNodeSize; i++)
 	{
 		//UpdateDelta before updating weights
-	    Node* prev_node = &(previousNodes[previousLayerActiveNodeIds[i]]);
+		Node* prev_node;
+		#if Slide_HUGEPAGES == 1
+	    	prev_node = &(previousNodes[previousLayerActiveNodeIds[i]]);
+		#else
+			prev_node=previousNodes[previousLayerActiveNodeIds[i]];
+		#endif
 	    prev_node->incrementDelta(inputID, _train[inputID]._lastDeltaforBPs * _weights[previousLayerActiveNodeIds[i]]);
 
 		float grad_t = _train[inputID]._lastDeltaforBPs * prev_node->getLastActivation(inputID);
@@ -277,10 +313,8 @@ void Node::SetlastActivation(int inputID, float realActivation)
 
 Node::~Node()
 {
-
 	delete[] _indicesInTables;
 	delete[] _indicesInBuckets;
-
 	if (use_adam)
 	{
 		delete[] _t;

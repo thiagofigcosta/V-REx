@@ -38,10 +38,10 @@ NeuralGenome::NeuralGenome(const NeuralGenome& orig){
     train_data=orig.train_data;
     print_str=orig.print_str;
     cache_file=genCacheFilename();
+    cached=orig.cached;
     if (cached&&NeuralGenome::CACHE_WEIGHTS){
         Utils::copyFile(orig.cache_file, cache_file);
     }
-    cached=orig.cached;
 }
 
 NeuralGenome::~NeuralGenome(){
@@ -111,11 +111,15 @@ tuple<Slide*,int,function<void()>> NeuralGenome::buildSlide(pair<vector<int>,vec
     layer_sizes[layers-1]=output_size;
     node_types[layers-1]=NodeType::Softmax;
 
+    size_t maxNodes=(size_t)output_size;
     int l=4;
     int i;
     for(i=0;i<max_layers-1;l++,i++){
         if (i+1<layers){
             layer_sizes[i]=int_dna[l];
+            if ((size_t)layer_sizes[i]>maxNodes){
+                maxNodes=(size_t)layer_sizes[i];
+            }
         }
     }
     for(i=0;i<max_layers;l++,i++){
@@ -188,8 +192,8 @@ tuple<Slide*,int,function<void()>> NeuralGenome::buildSlide(pair<vector<int>,vec
     string ex_str="";
     Slide* net=nullptr;
     try{
-        net=new Slide(layers, layer_sizes, node_types, input_size, alpha, batch_size, adam_optimizer, label_encoding,
-    range_pow, K, L, sparcity, rehash, rebuild,trainMetric,metric,shuffleTrainData,crossValidation, SlideMode::SAMPLING, SlideHashingFunction::DENSIFIED_WTA, false);
+        net=new Slide(layers, layer_sizes, node_types, input_size, alpha, batch_size, adam_optimizer, label_encoding, range_pow, K, L, sparcity, 
+            rehash, rebuild,trainMetric,metric,shuffleTrainData,crossValidation, SlideMode::SAMPLING, SlideHashingFunction::DENSIFIED_WTA, false,maxNodes);
     } catch (const exception& ex) {
         ex_str=ex.what();
     } catch (const string& ex) {

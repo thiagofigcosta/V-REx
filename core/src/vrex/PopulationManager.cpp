@@ -67,10 +67,11 @@ void PopulationManager::setHallOfFame(HallOfFame *hallOfFame){
 
 const int PopulationManager::mt_dna_validity=15;
 
-void PopulationManager::naturalSelection(int gens){
+void PopulationManager::naturalSelection(int gens,bool verbose){
     ga->setLookingHighestFitness(looking_highest_fitness);
     chrono::high_resolution_clock::time_point t1,t2;
     float best_out;
+    const int PRINT_REL_FREQUENCY=10;
     for (int g=0;g<gens;){
         t1 = chrono::high_resolution_clock::now();
         if (looking_highest_fitness){
@@ -78,6 +79,9 @@ void PopulationManager::naturalSelection(int gens){
         }else{
             best_out=numeric_limits<float>::max();
         }
+        if(verbose)
+            cout<<"\tEvaluating individuals...\n";
+        int p=0;
         for(Genome *individual:population){ // evaluate output
             individual->evaluate();
             float ind_out=individual->getOutput();
@@ -88,19 +92,43 @@ void PopulationManager::naturalSelection(int gens){
                 if (ind_out<best_out)
                     best_out=ind_out;
             }
+            if(verbose){
+                float percent=++p/(float)population.size()*100;
+                if (int(percent)%PRINT_REL_FREQUENCY==0){
+                    cout<<"\t\tprogress: "<<percent<<"%\n";
+                }
+            }
+        }
+        if(verbose){
+            cout<<"\tEvaluated individuals...OK\n";
+            cout<<"\tCalculating fitness...\n";
         }
         ga->fit(population); // calculate fitness
+        if(verbose)
+            cout<<"\tCalculated fitness...OK\n";
         if (hall_of_fame){
+            if(verbose)
+                cout<<"\tSetting hall of fame...\n";
             hall_of_fame->update(population,g); // store best on hall of fame
+            if(verbose)
+                cout<<"\tSetted hall of fame...OK\n";
         }
         if (++g<gens){
+            if(verbose)
+                cout<<"\tSelecting and breeding individuals...\n";
             ga->select(population); // selection + sex
+            if(verbose){
+                cout<<"\tSelected and breed individuals...OK\n";
+                cout<<"\tMutating (and aging if Enchanced) individuals...\n";
+            }
             ga->mutate(population);  // mutation + age if aged algorithm
             if (g>0&&g%mt_dna_validity==0){
                 for(Genome *individual:population){
                     individual->resetMtDna();
                 }
             }
+            if(verbose)
+                cout<<"\tMutated individuals...OK\n";
         }else{
             sort(population.begin(),population.end(),Genome::compare);
         }
