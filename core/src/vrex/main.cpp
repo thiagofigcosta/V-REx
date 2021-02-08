@@ -178,8 +178,8 @@ void runGeneticSimulation(string simulation_id){
     cout<<"recycle_rate: "<<recycle_rate<<endl;
     cout<<"sex_rate: "<<sex_rate<<endl;
     cout<<"max_notables: "<<max_notables<<endl;
-    cout<<"cross_validation"<<static_cast<underlying_type<SlideCrossValidation>::type>(cross_validation)<<endl;
-    cout<<"metric_mode"<<static_cast<underlying_type<SlideMetric>::type>(metric_mode)<<endl;
+    cout<<"cross_validation: "<<static_cast<underlying_type<SlideCrossValidation>::type>(cross_validation)<<endl;
+    cout<<"metric_mode: "<<static_cast<underlying_type<SlideMetric>::type>(metric_mode)<<endl;
     cout<<"algorithm: "<<algorithm<<endl;
     cout<<"environment_name: "<<environment_name<<endl;
     cout<<"Int space search:\n";
@@ -195,8 +195,11 @@ void runGeneticSimulation(string simulation_id){
     vector<pair<vector<int>, vector<float>>> train_data = mongo->loadCvesFromYears(cve_years, train_data_limit).second;
     cout<<"Loaded CVE data...OK\n";
     const bool shuffle_train_data=false;
+
     const int rehash=6400;
     const int rebuild=128000;
+    const int PRINT_FREQUENCY=50;
+
     const int border_sparsity=1; // first and last layers
     const SlideLabelEncoding label_encoding=SlideLabelEncoding::INT_CLASS;
     const int input_size=train_data[0].second.size();
@@ -205,9 +208,7 @@ void runGeneticSimulation(string simulation_id){
     const bool use_neural_genome=true;
     const bool search_maximum=(metric_mode!=SlideMetric::RAW_LOSS);
     NeuralGenome::CACHE_WEIGHTS=true;
-    long long iterator_counter=0;
-    const int PRINT_FREQUENCY=50;
-
+    long long iterator_counter=0;    
     auto train_callback = [&](Genome *self) -> float {
         iterator_counter++;
         auto self_neural=dynamic_cast<NeuralGenome*>(self);
@@ -223,6 +224,7 @@ void runGeneticSimulation(string simulation_id){
         self_neural->setWeights(get<0>(net)->getWeights());
         delete get<0>(net); // free memory
         get<2>(net)(); // free memory
+        if (iterator_counter%PRINT_FREQUENCY==0) cout<<"Train_CB: destroy slide...OK\n";
         float output=0;
         for(pair<float,float> l:metric){
             if (cross_validation!=SlideCrossValidation::NONE){
@@ -234,7 +236,6 @@ void runGeneticSimulation(string simulation_id){
         output/=metric.size();
         return output;
     };
-
     auto after_gen_callback = [&](int pop_size,int g,float best_out,long timestamp_ms,vector<Genome*> population,HallOfFame *hall_of_fame) -> void {
         if (hall_of_fame){
             mongo->updateBestOnGeneticSimulation(simulation_id,hall_of_fame->getBest(),Utils::getStrNow());
@@ -246,7 +247,6 @@ void runGeneticSimulation(string simulation_id){
         }
         if (iterator_counter%PRINT_FREQUENCY==0) cout<<"AfterGen_CB: write on mongo...OK\n";
     };
-    
     mongo->claimGeneticSimulation(simulation_id,Utils::getStrNow(),Utils::getHostname());
     HallOfFame* elite=new HallOfFame(max_notables, search_maximum);
     #ifdef GENETIC_REFERENCE_INSTEAD_OF_POINTER 
@@ -356,8 +356,8 @@ void trainNeuralNetwork(string independent_net_id){
     }
     str_cve_years_train.clear();
     Hyperparameters* hyper=mongo->fetchHyperparametersData(hyper_name);
-    cout<<"train_metric"<<static_cast<underlying_type<SlideMetric>::type>(train_metric)<<endl;
-    cout<<"cross_validation"<<static_cast<underlying_type<SlideCrossValidation>::type>(cross_validation)<<endl;
+    cout<<"train_metric: "<<static_cast<underlying_type<SlideMetric>::type>(train_metric)<<endl;
+    cout<<"cross_validation: "<<static_cast<underlying_type<SlideCrossValidation>::type>(cross_validation)<<endl;
     cout<<"epochs: "<<epochs<<endl;
     cout<<"train data: "<<train_mdata.first[1]<<" limit: "<<train_limit<<endl;
     cout<<"test data: "<<train_mdata.first[2]<<" limit: "<<test_limit<<endl;
