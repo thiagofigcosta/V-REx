@@ -72,13 +72,13 @@ def inputArrayNumber(is_float=False,greater_or_eq=0,lower_or_eq=None){
 }
 
 def main(argv){
-    HELP_STR='main.py [-h]\n\t[--check-jobs]\n\t[--create-genetic-env]\n\t[--list-genetic-envs]\n\t[--run-genetic]\n\t[--show-genetic-results]\n\t[--rm-genetic-env <env name>]\n\t[--create-smart-neural-hyperparams]\n\t[--list-smart-neural-hyperparams]\n\t[--rm-smart-neural-hyperparams <hyper name>]\n\t[--train-smart-neural]\n\t[--eval-smart-neural]\n\t[--get-queue-names]\n\t[--get-all-db-names]\n\t[-q | --quit]\n\t[--run-processor-pipeline]\n\t[--run-merge-cve]\n\t[--run-flattern-and-simplify-all]\n\t[--run-flattern-and-simplify [cve|oval|capec|cwe]]\n\t[--run-filter-exploits]\n\t[--run-transform-all]\n\t[--run-transform [cve|oval|capec|cwe|exploits]]\n\t[--run-enrich]\n\t[--run-analyze]\n\t[--run-filter-and-normalize]\n\t[--download-source <source ID>]\n\t[--download-all-sources]\n\t[--empty-queue <queue name>]\n\t[--empty-all-queues]\n\t[--dump-db <db name>#<folder path to export> | --dump-db <db name> {saves on default tmp folder} \n\t\te.g. --dump-db queue#/home/thiago/Desktop]\n\t[--restore-db <file path to import>#<db name> | --restore-db <file path to import> {saves db under file name} \n\t\te.g. --restore-db /home/thiago/Desktop/queue.zip#restored_queue]\n\t[--keep-alive-as-zombie]'
+    HELP_STR='main.py [-h]\n\t[--check-jobs]\n\t[--create-genetic-env]\n\t[--list-genetic-envs]\n\t[--run-genetic]\n\t[--show-genetic-results]\n\t[--rm-genetic-env <env name>]\n\t[--parse-dna-to-hyperparams]\n\t[--create-smart-neural-hyperparams]\n\t[--list-smart-neural-hyperparams]\n\t[--rm-smart-neural-hyperparams <hyper name>]\n\t[--train-smart-neural]\n\t[--eval-smart-neural]\n\t[--get-queue-names]\n\t[--get-all-db-names]\n\t[-q | --quit]\n\t[--run-processor-pipeline]\n\t[--run-merge-cve]\n\t[--run-flattern-and-simplify-all]\n\t[--run-flattern-and-simplify [cve|oval|capec|cwe]]\n\t[--run-filter-exploits]\n\t[--run-transform-all]\n\t[--run-transform [cve|oval|capec|cwe|exploits]]\n\t[--run-enrich]\n\t[--run-analyze]\n\t[--run-filter-and-normalize]\n\t[--download-source <source ID>]\n\t[--download-all-sources]\n\t[--empty-queue <queue name>]\n\t[--empty-all-queues]\n\t[--dump-db <db name>#<folder path to export> | --dump-db <db name> {saves on default tmp folder} \n\t\te.g. --dump-db queue#/home/thiago/Desktop]\n\t[--restore-db <file path to import>#<db name> | --restore-db <file path to import> {saves db under file name} \n\t\te.g. --restore-db /home/thiago/Desktop/queue.zip#restored_queue]\n\t[--keep-alive-as-zombie]'
     args=[]
     zombie=False
     global ITERATIVE
     to_run=[]
     try{ 
-        opts, args = getopt.getopt(argv,"hq",["keep-alive-as-zombie","download-source=","download-all-sources","check-jobs","quit","get-queue-names","empty-queue=","empty-all-queues","get-all-db-names","dump-db=","restore-db=","run-processor-pipeline","run-flattern-and-simplify-all","run-flattern-and-simplify=","run-filter-exploits","run-transform-all","run-transform=","run-enrich","run-analyze","run-filter-and-normalize","run-merge-cve","create-genetic-env","list-genetic-envs","rm-genetic-env=","run-genetic","show-genetic-results","create-smart-neural-hyperparams","list-smart-neural-hyperparams","rm-smart-neural-hyperparams=","train-smart-neural","eval-smart-neural"])
+        opts, args = getopt.getopt(argv,"hq",["keep-alive-as-zombie","download-source=","download-all-sources","check-jobs","quit","get-queue-names","empty-queue=","empty-all-queues","get-all-db-names","dump-db=","restore-db=","run-processor-pipeline","run-flattern-and-simplify-all","run-flattern-and-simplify=","run-filter-exploits","run-transform-all","run-transform=","run-enrich","run-analyze","run-filter-and-normalize","run-merge-cve","create-genetic-env","list-genetic-envs","rm-genetic-env=","run-genetic","show-genetic-results","create-smart-neural-hyperparams","list-smart-neural-hyperparams","rm-smart-neural-hyperparams=","train-smart-neural","eval-smart-neural","parse-dna-to-hyperparams"])
     }except getopt.GetoptError{
         print (HELP_STR)
         if not ITERATIVE {
@@ -115,6 +115,117 @@ def main(argv){
                     LOGGER.clean('\n')
                 }
                 LOGGER.info('Gotten hyperparameters...OK')
+            }elif opt == "--parse-dna-to-hyperparams"{
+                LOGGER.info('Casting dna...')
+                print('Enter the int dna (e.g. [ 2, 5, 1, 1, 16, 2, 45 ]): ', end = '')
+                not_filled=True
+                int_dna=''
+                while not_filled {
+                    int_dna=''.join(input().split()).replace('[','',1).replace(']','',1)
+                    if re.match(r'^(:?[0-9]*,?)*$',int_dna){
+                        not_filled=False
+                    }else{
+                        print('ERROR - Wrong int DNA format')
+                    }
+                }
+                print('Enter the float dna (e.g. [ 0.028238 ]): ', end = '')
+                not_filled=True
+                float_dna=''
+                while not_filled {
+                    float_dna=''.join(input().split()).replace('[','',1).replace(']','',1)
+                    if re.match(r'^(:?[0-9\.]*,?)*$',float_dna){
+                        not_filled=False
+                    }else{
+                        print('ERROR - Wrong float DNA format')
+                    }
+                }
+                int_dna=int_dna.split(',')
+                float_dna=float_dna.split(',')
+                int_dna=[int(i) for i in int_dna]
+                float_dna=[float(i) for i in float_dna]
+                LOGGER.info('Considering border_sparsity=1 and output_size=OUT')
+                epochs=int_dna[0]
+                batch_size=int_dna[1]
+                layers=int_dna[2]
+                max_layers=int_dna[3]
+                layer_sizes=[0]*layers
+                range_pow=[0]*layers
+                K=[0]*layers
+                L=[0]*layers
+                node_types=[0]*layers
+                sparcity=[0]*layers
+                sparcity[0]=1
+                sparcity[layers-1]=1
+                layer_sizes[layers-1]='OUT'
+                node_types[layers-1]=1 #NodeType::Softmax
+                l=4
+                i=0
+                while(i<max_layers-1){
+                    if (i+1<layers){
+                        layer_sizes[i]=int_dna[l]
+                    }
+                    i+=1
+                    l+=1
+                }
+                i=0
+                while(i<max_layers){
+                    if (i<layers){
+                        range_pow[i]=int_dna[l]
+                    }
+                    i+=1
+                    l+=1
+                }
+                i=0
+                while(i<max_layers){
+                    if (i<layers){
+                        dna_value=int_dna[l]
+                        if (type(layer_sizes[i]) is int){
+                            if (dna_value>layer_sizes[i]){  # ??? K cannot be higher than layer size?
+                                dna_value=layer_sizes[i]
+                            }
+                        }
+                        K[i]=dna_value
+                    }
+                    i+=1
+                    l+=1
+                }
+                i=0
+                while(i<max_layers){
+                    if (i<layers){
+                        L[i]=int_dna[l]
+                    }
+                    i+=1
+                    l+=1
+                }
+                i=0
+                while(i<max_layers-1){
+                    if (i+1<layers){
+                        node_types[i]=int_dna[l]
+                    }
+                    i+=1
+                    l+=1
+                }
+                alpha=float_dna[0]
+                l=1
+                i=1
+                while(i<max_layers-1){
+                    if (i+1<layers){
+                        sparcity[i]=float_dna[l]
+                    }
+                    i+=1
+                    l+=1
+                }
+                LOGGER.info('epochs: {}'.format(epochs))
+                LOGGER.info('batch_size: {}'.format(batch_size))
+                LOGGER.info('layers: {}'.format(layers))
+                LOGGER.info('alpha: {}'.format(alpha))
+                LOGGER.info('layer_sizes: {}'.format(str(layer_sizes)))
+                LOGGER.info('range_pow: {}'.format(str(range_pow)))
+                LOGGER.info('K: {}'.format(str(K)))
+                LOGGER.info('L: {}'.format(str(L)))
+                LOGGER.info('node_types: {}'.format(str(node_types)))
+                LOGGER.info('sparcity: {}'.format(str(sparcity)))
+                LOGGER.info('Cast dna...OK')
             }elif opt == "--create-smart-neural-hyperparams"{
                 print('Now type the hyperparameters for the Smart Neural Network...')
                 print('Enter the hyperparameters config name (unique): ', end = '')

@@ -310,7 +310,7 @@ bsoncxx::document::value MongoDB::castNeuralGenomeToBson(NeuralGenome* ng,bool s
         string int_dna="[ ";
         for(size_t i=0;i<dna.first.size();){
             int_dna+=to_string(dna.first[i]);
-            if (++i<dna.first.size()-1){
+            if (++i<dna.first.size()){
                 int_dna+=", ";
             }
         }
@@ -318,7 +318,7 @@ bsoncxx::document::value MongoDB::castNeuralGenomeToBson(NeuralGenome* ng,bool s
         string float_dna="[ ";
         for(size_t i=0;i<dna.second.size();){
             float_dna+=to_string(dna.second[i]);
-            if (++i<dna.second.size()-1){
+            if (++i<dna.second.size()){
                 float_dna+=", ";
             }
         }
