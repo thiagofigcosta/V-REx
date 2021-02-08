@@ -116,7 +116,7 @@ class Slide{
         #pragma omp threadprivate(ADAM_OT_BETA2)
         static constexpr float ADAM_OT_EPSILON=0.00000001;
         #pragma omp threadprivate(ADAM_OT_EPSILON)
-        static const int BUCKET_SIZE=4; // was 128
+        static const int BUCKET_SIZE=32; // was 128
         #pragma omp threadprivate(BUCKET_SIZE)
         static const int TOPK_HASH_TOPK=30;
         #pragma omp threadprivate(TOPK_HASH_TOPK)

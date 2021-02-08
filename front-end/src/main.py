@@ -13,7 +13,7 @@ Utils.createFolderIfNotExists(TMP_FOLDER)
 LOGGER=Logger(TMP_FOLDER,name='front')
 Utils(TMP_FOLDER,LOGGER)
 
-def inputNumber(is_float=False,postive_number=True,greater_or_eq=None,lower_or_eq=None){
+def inputNumber(is_float=False,greater_or_eq=0,lower_or_eq=None){
     out=0
     converted=False
     while not converted{
@@ -23,10 +23,10 @@ def inputNumber(is_float=False,postive_number=True,greater_or_eq=None,lower_or_e
             }else{
                 out=int(input())
             }
-            if (not postive_number or out >=0) and (not lower_or_eq or out <= lower_or_eq) and (not greater_or_eq or out >= greater_or_eq){ 
+            if (lower_or_eq==None or out <= lower_or_eq) and (greater_or_eq==None or out >= greater_or_eq){ 
                 converted=True
             }else{
-                print('ERROR. Out of boundaries')
+                print('ERROR. Out of boundaries [{},{}], type again: '.format(greater_or_eq,lower_or_eq))
             }
         }except ValueError{
             if not is_float{
@@ -39,7 +39,7 @@ def inputNumber(is_float=False,postive_number=True,greater_or_eq=None,lower_or_e
     return out
 }
 
-def inputArrayNumber(is_float=False,postive_number=True,greater_or_eq=None,lower_or_eq=None){
+def inputArrayNumber(is_float=False,greater_or_eq=0,lower_or_eq=None){
     out=''
     not_converted=True
     while not_converted{
@@ -52,10 +52,10 @@ def inputArrayNumber(is_float=False,postive_number=True,greater_or_eq=None,lower
                 }else{
                     test=int(test)
                 }
-                if (not postive_number or test >=0) and (not lower_or_eq or test <= lower_or_eq) and (not greater_or_eq or test >= greater_or_eq){ 
+                if (lower_or_eq==None or test <= lower_or_eq) and (greater_or_eq==None or test >= greater_or_eq){ 
                     not_converted=False
                 }else{
-                    print('ERROR. Out of boundaries')
+                    print('ERROR. Out of boundaries [{},{}], type again: '.format(greater_or_eq,lower_or_eq))
                     not_converted=True
                     break
                 }
@@ -205,7 +205,7 @@ def main(argv){
                 print('Enter a existing independent network name to be used: ', end = '')
                 independent_net_name=input().strip()
                 independent_net=mongo.findOneOnDBFromIndex(mongo.getDB('neural_db'),'independent_net','name',independent_net_name,wait_unlock=False)
-                if not independent_net{
+                if independent_net==None{
                     LOGGER.error('Not found a independent network for the given name!')
                 }else{
                     result_info={'total_test_cases':0,'correct_predictions(not ground truth)':0,'predicted_labels':None}
@@ -246,7 +246,7 @@ def main(argv){
                 print('Enter a existing hyperparameters name to be used: ', end = '')
                 hyper_name=input().strip()
                 hyper=mongo.findOneOnDBFromIndex(mongo.getDB('neural_db'),'snn_hyperparameters','name',hyper_name,wait_unlock=False)
-                if not hyper{
+                if hyper==None{
                     LOGGER.error('Not found a hyperparameter for the given name!')
                 }else{
                     print('Enter a name for the train (unique): ', end = '')
@@ -315,7 +315,7 @@ def main(argv){
                 print('Enter a existing genetic environment name to be used: ', end = '')
                 env_name=input().strip()
                 env=mongo.findOneOnDBFromIndex(mongo.getDB('genetic_db'),'environments','name',env_name,wait_unlock=False)
-                if not env{
+                if env==None{
                     LOGGER.error('Not found an environment for the given name!')
                 }else{
                     print('Enter a name for the simulation (not unique, just for reference): ', end = '')
@@ -332,14 +332,20 @@ def main(argv){
                     max_gens=inputNumber()
                     print('Enter the algorithm to use (0 - Enchanced | 1 - Standard): ')
                     algorithm=inputNumber(lower_or_eq=1)
-                    print('Enter the genome max age: ')
-                    max_age=inputNumber()
-                    print('Enter the max amount of children at once: ')
-                    max_children=inputNumber()
+                    if algorithm==0{
+                        print('Enter the genome max age: ')
+                        max_age=inputNumber(greater_or_eq=1)
+                        print('Enter the max amount of children at once: ')
+                        max_children=inputNumber(greater_or_eq=2)
+                        print('Enter the recycle rate: ')
+                        recycle_rate=inputNumber(is_float=True,lower_or_eq=1)
+                    }else{
+                        max_age=0
+                        max_children=0
+                        recycle_rate=0.0
+                    }
                     print('Enter the mutation rate: ')
                     mutation_rate=inputNumber(is_float=True,lower_or_eq=1)
-                    print('Enter the recycle rate: ')
-                    recycle_rate=inputNumber(is_float=True,lower_or_eq=1)
                     print('Enter the sex rate: ')
                     sex_rate=inputNumber(is_float=True,lower_or_eq=1)
                     print('Enter the max amount of notable individuals at the Hall Of Fame: ')
@@ -440,39 +446,39 @@ def main(argv){
                 print('Enter the amount of layers: min: ')
                 amount_of_layers_min=inputNumber()
                 print("Max: ")
-                amount_of_layers_max=inputNumber()
+                amount_of_layers_max=inputNumber(greater_or_eq=amount_of_layers_min)
                 print('Enter the epochs: min: ')
                 epochs_min=inputNumber()
                 print("Max: ")
-                epochs_max=inputNumber()
+                epochs_max=inputNumber(greater_or_eq=epochs_min)
                 print('Enter the alpha: min: ')
                 alpha_min=inputNumber(is_float=True,lower_or_eq=1)
                 print("Max: ")
-                alpha_max=inputNumber(is_float=True,lower_or_eq=1)
+                alpha_max=inputNumber(is_float=True,lower_or_eq=1,greater_or_eq=alpha_min)
                 print('Enter the batch size: min: ')
                 batch_size_min=inputNumber()
                 print("Max: ")
-                batch_size_max=inputNumber()
+                batch_size_max=inputNumber(greater_or_eq=batch_size_min)
                 print('Enter the layer sizes: min: ')
                 layer_size_min=inputNumber()
                 print("Max: ")
-                layer_size_max=inputNumber()
+                layer_size_max=inputNumber(greater_or_eq=layer_size_min)
                 print('Enter the range pow: min: ')
                 range_pow_min=inputNumber()
                 print("Max: ")
-                range_pow_max=inputNumber()
+                range_pow_max=inputNumber(greater_or_eq=range_pow_min)
                 print('Enter the K values: min: ')
                 k_min=inputNumber()
                 print("Max: ")
-                k_max=inputNumber()
+                k_max=inputNumber(greater_or_eq=k_min)
                 print('Enter the L values: min: ')
                 l_min=inputNumber()
                 print("Max: ")
-                l_max=inputNumber()
+                l_max=inputNumber(greater_or_eq=l_min)
                 print('Enter the sparcity: min: ')
                 sparcity_min=inputNumber(is_float=True,lower_or_eq=1)
                 print("Max: ")
-                sparcity_max=inputNumber(is_float=True,lower_or_eq=1)
+                sparcity_max=inputNumber(is_float=True,lower_or_eq=1,greater_or_eq=sparcity_min)
                 print('Enter the activation functions (0-2):')
                 print('\t0 - ReLU')
                 print('\t1 - Softmax')
@@ -480,7 +486,7 @@ def main(argv){
                 print('min: ')
                 activation_min=inputNumber(lower_or_eq=2)
                 print("Max: ")
-                activation_max=inputNumber(lower_or_eq=2)
+                activation_max=inputNumber(lower_or_eq=2,greater_or_eq=activation_min)
                 space_search={'name':gen_name,'submitted_at':submitted_at,'space_search':{'amount_of_layers':{'min':amount_of_layers_min,'max':amount_of_layers_max},'epochs':{'min':epochs_min,'max':epochs_max},'batch_size':{'min':batch_size_min,'max':batch_size_max},'layer_sizes':{'min':layer_size_min,'max':layer_size_max},'range_pow':{'min':range_pow_min,'max':range_pow_max},'K':{'min':k_min,'max':k_max},'L':{'min':l_min,'max':l_max},'activation_functions':{'min':activation_min,'max':activation_max},'sparcity':{'min':sparcity_min,'max':sparcity_max},'alpha':{'min':alpha_min,'max':alpha_max}}}
                 LOGGER.info('Writting environment on genetic_db...')
                 mongo.insertOneOnDB(mongo.getDB('genetic_db'),space_search,'environments',index='name',ignore_lock=True)

@@ -42,11 +42,7 @@ pair<string,pair<vector<int>, vector<float>>> MongoDB::bsonToDatasetEntry(const 
     
     string cve_id="";
     bsoncxx::document::element cve_el = bson["cve"];
-    if (cve_el.type() == bsoncxx::type::k_utf8){
-        cve_id=cve_el.get_utf8().value.to_string();
-    }else{
-        throw runtime_error("Error invalid type for CVE: "+bsoncxx::to_string(cve_el.type())+"\n");
-    }
+    cve_id=getStringFromEl(cve_el);
     vector<float> features;
     bsoncxx::document::element features_el = bson["features"];
     if (features_el.type() == bsoncxx::type::k_document){
@@ -54,13 +50,7 @@ pair<string,pair<vector<int>, vector<float>>> MongoDB::bsonToDatasetEntry(const 
         map<string,float> features_map;
         for (auto el:features_vw){
             string key=el.key().data();
-            if (el.type() == bsoncxx::type::k_int32){
-                features_map[key]=(float)el.get_int32();
-            }else if (el.type() == bsoncxx::type::k_double){
-                features_map[key]=(float)el.get_double();
-            }else{
-                throw runtime_error("Error invalid type: "+bsoncxx::to_string(el.type())+"\n");
-            }
+            features_map[key]=getFloatFromEl(el);
         }
         if((int)features_map.size()!=features_size){
             throw runtime_error("Error features sizes for "+cve_id+" should be: "+to_string(features_size)+" but is: "+to_string(features_map.size())+"\n");
@@ -78,13 +68,7 @@ pair<string,pair<vector<int>, vector<float>>> MongoDB::bsonToDatasetEntry(const 
         map<string,float> labels_map;
         for (auto el:labels_vw){
             string key=el.key().data();
-            if (el.type() == bsoncxx::type::k_int32){
-                labels_map[key]=(float)el.get_int32();
-            }else if (el.type() == bsoncxx::type::k_double){
-                labels_map[key]=(float)el.get_double();
-            }else{
-                throw runtime_error("Error invalid type: "+bsoncxx::to_string(el.type())+"\n");
-            }
+            labels_map[key]=getFloatFromEl(el);
         }
         if((int)labels_map.size()!=labels_size){
             throw runtime_error("Error labels sizes for "+cve_id+" should be: "+to_string(labels_size)+" but is: "+to_string(labels_map.size())+"\n");
@@ -157,96 +141,36 @@ pair<vector<string>,vector<float>> MongoDB::fetchGeneticSimulationData(string id
     float algorithm;
     if(maybe_result) {
         bsoncxx::document::element env_name_el = maybe_result->view()["env_name"];
-        if (env_name_el.type() == bsoncxx::type::k_utf8){
-            env_name=env_name_el.get_utf8().value.to_string();
-        }else{
-            throw runtime_error("Error invalid type: "+bsoncxx::to_string(env_name_el.type())+"\n");
-        }
+        env_name=getStringFromEl(env_name_el);
         bsoncxx::document::element train_data_el = maybe_result->view()["train_data"];
-        if (train_data_el.type() == bsoncxx::type::k_utf8){
-            train_data=train_data_el.get_utf8().value.to_string();
-        }else{
-            throw runtime_error("Error invalid type: "+bsoncxx::to_string(train_data_el.type())+"\n");
-        }
+        train_data=getStringFromEl(train_data_el);
         bsoncxx::document::element hall_of_fame_id_el = maybe_result->view()["hall_of_fame_id"];
-        if (hall_of_fame_id_el.type() == bsoncxx::type::k_utf8){
-            hall_of_fame_id=hall_of_fame_id_el.get_utf8().value.to_string();
-        }else{
-            throw runtime_error("Error invalid type: "+bsoncxx::to_string(hall_of_fame_id_el.type())+"\n");
-        }
+        hall_of_fame_id=getStringFromEl(hall_of_fame_id_el);
         bsoncxx::document::element population_id_el = maybe_result->view()["population_id"];
-        if (population_id_el.type() == bsoncxx::type::k_utf8){
-            population_id=population_id_el.get_utf8().value.to_string();
-        }else{
-            throw runtime_error("Error invalid type: "+bsoncxx::to_string(population_id_el.type())+"\n");
-        }
+        population_id=getStringFromEl(population_id_el);
 
         bsoncxx::document::element pop_start_size_el = maybe_result->view()["pop_start_size"];
-        if (pop_start_size_el.type() == bsoncxx::type::k_int32){
-            pop_start_size=(float)pop_start_size_el.get_int32();
-        }else{
-            throw runtime_error("Error invalid type: "+bsoncxx::to_string(pop_start_size_el.type())+"\n");
-        }
+        pop_start_size=(float)getIntFromEl(pop_start_size_el);
         bsoncxx::document::element max_gens_el = maybe_result->view()["max_gens"];
-        if (max_gens_el.type() == bsoncxx::type::k_int32){
-            max_gens=(float)max_gens_el.get_int32();
-        }else{
-            throw runtime_error("Error invalid type: "+bsoncxx::to_string(max_gens_el.type())+"\n");
-        }
+        max_gens=(float)getIntFromEl(max_gens_el);
         bsoncxx::document::element max_age_el = maybe_result->view()["max_age"];
-        if (max_age_el.type() == bsoncxx::type::k_int32){
-            max_age=(float)max_age_el.get_int32();
-        }else{
-            throw runtime_error("Error invalid type: "+bsoncxx::to_string(max_age_el.type())+"\n");
-        }
+        max_age=(float)getIntFromEl(max_age_el);
         bsoncxx::document::element max_children_el = maybe_result->view()["max_children"];
-        if (max_children_el.type() == bsoncxx::type::k_int32){
-            max_children=(float)max_children_el.get_int32();
-        }else{
-            throw runtime_error("Error invalid type: "+bsoncxx::to_string(max_children_el.type())+"\n");
-        }
+        max_children=(float)getIntFromEl(max_children_el);
         bsoncxx::document::element mutation_rate_el = maybe_result->view()["mutation_rate"];
-        if (mutation_rate_el.type() == bsoncxx::type::k_double){
-            mutation_rate=(float)mutation_rate_el.get_double();
-        }else{
-            throw runtime_error("Error invalid type: "+bsoncxx::to_string(mutation_rate_el.type())+"\n");
-        }
+        mutation_rate=getFloatFromEl(mutation_rate_el);
         bsoncxx::document::element recycle_rate_el = maybe_result->view()["recycle_rate"];
-        if (recycle_rate_el.type() == bsoncxx::type::k_double){
-            recycle_rate=(float)recycle_rate_el.get_double();
-        }else{
-            throw runtime_error("Error invalid type: "+bsoncxx::to_string(recycle_rate_el.type())+"\n");
-        }
+        recycle_rate=getFloatFromEl(recycle_rate_el);
         bsoncxx::document::element sex_rate_el = maybe_result->view()["sex_rate"];
-        if (sex_rate_el.type() == bsoncxx::type::k_double){
-            sex_rate=(float)sex_rate_el.get_double();
-        }else{
-            throw runtime_error("Error invalid type: "+bsoncxx::to_string(sex_rate_el.type())+"\n");
-        }
+        sex_rate=getFloatFromEl(sex_rate_el);
         bsoncxx::document::element max_notables_el = maybe_result->view()["max_notables"];
-        if (max_notables_el.type() == bsoncxx::type::k_int32){
-            max_notables=(float)max_notables_el.get_int32();
-        }else{
-            throw runtime_error("Error invalid type: "+bsoncxx::to_string(max_notables_el.type())+"\n");
-        }
+        max_notables=(float)getIntFromEl(max_notables_el);
         bsoncxx::document::element cross_validation_el = maybe_result->view()["cross_validation"];
-        if (cross_validation_el.type() == bsoncxx::type::k_int32){
-            cross_validation=(float)cross_validation_el.get_int32();
-        }else{
-            throw runtime_error("Error invalid type: "+bsoncxx::to_string(cross_validation_el.type())+"\n");
-        }
+        cross_validation=(float)getIntFromEl(cross_validation_el);
         bsoncxx::document::element metric_el = maybe_result->view()["metric"];
-        if (metric_el.type() == bsoncxx::type::k_int32){
-            metric=(float)metric_el.get_int32();
-        }else{
-            throw runtime_error("Error invalid type: "+bsoncxx::to_string(metric_el.type())+"\n");
-        }
+        metric=(float)getIntFromEl(metric_el);
         bsoncxx::document::element algorithm_el = maybe_result->view()["algorithm"];
-        if (algorithm_el.type() == bsoncxx::type::k_int32){
-            algorithm=(float)algorithm_el.get_int32();
-        }else{
-            throw runtime_error("Error invalid type: "+bsoncxx::to_string(algorithm_el.type())+"\n");
-        }
+        algorithm=(float)getIntFromEl(algorithm_el);
     }else{
         throw runtime_error("Unable to find simulation "+id);
     }
@@ -435,47 +359,19 @@ pair<vector<string>,vector<int>> MongoDB::fetchNeuralNetworkTrainMetadata(string
     int test_limit=0;
     if(maybe_result) {
         bsoncxx::document::element hyper_name_el = maybe_result->view()["hyperparameters_name"];
-        if (hyper_name_el.type() == bsoncxx::type::k_utf8){
-            hyper_name=hyper_name_el.get_utf8().value.to_string();
-        }else{
-            throw runtime_error("Error invalid type: "+bsoncxx::to_string(hyper_name_el.type())+"\n");
-        }
+        hyper_name=getStringFromEl(hyper_name_el);
         bsoncxx::document::element train_data_el = maybe_result->view()["train_data"];
-        if (train_data_el.type() == bsoncxx::type::k_utf8){
-            train_data=train_data_el.get_utf8().value.to_string();
-        }else{
-            throw runtime_error("Error invalid type: "+bsoncxx::to_string(train_data_el.type())+"\n");
-        }
+        train_data=getStringFromEl(train_data_el);
         bsoncxx::document::element test_data_el = maybe_result->view()["test_data"];
-        if (test_data_el.type() == bsoncxx::type::k_utf8){
-            test_data=test_data_el.get_utf8().value.to_string();
-        }else{
-            throw runtime_error("Error invalid type: "+bsoncxx::to_string(test_data_el.type())+"\n");
-        }
+        test_data=getStringFromEl(test_data_el);
         bsoncxx::document::element epochs_el = maybe_result->view()["epochs"];
-        if (epochs_el.type() == bsoncxx::type::k_int32){
-            epochs=epochs_el.get_int32();
-        }else{
-            throw runtime_error("Error invalid type: "+bsoncxx::to_string(epochs_el.type())+"\n");
-        }
+        epochs=getIntFromEl(epochs_el);
         bsoncxx::document::element cross_validation_el = maybe_result->view()["cross_validation"];
-        if (cross_validation_el.type() == bsoncxx::type::k_int32){
-            cross_validation=cross_validation_el.get_int32();
-        }else{
-            throw runtime_error("Error invalid type: "+bsoncxx::to_string(cross_validation_el.type())+"\n");
-        }
+        cross_validation=getIntFromEl(cross_validation_el);
         bsoncxx::document::element train_metric_el = maybe_result->view()["train_metric"];
-        if (train_metric_el.type() == bsoncxx::type::k_int32){
-            train_metric=train_metric_el.get_int32();
-        }else{
-            throw runtime_error("Error invalid type: "+bsoncxx::to_string(train_metric_el.type())+"\n");
-        }
+        train_metric=getIntFromEl(train_metric_el);
         bsoncxx::document::element test_metric_el = maybe_result->view()["test_metric"];
-        if (test_metric_el.type() == bsoncxx::type::k_int32){
-            test_metric=test_metric_el.get_int32();
-        }else{
-            throw runtime_error("Error invalid type: "+bsoncxx::to_string(test_metric_el.type())+"\n");
-        }
+        test_metric=getIntFromEl(test_metric_el);
     }else{
         throw runtime_error("Unable to find independent network "+id);
     }
@@ -669,11 +565,7 @@ map<string, vector<float>> MongoDB::loadWeightsFromNeuralNet(string id){
     string weights_str="";
     if(maybe_result) {
         bsoncxx::document::element weights_el = maybe_result->view()["weights"];
-        if (weights_el.type() == bsoncxx::type::k_utf8){
-            weights_str=weights_el.get_utf8().value.to_string();
-        }else{
-            throw runtime_error("Error invalid type: "+bsoncxx::to_string(weights_el.type())+"\n");
-        }
+        weights_str=getStringFromEl(weights_el);
     }
     map<string, vector<float>> weights;
     if (weights_str!=""){
@@ -695,4 +587,36 @@ void MongoDB::storeEvalNeuralNetResult(string id,int correct,vector<string> cve_
 
     bsoncxx::document::value update=document{} << "$set" << open_document << "total_test_cases" << (int)pred_labels.size() << "correct_predictions(not ground truth)" << correct << "predicted_labels" << predicted_labels_str << close_document << finalize;
     getCollection(getDB("neural_db"),"eval_results").update_one(query.view(),update.view());
+}
+
+string MongoDB::getStringFromEl(bsoncxx::document::element el){
+    string out;
+    if (el.type() == bsoncxx::type::k_utf8){
+        out=el.get_utf8().value.to_string();
+    }else{
+        throw runtime_error("Error invalid type: "+bsoncxx::to_string(el.type())+"\n");
+    }
+    return out;
+}
+
+float MongoDB::getFloatFromEl(bsoncxx::document::element el){
+    float out;
+    if (el.type() == bsoncxx::type::k_int32){
+       out=(float)el.get_int32();
+    }else if (el.type() == bsoncxx::type::k_double){
+        out=(float)el.get_double();
+    }else{
+        throw runtime_error("Error invalid type: "+bsoncxx::to_string(el.type())+"\n");
+    }
+    return out;
+}
+
+int MongoDB::getIntFromEl(bsoncxx::document::element el){
+    int out;
+    if (el.type() == bsoncxx::type::k_int32){
+       out=el.get_int32();
+    }else{
+        throw runtime_error("Error invalid type: "+bsoncxx::to_string(el.type())+"\n");
+    }
+    return out;
 }

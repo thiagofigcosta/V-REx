@@ -137,6 +137,10 @@ vector<Genome*> EnchancedGenetic::sex(Genome* father, Genome* mother){
         pair<vector<int>,vector<float>> mother_dna=mother->getDna();
         float child_rnd=Utils::getRandomBetweenZeroAndOne();
         int childs=child_rnd*father_dna.first[index_max_children]+(1-child_rnd)*mother_dna.first[index_max_children];
+        if (childs<1)
+            childs=1;
+        if (childs>max_children)
+            childs=max_children;
         childs=ceil(childs*calcBirthRate(current_population_size));
         for (int c=0;c<childs;c++){
             pair<vector<int>,vector<float>> child=pair<vector<int>,vector<float>>(vector<int>(),vector<float>());

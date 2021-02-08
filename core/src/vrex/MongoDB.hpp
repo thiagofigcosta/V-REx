@@ -69,6 +69,9 @@ class MongoDB{
         // methods
         static mongocxx::client getClient(const string &conn_str);
         bsoncxx::document::value castNeuralGenomeToBson(NeuralGenome* ng,bool store_weights=true);
+        static string getStringFromEl(bsoncxx::document::element el);
+        static float getFloatFromEl(bsoncxx::document::element el);
+        static int getIntFromEl(bsoncxx::document::element el);
         // variables
         static mongocxx::instance inst;
         mongocxx::client client;
