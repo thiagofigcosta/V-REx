@@ -20,6 +20,7 @@ bool connect_mongo=true;
 bool set_stack_size=false;
 bool cache_genetic=true;
 bool single_thread=false;
+bool verbose=false;
 string custom_mongo_ip=""; 
 
 // Function used to check that 'opt1' and 'opt2' are not specified at the same time.
@@ -54,6 +55,24 @@ void exceptionHandler(int signum) {
         cout<<"\n\nOn "+NeuralGenome::last_print_str<<endl;
     }
     ::raise(SIGABRT);
+}
+
+vector<pair<vector<int>, vector<float>>> encodeData(vector<pair<vector<int>, vector<float>>> data, SlideLabelEncoding label_type){
+    switch(label_type){
+        case SlideLabelEncoding::INT_CLASS:
+            cout<<"Using INT label\n";
+            data=Utils::encodeDatasetLabelsUsingFirst(data,DataEncoder::DISTINCT_SPARSE);
+            break;
+        case SlideLabelEncoding::NEURON_BY_NEURON:
+            cout<<"Using NEURON_BY_NEURON label\n";
+            data=Utils::encodeDatasetLabelsUsingFirst(data,DataEncoder::BINARY);
+            break;
+        case SlideLabelEncoding::NEURON_BY_N_LOG_LOSS:
+            cout<<"Using NEURON_BY_N_LOG_LOSS label\n";
+            data=Utils::encodeDatasetLabelsUsingFirst(data,DataEncoder::BINARY);
+            break;
+    }
+    return data;
 }
 
 void setup(){
@@ -162,6 +181,18 @@ void runGeneticSimulation(string simulation_id){
     }
     int train_data_limit=(int)simu_data.second[10];
     int algorithm=(int)simu_data.second[11];
+    SlideLabelEncoding label_encoding=SlideLabelEncoding::INT_CLASS;
+    switch((int)simu_data.second[12]){
+        case 0:
+            label_encoding=SlideLabelEncoding::INT_CLASS;
+            break;
+        case 1:
+            label_encoding=SlideLabelEncoding::NEURON_BY_NEURON;
+            break;
+        case 2:
+            label_encoding=SlideLabelEncoding::NEURON_BY_N_LOG_LOSS;
+            break;
+    }
     simu_data.first.clear();
     simu_data.second.clear();
     SPACE_SEARCH search_space = mongo->fetchEnvironmentData(environment_name);
@@ -181,6 +212,7 @@ void runGeneticSimulation(string simulation_id){
     cout<<"max_notables: "<<max_notables<<endl;
     cout<<"cross_validation: "<<static_cast<underlying_type<SlideCrossValidation>::type>(cross_validation)<<endl;
     cout<<"metric_mode: "<<static_cast<underlying_type<SlideMetric>::type>(metric_mode)<<endl;
+    cout<<"label_encoding: "<<static_cast<underlying_type<SlideLabelEncoding>::type>(label_encoding)<<endl;
     cout<<"algorithm: "<<algorithm<<endl;
     cout<<"environment_name: "<<environment_name<<endl;
     cout<<"Int space search:\n";
@@ -194,6 +226,7 @@ void runGeneticSimulation(string simulation_id){
     cout<<"Parsed genetic settings...OK\n";
     cout<<"Loading CVE data...\n";
     vector<pair<vector<int>, vector<float>>> train_data = mongo->loadCvesFromYears(cve_years, train_data_limit).second;
+    train_data=encodeData(train_data,label_encoding);
     cout<<"Loaded CVE data...OK\n";
     const bool shuffle_train_data=false;
 
@@ -201,7 +234,6 @@ void runGeneticSimulation(string simulation_id){
     const int rebuild=128000;
 
     const int border_sparsity=1; // first and last layers
-    const SlideLabelEncoding label_encoding=SlideLabelEncoding::INT_CLASS;
     const int input_size=train_data[0].second.size();
     const int output_size=train_data[0].first.size();
     const bool adam_optimizer=true;
@@ -268,7 +300,7 @@ void runGeneticSimulation(string simulation_id){
     delete elite;
 }
 
-void trainNeuralNetwork(string independent_net_id){
+void trainNeuralNetwork(string independent_net_id,bool load, bool just_train){
     cout<<"Training neural network "+independent_net_id+"...\n";
     cout<<"Parsing training settings...\n";
     pair<vector<string>,vector<int>> train_mdata=mongo->fetchNeuralNetworkTrainMetadata(independent_net_id);
@@ -350,81 +382,79 @@ void trainNeuralNetwork(string independent_net_id){
     cout<<"Parsed training settings...OK\n";
     cout<<"Loading CVE data...\n";
     vector<pair<vector<int>, vector<float>>> train_data = mongo->loadCvesFromYears(cve_years_train, train_limit).second;
+    train_data=encodeData(train_data,hyper->label_type);
     cout<<"Loaded CVE data...OK\n";
     mongo->claimNeuralNetTrain(independent_net_id,Utils::getStrNow(),Utils::getHostname());
     const bool print_deltas=true;
-    cout<<"Creating network...\n";
-    Slide* slide=new Slide(hyper->layers,hyper->layer_sizes,hyper->node_types,train_data[0].second.size(),hyper->alpha,hyper->batch_size,hyper->adam,hyper->label_type,hyper->range_pow,hyper->K,hyper->L,hyper->sparcity,hyper->rehash,hyper->rebuild,train_metric,train_metric,hyper->shuffle,cross_validation,SlideMode::SAMPLING,SlideHashingFunction::DENSIFIED_WTA,print_deltas);
-    slide->eagerInit();
-    cout<<"Created network...OK\n";
-    cout<<"Training network...\n";
-    vector<pair<float,float>> train_metrics=slide->train(train_data,epochs);
-    cout<<"Trained network...OK\n";
-    cout<<"Evaluating for statistics...\n";
-    map<string, vector<float>> trained_weights=slide->getWeights();
-    Hyperparameters* hyper_2=hyper->clone();
-    delete slide;
-    delete hyper;
-    Slide* slide_2=new Slide(hyper_2->layers,hyper_2->layer_sizes,hyper_2->node_types,train_data[0].second.size(),hyper_2->alpha,hyper_2->batch_size,hyper_2->adam,hyper_2->label_type,hyper_2->range_pow,hyper_2->K,hyper_2->L,hyper_2->sparcity,hyper_2->rehash,hyper_2->rebuild,train_metric,train_metric,hyper_2->shuffle,cross_validation,SlideMode::SAMPLING,SlideHashingFunction::DENSIFIED_WTA,print_deltas);
-    slide_2->setWeights(trained_weights);
-    slide_2->eagerInit();
-    vector<vector<pair<int,float>>> train_predicted=slide_2->evalData(train_data).second;
-    snn_stats train_stats=Utils::statisticalAnalysis(train_data,train_predicted);
-    cout<<"Evaluated for statistics...OK\n";
-    // Utils::compareAndPrintLabel(train_data,train_predicted);
-    cout<<"Writing results...\n";
-    mongo->appendTMetricsOnNeuralNet(independent_net_id,train_metrics);
-    mongo->appendStatsOnNeuralNet(independent_net_id,"train_stats",train_stats);
-    mongo->appendWeightsOnNeuralNet(independent_net_id,trained_weights);
-    if (str_cve_years_test.size()>0){
-        for (pair<vector<int>, vector<float>> v:train_data){
-            v.first.clear();
-            v.second.clear();
-        }
-        train_data.clear();
-        vector<int> cve_years_test;
-        for(string y:str_cve_years_test){
-            cve_years_test.push_back(stoi(y));
-        }
-        str_cve_years_test.clear();
-        vector<pair<vector<int>, vector<float>>> test_data = mongo->loadCvesFromYears(cve_years_test, test_limit).second;
-        vector<vector<pair<int,float>>> test_predicted=slide_2->evalData(test_data).second;
-        snn_stats test_stats=Utils::statisticalAnalysis(test_data,train_predicted);
-        mongo->appendStatsOnNeuralNet(independent_net_id,"test_stats",test_stats);
+    map<string, vector<float>> trained_weights;
+    Slide* slide;
+    if(load){
+        trained_weights=mongo->loadWeightsFromNeuralNet(independent_net_id);
+    }else{
+        cout<<"Creating network...\n";
+        slide=new Slide(hyper->layers,hyper->layer_sizes,hyper->node_types,train_data[0].second.size(),hyper->alpha,hyper->batch_size,hyper->adam,hyper->label_type,hyper->range_pow,hyper->K,hyper->L,hyper->sparcity,hyper->rehash,hyper->rebuild,train_metric,train_metric,hyper->shuffle,cross_validation,SlideMode::SAMPLING,SlideHashingFunction::DENSIFIED_WTA,print_deltas);
+        slide->eagerInit();
+        cout<<"Created network...OK\n";
+        cout<<"Training network...\n";
+        vector<pair<float,float>> train_metrics=slide->train(train_data,epochs);
+        cout<<"Trained network...OK\n";
+        cout<<"Writing weights...\n";
+        trained_weights=slide->getWeights();
+        mongo->appendTMetricsOnNeuralNet(independent_net_id,train_metrics);
+        mongo->appendWeightsOnNeuralNet(independent_net_id,trained_weights);
+        cout<<"Wrote weights...OK\n";
+        delete slide;
     }
-    cout<<"Wrote results...OK\n";
-    mongo->finishNeuralNetTrain(independent_net_id,Utils::getStrNow());
-    cout<<"Trained neural network "+independent_net_id+"...OK\n";
-    delete slide_2;
-    delete hyper_2;
+    if (!just_train){
+        Hyperparameters* hyper_2=hyper->clone();
+        cout<<"Creating eval network...\n";
+        Slide* slide_2=new Slide(hyper_2->layers,hyper_2->layer_sizes,hyper_2->node_types,train_data[0].second.size(),hyper_2->alpha,hyper_2->batch_size,hyper_2->adam,hyper_2->label_type,hyper_2->range_pow,hyper_2->K,hyper_2->L,hyper_2->sparcity,hyper_2->rehash,hyper_2->rebuild,train_metric,train_metric,hyper_2->shuffle,cross_validation,SlideMode::SAMPLING,SlideHashingFunction::DENSIFIED_WTA,print_deltas);
+        slide_2->setWeights(trained_weights);
+        slide_2->eagerInit();
+        cout<<"Created eval network...OK\n";
+        cout<<"Evaluating for statistics...\n";
+        vector<vector<pair<int,float>>> train_predicted=slide_2->evalData(train_data).second;
+        snn_stats train_stats=Utils::statisticalAnalysis(train_data,train_predicted);
+        cout<<"Evaluated for statistics...OK\n";
+        if (verbose){
+            Utils::printStats(train_stats);
+            Utils::compareAndPrintLabel(train_data,train_predicted);
+        }
+        cout<<"Writing results...\n";
+        mongo->appendStatsOnNeuralNet(independent_net_id,"train_stats",train_stats);
+        if (str_cve_years_test.size()>0){
+            for (pair<vector<int>, vector<float>> v:train_data){
+                v.first.clear();
+                v.second.clear();
+            }
+            train_data.clear();
+            vector<int> cve_years_test;
+            for(string y:str_cve_years_test){
+                cve_years_test.push_back(stoi(y));
+            }
+            str_cve_years_test.clear();
+            vector<pair<vector<int>, vector<float>>> test_data = mongo->loadCvesFromYears(cve_years_test, test_limit).second;
+            test_data=encodeData(test_data,hyper_2->label_type);
+            vector<vector<pair<int,float>>> test_predicted=slide_2->evalData(test_data).second;
+            snn_stats test_stats=Utils::statisticalAnalysis(test_data,train_predicted);
+            if (verbose){
+                Utils::printStats(test_stats);
+            }
+            mongo->appendStatsOnNeuralNet(independent_net_id,"test_stats",test_stats);
+        }
+        cout<<"Wrote results...OK\n";
+        mongo->finishNeuralNetTrain(independent_net_id,Utils::getStrNow());
+        cout<<"Trained neural network "+independent_net_id+"...OK\n";
+        delete hyper_2;
+        delete slide_2;
+    }
+    delete hyper;
 }
 
 void evalNeuralNetwork(string independent_net_id, string result_id, string eval_data){
     cout<<"Evaluating neural network "+independent_net_id+" for data: "+eval_data+"...\n";
     vector<pair<vector<int>, vector<float>>> cve_data;
     vector<string> cve_ids;
-    cout<<"Loading CVE data...\n";
-    if (eval_data.rfind("CVE", 0) == 0) {
-        cve_data = mongo->loadCveFromId(eval_data);
-        cve_ids.push_back(eval_data);
-    }else{
-        int limit=0;
-        string::size_type pos=eval_data.find(':');
-        if (pos!=string::npos){
-            limit=stof(eval_data.substr(pos+1,eval_data.size()-pos-1));
-            eval_data=eval_data.substr(0,pos);
-        }
-        vector<string> str_cve_years=Utils::splitString(eval_data,",");
-        vector<int> cve_years;
-        for(string y:str_cve_years){
-            cve_years.push_back(stoi(y));
-        }
-        str_cve_years.clear();
-        pair<vector<string>,vector<pair<vector<int>, vector<float>>>> loaded_cves=mongo->loadCvesFromYears(cve_years, limit);
-        cve_ids = loaded_cves.first;
-        cve_data = loaded_cves.second;
-    }
-    cout<<"Loaded CVE data...OK\n";
     cout<<"Parsing evaluate settings...\n";
     pair<vector<string>,vector<int>> eval_mdata=mongo->fetchNeuralNetworkTrainMetadata(independent_net_id);
     string hyper_name=eval_mdata.first[0];
@@ -463,6 +493,29 @@ void evalNeuralNetwork(string independent_net_id, string result_id, string eval_
     }
     Hyperparameters* hyper=mongo->fetchHyperparametersData(hyper_name);
     cout<<"Parsed evaluate settings...OK\n";
+    cout<<"Loading CVE data...\n";
+    if (eval_data.rfind("CVE", 0) == 0) {
+        cve_data = mongo->loadCveFromId(eval_data);
+        cve_ids.push_back(eval_data);
+    }else{
+        int limit=0;
+        string::size_type pos=eval_data.find(':');
+        if (pos!=string::npos){
+            limit=stof(eval_data.substr(pos+1,eval_data.size()-pos-1));
+            eval_data=eval_data.substr(0,pos);
+        }
+        vector<string> str_cve_years=Utils::splitString(eval_data,",");
+        vector<int> cve_years;
+        for(string y:str_cve_years){
+            cve_years.push_back(stoi(y));
+        }
+        str_cve_years.clear();
+        pair<vector<string>,vector<pair<vector<int>, vector<float>>>> loaded_cves=mongo->loadCvesFromYears(cve_years, limit);
+        cve_ids = loaded_cves.first;
+        cve_data = loaded_cves.second;
+    }
+    cve_data=encodeData(cve_data,hyper->label_type);
+    cout<<"Loaded CVE data...OK\n";
     const bool print_deltas=true;
     cout<<"Creating network...\n";
     Slide* slide=new Slide(hyper->layers,hyper->layer_sizes,hyper->node_types,cve_data[0].second.size(),hyper->alpha,hyper->batch_size,hyper->adam,hyper->label_type,hyper->range_pow,hyper->K,hyper->L,hyper->sparcity,hyper->rehash,hyper->rebuild,test_metric,test_metric,hyper->shuffle,cross_validation,SlideMode::SAMPLING,SlideHashingFunction::DENSIFIED_WTA,print_deltas);
@@ -472,6 +525,9 @@ void evalNeuralNetwork(string independent_net_id, string result_id, string eval_
     cout<<"Evaluating data...\n";
     pair<int,vector<vector<pair<int,float>>>> predicted = slide->evalData(cve_data);
     cout<<"Evaluated data...OK\n";
+    if (verbose){
+        Utils::compareAndPrintLabel(cve_data,predicted.second);
+    }
     cout<<"Writing results...\n";
     mongo->storeEvalNeuralNetResult(result_id,predicted.first,cve_ids,predicted.second);
     cout<<"Wrote results...OK\n";
@@ -486,6 +542,8 @@ int main(int argc, char* argv[]) {
     bool run_train_net;
     bool run_eval_net;
     bool just_print_args;
+    bool load_weights_instead_of_training;
+    bool train_without_eval;
     int test_function;
     string simulation_id;
     string independent_net_id;
@@ -503,6 +561,9 @@ int main(int argc, char* argv[]) {
             ("train-neural", boost::program_options::bool_switch()->default_value(false), "train smart neural network")
             ("eval-neural", boost::program_options::bool_switch()->default_value(false), "eval smart neural network")
             ("debug-args", boost::program_options::bool_switch()->default_value(false), "just print arguments (DEBUG)")
+            ("continue", boost::program_options::bool_switch()->default_value(false), "load weigths instead of training them (useful to when exceptions happens)")
+            ("just-train", boost::program_options::bool_switch()->default_value(false), "train weigths and then quit (useful avoid exceptions)")
+            ("verbose-neural", boost::program_options::bool_switch()->default_value(false), "a lot of printings for neural training")
             ("do-not-cache-genetic", boost::program_options::bool_switch()->default_value(false), "avoid disk cache during genetic algorithm")
             ("single-thread", boost::program_options::bool_switch()->default_value(false), "use a single thread to run V-REx")
             ("test-function", boost::program_options::value<int>()->default_value(0), "specify the test function to run <function id>:\n\t1 - testCsvRead\n\t2 - testMongo\n\t3 - testSlide_IntLabel\n\t4 - testSlide_NeuronByNeuronLabel\n\t5 - testStdGeneticsOnMath\n\t6 - testEnchancedGeneticsOnMath\n\t7 - testSlide_Validation\n\t8 - testGeneticallyTunedNeuralNetwork\n\t9 - testMongoCveRead\n\t10 - testSmartNeuralNetwork_cveData\n\t11 - testGeneticallyTunedSmartNeuralNetwork_cveData")
@@ -524,6 +585,7 @@ int main(int argc, char* argv[]) {
         conflicting_options(vm,"run-genetic","train-neural");
         conflicting_options(vm,"run-genetic","eval-neural");
         conflicting_options(vm,"train-neural","eval-neural");
+        conflicting_options(vm,"continue","just-train");
         option_dependency(vm,"test","test-function");
         option_dependency(vm,"run-genetic","simulation-id");
         option_dependency(vm,"train-neural","network-id");
@@ -535,6 +597,9 @@ int main(int argc, char* argv[]) {
         cache_genetic=!vm["do-not-cache-genetic"].as<bool>();
         single_thread=vm["single-thread"].as<bool>();
         set_stack_size=vm["set-stack-size"].as<bool>();
+        load_weights_instead_of_training=vm["continue"].as<bool>();
+        train_without_eval=vm["just-train"].as<bool>();
+        verbose=vm["verbose-neural"].as<bool>();
         run_test=vm["test"].as<bool>();
         run_genetic=vm["run-genetic"].as<bool>();
         run_train_net=vm["train-neural"].as<bool>();
@@ -565,7 +630,7 @@ int main(int argc, char* argv[]) {
         cout<<endl;
         cout<<"run_test: "<<run_test<<endl;
         cout<<"run_genetic: "<<run_genetic<<endl;
-        cout<<"run_train_net: "<<run_train_net<<endl;
+        cout<<"run_train_net: "<<run_train_net<<" continue: "<<load_weights_instead_of_training<<" just train: "<<train_without_eval<<endl;
         cout<<"run_eval_net: "<<run_eval_net<<endl;
         cout<<endl;
         cout<<"test_function: "<<test_function<<endl;
@@ -584,7 +649,7 @@ int main(int argc, char* argv[]) {
     }else if (run_genetic){
         runGeneticSimulation(simulation_id);
     }else if (run_train_net){
-        trainNeuralNetwork(independent_net_id);
+        trainNeuralNetwork(independent_net_id,load_weights_instead_of_training,train_without_eval);
     }else if (run_eval_net){
         evalNeuralNetwork(independent_net_id,result_id,eval_data);
     }

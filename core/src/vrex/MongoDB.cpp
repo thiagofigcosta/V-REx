@@ -139,6 +139,7 @@ pair<vector<string>,vector<float>> MongoDB::fetchGeneticSimulationData(string id
     float metric;
     float limit=0;
     float algorithm;
+    float label_type;
     if(maybe_result) {
         bsoncxx::document::element env_name_el = maybe_result->view()["env_name"];
         env_name=getStringFromEl(env_name_el);
@@ -171,6 +172,8 @@ pair<vector<string>,vector<float>> MongoDB::fetchGeneticSimulationData(string id
         metric=(float)getIntFromEl(metric_el);
         bsoncxx::document::element algorithm_el = maybe_result->view()["algorithm"];
         algorithm=(float)getIntFromEl(algorithm_el);
+        bsoncxx::document::element label_type_el = maybe_result->view()["label_type"];
+        label_type=(float)getIntFromEl(label_type_el);
     }else{
         throw runtime_error("Unable to find simulation "+id);
     }
@@ -197,6 +200,7 @@ pair<vector<string>,vector<float>> MongoDB::fetchGeneticSimulationData(string id
     float_params.push_back(metric);
     float_params.push_back(limit);
     float_params.push_back(algorithm);
+    float_params.push_back(label_type);
 
     return pair<vector<string>,vector<float>>(str_params,float_params);
 }
@@ -547,7 +551,7 @@ void MongoDB::appendStatsOnNeuralNet(string id,string field_name,snn_stats stats
     getCollection(getDB("neural_db"),"independent_net").update_one(query.view(),update.view());
 }
 
-void MongoDB::appendWeightsOnNeuralNet(string id,map<string, vector<float>> weights){
+void MongoDB::appendWeightsOnNeuralNet(string id,const map<string, vector<float>> weights){
     bsoncxx::document::value query=document{} << "_id" << bsoncxx::oid{id} << finalize;
     bsoncxx::document::value update=document{} << "$set" << open_document << "weights" <<  Utils::serializeWeigthsToStr(weights) << close_document << finalize;
     getCollection(getDB("neural_db"),"independent_net").update_one(query.view(),update.view());
@@ -581,7 +585,7 @@ void MongoDB::storeEvalNeuralNetResult(string id,int correct,vector<string> cve_
     for (size_t i=0;i<cve_ids.size();i++){
         predicted_labels_str+="{ \t"+cve_ids[i]+": ";
         vector<pair<int,float>> label=pred_labels[i];
-        predicted_labels_str+="{ has_exploit: "+to_string(label[0].first)+", trust_level: "+to_string(label[0].second)+" }\n";
+        predicted_labels_str+="{ has_exploit: "+to_string(label[0].first)+", chance_of_having: "+to_string(label[0].second*100)+" }\n";
     }
     predicted_labels_str+="\n]";
 

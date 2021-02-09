@@ -208,6 +208,14 @@ pair<vector<pair<vector<int>, vector<float>>>,vector<pair<vector<int>, vector<fl
     return pair<vector<pair<vector<int>, vector<float>>>,vector<pair<vector<int>, vector<float>>>> (Utils::extractSubVector(vec, 0, fristSize),Utils::extractSubVector(vec, fristSize, vec.size()-fristSize));
 }
 
+vector<pair<vector<int>, vector<float>>> Utils::encodeDatasetLabelsUsingFirst(const vector<pair<vector<int>, vector<float>>> &vec, DataEncoder enc){
+    vector<pair<int, vector<float>>> simplified;
+    for(pair<vector<int>, vector<float>> entry:vec){
+        simplified.push_back(pair<int, vector<float>>(entry.first[0],entry.second));
+    }
+    return Utils::encodeDatasetLabels(simplified,enc);
+}
+
 vector<pair<vector<int>, vector<float>>> Utils::encodeDatasetLabels(const vector<pair<int, vector<float>>> &vec, DataEncoder enc){
     int max=numeric_limits<int>::min();
     set<int> values;
@@ -227,6 +235,7 @@ vector<pair<vector<int>, vector<float>>> Utils::encodeDatasetLabels(const vector
             break;
         case DataEncoder::SPARSE:
         case DataEncoder::DISTINCT_SPARSE:
+        case DataEncoder::DISTINCT_SPARSE_PLUS_ONE:
             output_neurons=max+1;
             break;
         case DataEncoder::INCREMENTAL:
@@ -248,6 +257,9 @@ vector<pair<vector<int>, vector<float>>> Utils::encodeDatasetLabels(const vector
                     array.push_back((int) (i==l));
                     break;
                 case DataEncoder::DISTINCT_SPARSE:
+                    array.push_back((int) (i==l)*(l));
+                    break;
+                case DataEncoder::DISTINCT_SPARSE_PLUS_ONE:
                     array.push_back((int) (i==l)*(l+1));
                     break;
                 case DataEncoder::INCREMENTAL:

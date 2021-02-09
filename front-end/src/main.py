@@ -476,13 +476,19 @@ def main(argv){
                     print('\t4 - PRECISION')
                     print('value: ')
                     metric=inputNumber(lower_or_eq=4)
+                    print('Enter the label type (0-2):')
+                    print('\t0 - INT_CLASS')
+                    print('\t1 - NEURON_BY_NEURON')
+                    print('\t2 - NEURON_BY_NEURON_LOG_LOSS')
+                    print('value: ', end='')
+                    label_type=inputNumber(lower_or_eq=2)
                     print('Enter the years to be used as train data splitted by comma (,) (1999-2020):')
                     train_data=inputArrayNumber(greater_or_eq=1999,lower_or_eq=2020)
                     print('Enter a limit of CVEs for each year (0 = unlimitted): ')
                     train_data+=':{}'.format(inputNumber())
                     best={'output':None,'at_gen':None}
                     results=[]
-                    simulation_data={'name':simulation_name,'env_name':env_name,'submitted_at':submitted_at,'started_by':started_by,'started_at':started_at,'finished_at':finished_at,'hall_of_fame_id':hall_of_fame_id,'population_id':population_id,'pop_start_size':pop_start_size,'max_gens':max_gens,'algorithm':algorithm,'max_age':max_age,'max_children':max_children,'mutation_rate':mutation_rate,'recycle_rate':recycle_rate,'sex_rate':sex_rate,'max_notables':max_notables,'cross_validation':cross_validation,'metric':metric,'train_data':train_data,'best':best,'results':results}
+                    simulation_data={'name':simulation_name,'env_name':env_name,'submitted_at':submitted_at,'started_by':started_by,'started_at':started_at,'finished_at':finished_at,'hall_of_fame_id':hall_of_fame_id,'population_id':population_id,'pop_start_size':pop_start_size,'max_gens':max_gens,'algorithm':algorithm,'max_age':max_age,'max_children':max_children,'mutation_rate':mutation_rate,'recycle_rate':recycle_rate,'sex_rate':sex_rate,'max_notables':max_notables,'cross_validation':cross_validation,'label_type':label_type,'metric':metric,'train_data':train_data,'best':best,'results':results}
                     LOGGER.info('Writting simulation config on genetic_db...')
                     simulation_id=mongo.quickInsertOneIgnoringLockAndRetrieveId(mongo.getDB('genetic_db'),simulation_data,'simulations')
                     if (simulation_id==None){

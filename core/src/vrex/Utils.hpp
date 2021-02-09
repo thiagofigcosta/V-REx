@@ -35,7 +35,7 @@
 
 using namespace std;
 
-enum class DataEncoder { BINARY, SPARSE, INCREMENTAL, INCREMENTAL_PLUS_ONE, EXPONENTIAL, DISTINCT_SPARSE, BINARY_PLUS_ONE };
+enum class DataEncoder { BINARY, SPARSE, INCREMENTAL, INCREMENTAL_PLUS_ONE, EXPONENTIAL, DISTINCT_SPARSE, DISTINCT_SPARSE_PLUS_ONE, BINARY_PLUS_ONE };
 
 template <typename T, typename... Args>
 std::unique_ptr<T> make_unique(Args&&... args){ // this is from C++14
@@ -79,6 +79,7 @@ class Utils{
         static pair<vector<pair<int, vector<float>>>,map<string,int>> enumfyDataset(const vector<pair<string, vector<float>>> &vec);
         static vector<pair<vector<int>, vector<float>>> extractSubVector(const vector<pair<vector<int>, vector<float>>> &vec, int start, int size);
         static vector<pair<vector<int>, vector<float>>> encodeDatasetLabels(const vector<pair<int, vector<float>>> &vec, DataEncoder enc);
+        static vector<pair<vector<int>, vector<float>>> encodeDatasetLabelsUsingFirst(const vector<pair<vector<int>, vector<float>>> &vec, DataEncoder enc);
         static vector<pair<vector<int>, vector<float>>> shuffleDataset(const vector<pair<vector<int>, vector<float>>> &vec);
         static pair<vector<pair<vector<int>, vector<float>>>,vector<pair<vector<int>, vector<float>>>> divideDataSet(const vector<pair<vector<int>, vector<float>>> &vec, float percentageOfFirst);
         static pair<vector<pair<float,float>>,vector<pair<vector<int>, vector<float>>>> normalizeDataset(const vector<pair<vector<int>, vector<float>>> &vec);
