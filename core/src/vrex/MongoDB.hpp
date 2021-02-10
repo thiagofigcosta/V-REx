@@ -63,7 +63,7 @@ class MongoDB{
         void appendWeightsOnNeuralNet(string id,const map<string, vector<float>> weights);
         vector<pair<vector<int>, vector<float>>> loadCveFromId(string cve);
         map<string, vector<float>> loadWeightsFromNeuralNet(string id);
-        void storeEvalNeuralNetResult(string id,int correct,vector<string> cve_ids,vector<vector<pair<int,float>>> pred_labels);
+        void storeEvalNeuralNetResult(string id,int correct,vector<string> cve_ids,vector<vector<pair<int,float>>> pred_labels,vector<pair<vector<int>, vector<float>>> labels,snn_stats stats);
 
     private:
         // methods

@@ -6,7 +6,7 @@
 
 int Slide::MAX_THREADS=0; // 0 = max allowed 
 
-Slide::Slide(int numLayer, int *sizesOfLayers, NodeType* layerTypes, int InputDim, float Lr, int Batchsize, bool useAdamOt, 
+Slide::Slide(int numLayer, int *sizesOfLayers, NodeType* layerTypes, int InputDim, int OutputDim, float Lr, int Batchsize, bool useAdamOt, 
             SlideLabelEncoding labelType, int *RangePow, int *KValues,int *LValues,float *Sparsity, int Rehash, int Rebuild, 
             SlideMetric trainMetric,SlideMetric valMetric,bool shuffleTrainData,SlideCrossValidation crossValidation,SlideMode Mode,SlideHashingFunction HashFunc, bool printDeltas, size_t maxLayerS) {
         range_pow=RangePow;
@@ -17,6 +17,7 @@ Slide::Slide(int numLayer, int *sizesOfLayers, NodeType* layerTypes, int InputDi
         rehash=Rehash;
         rebuild=Rebuild;
         input_dim=InputDim;
+        output_dim=OutputDim;
         learning_rate=Lr;
         layer_sizes=sizesOfLayers;
         amount_layers=numLayer;
@@ -32,7 +33,7 @@ Slide::Slide(int numLayer, int *sizesOfLayers, NodeType* layerTypes, int InputDi
         cross_validation=crossValidation;
         size_max_for_layer=maxLayerS;
 
-        slide_network=new Network(layer_sizes, layer_types, amount_layers, batch_size, learning_rate, input_dim, K, L, range_pow, sparsity,mode,hash_function,use_adam,label_type,size_max_for_layer);
+        slide_network=new Network(layer_sizes, layer_types, amount_layers, batch_size, learning_rate, input_dim, OutputDim, K, L, range_pow, sparsity,mode,hash_function,use_adam,label_type,size_max_for_layer);
 }
 
 Slide::Slide(const Slide& orig) {

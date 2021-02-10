@@ -518,8 +518,6 @@ int Layer::queryActiveNodeandComputeActivations(int** activenodesperlayer, float
 
 map<string, vector<float>> Layer::mapfyWeights()
 {
-    #pragma GCC diagnostic push 
-    #pragma GCC diagnostic ignored "-Wsizeof-pointer-div"
     map<string, vector<float>> arr;
     if (_layerID==0) {
         arr["w_layer_0"]=vector<float>(_weights, _weights + size_2d);
@@ -537,7 +535,6 @@ map<string, vector<float>> Layer::mapfyWeights()
         }
     }
     // cout<<"save for layer "<<to_string(_layerID)<<endl;
-    #pragma GCC diagnostic pop 
     return arr;
 }
 

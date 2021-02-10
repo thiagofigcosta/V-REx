@@ -192,7 +192,7 @@ tuple<Slide*,int,function<void()>> NeuralGenome::buildSlide(pair<vector<int>,vec
     string ex_str="";
     Slide* net=nullptr;
     try{
-        net=new Slide(layers, layer_sizes, node_types, input_size, alpha, batch_size, adam_optimizer, label_encoding, range_pow, K, L, sparcity, 
+        net=new Slide(layers, layer_sizes, node_types, input_size,output_size, alpha, batch_size, adam_optimizer, label_encoding, range_pow, K, L, sparcity, 
             rehash, rebuild,trainMetric,metric,shuffleTrainData,crossValidation, SlideMode::SAMPLING, SlideHashingFunction::DENSIFIED_WTA, false,maxNodes);
     } catch (const exception& ex) {
         ex_str=ex.what();

@@ -69,6 +69,7 @@ struct Hyperparameters{
         copy->adam=adam;
         copy->rehash=rehash;
         copy->rebuild=rebuild;
+        copy->label_type=label_type;
         copy->layers=layers;
         for(int i=0;i<layers;i++){
             copy->layer_sizes[i]=layer_sizes[i];
@@ -85,7 +86,7 @@ struct Hyperparameters{
 class Slide{
     public:
         // constructors and destructor
-        Slide(int numLayer, int *sizesOfLayers, NodeType* layerTypes, int InputDim, float Lr, int Batchsize, bool useAdamOt, 
+        Slide(int numLayer, int *sizesOfLayers, NodeType* layerTypes, int InputDim, int OutputDim, float Lr, int Batchsize, bool useAdamOt, 
             SlideLabelEncoding labelType,int *RangePow, int *KValues,int *LValues,float *Sparsity, int Rehash, int Rebuild, 
             SlideMetric trainMetric,SlideMetric valMetric, bool shuffleTrainData, SlideCrossValidation crossValidation,
             SlideMode Mode=SlideMode::SAMPLING, SlideHashingFunction HashFunc=SlideHashingFunction::DENSIFIED_WTA, bool printDeltas=false, size_t maxLayerS = numeric_limits<size_t>::max());
@@ -108,6 +109,8 @@ class Slide{
         // variables
         static int MAX_THREADS; // 0 = max allowed 
 
+        static constexpr float SINGLE_CLASS_THRESHOLD=.5;
+        #pragma omp threadprivate(SINGLE_CLASS_THRESHOLD)
         static const bool MEAN_ERROR_INSTEAD_OF_GRADS_SUM=true;
         #pragma omp threadprivate(MEAN_ERROR_INSTEAD_OF_GRADS_SUM)
         static constexpr float ADAM_OT_BETA1=0.9;
@@ -132,7 +135,7 @@ class Slide{
         #pragma omp threadprivate(SOFTMAX_LINEAR_CONSTANT)
         static constexpr float RAND_WEIGHT_START=0;
         #pragma omp threadprivate(RAND_WEIGHT_START)
-        static constexpr float RAND_WEIGHT_END= 0.01;
+        static constexpr float RAND_WEIGHT_END=.33;
         #pragma omp threadprivate(RAND_WEIGHT_END)
         static const int K_FOLDS=10;
         #pragma omp threadprivate(K_FOLDS)
@@ -154,6 +157,7 @@ class Slide{
         int rehash;
         int rebuild;
         int input_dim;
+        int output_dim;
         float learning_rate;
         int epochs;
         int *layer_sizes;

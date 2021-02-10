@@ -208,16 +208,19 @@ pair<vector<pair<vector<int>, vector<float>>>,vector<pair<vector<int>, vector<fl
     return pair<vector<pair<vector<int>, vector<float>>>,vector<pair<vector<int>, vector<float>>>> (Utils::extractSubVector(vec, 0, fristSize),Utils::extractSubVector(vec, fristSize, vec.size()-fristSize));
 }
 
-vector<pair<vector<int>, vector<float>>> Utils::encodeDatasetLabelsUsingFirst(const vector<pair<vector<int>, vector<float>>> &vec, DataEncoder enc){
+vector<pair<vector<int>, vector<float>>> Utils::encodeDatasetLabelsUsingFirst(const vector<pair<vector<int>, vector<float>>> &vec, DataEncoder enc, int ext_max){
     vector<pair<int, vector<float>>> simplified;
     for(pair<vector<int>, vector<float>> entry:vec){
         simplified.push_back(pair<int, vector<float>>(entry.first[0],entry.second));
     }
-    return Utils::encodeDatasetLabels(simplified,enc);
+    return Utils::encodeDatasetLabels(simplified,enc,ext_max);
 }
 
-vector<pair<vector<int>, vector<float>>> Utils::encodeDatasetLabels(const vector<pair<int, vector<float>>> &vec, DataEncoder enc){
+vector<pair<vector<int>, vector<float>>> Utils::encodeDatasetLabels(const vector<pair<int, vector<float>>> &vec, DataEncoder enc, int ext_max){
     int max=numeric_limits<int>::min();
+    if (ext_max>0){
+        max=ext_max;
+    }
     set<int> values;
     for (pair<int, vector<float>> entry:vec){
         values.insert(entry.first);
@@ -427,7 +430,7 @@ snn_stats Utils::statisticalAnalysis(vector<vector<int>> correct, vector<vector<
     }
     snn_stats stats;
     stats.accuracy=(float)hits/total;
-    if (pos_count>0){
+    if (correct[0].size()==1&&pos_count>0){
         stats.precision=(float)true_positive/(true_positive+false_positive);
         stats.recall=(float)true_positive/(true_positive+false_negative);
         stats.f1=2*(stats.precision*stats.recall)/(stats.precision+stats.recall);

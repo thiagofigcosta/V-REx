@@ -4,7 +4,7 @@
 
 using namespace std;
 
-Network::Network(int *sizesOfLayers, NodeType *layersTypes, int noOfLayers, int batchSize, float lr, int inputdim,  int* K, int* L, int* RangePow, float* Sparsity,SlideMode Mode,SlideHashingFunction hashFunc, bool useAdamOt,SlideLabelEncoding labelType, size_t maxLayerS) {
+Network::Network(int *sizesOfLayers, NodeType *layersTypes, int noOfLayers, int batchSize, float lr, int inputdim, int outputdim,  int* K, int* L, int* RangePow, float* Sparsity,SlideMode Mode,SlideHashingFunction hashFunc, bool useAdamOt,SlideLabelEncoding labelType, size_t maxLayerS) {
     _numberOfLayers = noOfLayers;
     _hiddenlayers = new Layer *[noOfLayers];
     _sizesOfLayers = sizesOfLayers;
@@ -13,6 +13,7 @@ Network::Network(int *sizesOfLayers, NodeType *layersTypes, int noOfLayers, int 
     _currentBatchSize = batchSize;
     _Sparsity = Sparsity;
     _inputDim=inputdim;
+    _outputDim=outputdim;
 	_K=K;
 	_L=L;
 	_RangePow=RangePow;
@@ -121,12 +122,8 @@ Layer *Network::getLayer(int LayerID) {
 pair<int,vector<vector<pair<int,float>>>> Network::predictClass(int **inputIndices, float **inputValues, int *length, int **labels, int *labelsize) {
     lateInit();
     int correctPred = 0;
-    #pragma GCC diagnostic push 
-    #pragma GCC diagnostic ignored "-Wsizeof-pointer-div"
-    int last_layer_size=labelsize[(sizeof(labelsize)/sizeof(*labelsize))-1];
-    #pragma GCC diagnostic pop 
-    vector<vector<pair<int,float>>> predicted_classes(_currentBatchSize, vector<pair<int,float>>(last_layer_size, pair<int,float>(0,0.0)));
-#pragma omp parallel for reduction(+:correctPred)
+    vector<vector<pair<int,float>>> predicted_classes(_currentBatchSize, vector<pair<int,float>>(_outputDim, pair<int,float>(0,0.0)));
+// #pragma omp parallel for reduction(+:correctPred)
     for (int i = 0; i < _currentBatchSize; i++) {
         int **activenodesperlayer = new int *[_numberOfLayers + 1]();
         float **activeValuesperlayer = new float *[_numberOfLayers + 1]();
@@ -136,7 +133,7 @@ pair<int,vector<vector<pair<int,float>>>> Network::predictClass(int **inputIndic
         activeValuesperlayer[0] = inputValues[i];
         sizes[0] = length[i];
 
-        //inference
+        //inference - Forward propagation
         for (int j = 0; j < _numberOfLayers; j++) {
             _hiddenlayers[j]->queryActiveNodeandComputeActivations(activenodesperlayer, activeValuesperlayer, sizes, j, i, labels[i], 0,
                     _Sparsity[_numberOfLayers+j], -1);
@@ -154,7 +151,19 @@ pair<int,vector<vector<pair<int,float>>>> Network::predictClass(int **inputIndic
             }
             predicted_classes[i][k].second=cur_act;
         }
-        predicted_classes[i][predicted_class_pos].first=labels[i][predicted_class_pos];
+        if (noOfClasses==1){
+            predicted_classes[i][predicted_class_pos].second*=100;
+            if(predicted_classes[i][predicted_class_pos].second>Slide::SINGLE_CLASS_THRESHOLD){
+                predicted_classes[i][predicted_class_pos].first=1;
+            }
+        }else{
+            if (label_type!=SlideLabelEncoding::INT_CLASS){
+                // float norm=(_hiddenlayers[_numberOfLayers - 1]->getNomalizationConstant(i)+Slide::SOFTMAX_LINEAR_CONSTANT);
+                predicted_classes[i][predicted_class_pos].first=labels[i][predicted_class_pos];
+            }else{
+                predicted_classes[i][0].first=predicted_class_pos;
+            }
+        }
         for (int c=0;c<labelsize[i];c++){
             if (labels[i][c]==predicted_classes[i][c].first){
                 if (c+1==labelsize[i]){

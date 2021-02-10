@@ -99,7 +99,7 @@ pair<vector<string>,vector<pair<vector<int>, vector<float>>>> MongoDB::loadCvesF
     int total=0;
     vector<string> cves;
     vector<pair<vector<int>, vector<float>>> data;
-    for(auto&& doc : cursor) {
+    for(auto&& doc:cursor) {
         pair<string,pair<vector<int>, vector<float>>> parsed_entry=bsonToDatasetEntry(doc);
         cves.push_back(parsed_entry.first);
         data.push_back(parsed_entry.second);
@@ -578,18 +578,38 @@ map<string, vector<float>> MongoDB::loadWeightsFromNeuralNet(string id){
     return weights;
 }
 
-void MongoDB::storeEvalNeuralNetResult(string id,int correct,vector<string> cve_ids,vector<vector<pair<int,float>>> pred_labels){
+void MongoDB::storeEvalNeuralNetResult(string id,int correct,vector<string> cve_ids,vector<vector<pair<int,float>>> pred_labels,vector<pair<vector<int>, vector<float>>> labels,snn_stats stats){
     bsoncxx::document::value query=document{} << "_id" << bsoncxx::oid{id} << finalize;
 
-    string predicted_labels_str="[\n";
-    for (size_t i=0;i<cve_ids.size();i++){
-        predicted_labels_str+="{ \t"+cve_ids[i]+": ";
-        vector<pair<int,float>> label=pred_labels[i];
-        predicted_labels_str+="{ has_exploit: "+to_string(label[0].first)+", chance_of_having: "+to_string(label[0].second*100)+" }\n";
-    }
-    predicted_labels_str+="\n]";
+    bsoncxx::builder::basic::document stats_bson_builder{};
+    stats_bson_builder.append(bsoncxx::builder::basic::kvp("accuracy",stats.accuracy));
+    if (stats.precision!=-1)
+        stats_bson_builder.append(bsoncxx::builder::basic::kvp("precision",stats.precision));
+    if (stats.recall!=-1)
+        stats_bson_builder.append(bsoncxx::builder::basic::kvp("recall",stats.recall));
+    if (stats.f1!=-1)
+        stats_bson_builder.append(bsoncxx::builder::basic::kvp("f1",stats.f1));
+    bsoncxx::document::value stats_bson = stats_bson_builder.extract();
 
-    bsoncxx::document::value update=document{} << "$set" << open_document << "total_test_cases" << (int)pred_labels.size() << "correct_predictions(not ground truth)" << correct << "predicted_labels" << predicted_labels_str << close_document << finalize;
+    bsoncxx::builder::basic::array res_array_builder = bsoncxx::builder::basic::array{};
+    for (size_t i=0;i<cve_ids.size();i++){
+        pair<int,float> p_label=pred_labels[i][0];
+        int d_label=labels[i].first[0];
+        float chance=p_label.second*100; // transform to percent
+        // while(chance>=1000){ // just to be safe regarding scale
+        //     chance/=10;
+        // }
+        // while(chance>=200){ // just to be safe regarding scale
+        //     chance/=2;
+        // }
+        if (chance>100){ // limit
+            chance=100;
+        }
+        string res="{ "+cve_ids[i]+": { predicted_exploit: "+to_string(p_label.first)+", label: "+to_string(d_label)+", chance_of_having: "+to_string(chance)+"% } }";
+        res_array_builder.append(res);
+    }
+
+    bsoncxx::document::value update=document{} << "$set" << open_document << "result_stats" << stats_bson << "total_test_cases" << (int)pred_labels.size() << "matching_preds" << correct << "results" << res_array_builder << close_document << finalize;
     getCollection(getDB("neural_db"),"eval_results").update_one(query.view(),update.view());
 }
 

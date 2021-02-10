@@ -61,15 +61,14 @@ vector<pair<vector<int>, vector<float>>> encodeData(vector<pair<vector<int>, vec
     switch(label_type){
         case SlideLabelEncoding::INT_CLASS:
             cout<<"Using INT label\n";
-            data=Utils::encodeDatasetLabelsUsingFirst(data,DataEncoder::DISTINCT_SPARSE);
             break;
         case SlideLabelEncoding::NEURON_BY_NEURON:
             cout<<"Using NEURON_BY_NEURON label\n";
-            data=Utils::encodeDatasetLabelsUsingFirst(data,DataEncoder::BINARY);
+            data=Utils::encodeDatasetLabelsUsingFirst(data,DataEncoder::BINARY,1);
             break;
         case SlideLabelEncoding::NEURON_BY_N_LOG_LOSS:
-            cout<<"Using NEURON_BY_N_LOG_LOSS label\n";
-            data=Utils::encodeDatasetLabelsUsingFirst(data,DataEncoder::BINARY);
+            cout<<"Using NEURON_BY_NEURON_WITH_LOG_LOSS label\n";
+            data=Utils::encodeDatasetLabelsUsingFirst(data,DataEncoder::BINARY,1);
             break;
     }
     return data;
@@ -392,7 +391,7 @@ void trainNeuralNetwork(string independent_net_id,bool load, bool just_train){
         trained_weights=mongo->loadWeightsFromNeuralNet(independent_net_id);
     }else{
         cout<<"Creating network...\n";
-        slide=new Slide(hyper->layers,hyper->layer_sizes,hyper->node_types,train_data[0].second.size(),hyper->alpha,hyper->batch_size,hyper->adam,hyper->label_type,hyper->range_pow,hyper->K,hyper->L,hyper->sparcity,hyper->rehash,hyper->rebuild,train_metric,train_metric,hyper->shuffle,cross_validation,SlideMode::SAMPLING,SlideHashingFunction::DENSIFIED_WTA,print_deltas);
+        slide=new Slide(hyper->layers,hyper->layer_sizes,hyper->node_types,train_data[0].second.size(),train_data[0].first.size(),hyper->alpha,hyper->batch_size,hyper->adam,hyper->label_type,hyper->range_pow,hyper->K,hyper->L,hyper->sparcity,hyper->rehash,hyper->rebuild,train_metric,train_metric,hyper->shuffle,cross_validation,SlideMode::SAMPLING,SlideHashingFunction::DENSIFIED_WTA,print_deltas);
         slide->eagerInit();
         cout<<"Created network...OK\n";
         cout<<"Training network...\n";
@@ -408,7 +407,7 @@ void trainNeuralNetwork(string independent_net_id,bool load, bool just_train){
     if (!just_train){
         Hyperparameters* hyper_2=hyper->clone();
         cout<<"Creating eval network...\n";
-        Slide* slide_2=new Slide(hyper_2->layers,hyper_2->layer_sizes,hyper_2->node_types,train_data[0].second.size(),hyper_2->alpha,hyper_2->batch_size,hyper_2->adam,hyper_2->label_type,hyper_2->range_pow,hyper_2->K,hyper_2->L,hyper_2->sparcity,hyper_2->rehash,hyper_2->rebuild,train_metric,train_metric,hyper_2->shuffle,cross_validation,SlideMode::SAMPLING,SlideHashingFunction::DENSIFIED_WTA,print_deltas);
+        Slide* slide_2=new Slide(hyper_2->layers,hyper_2->layer_sizes,hyper_2->node_types,train_data[0].second.size(),train_data[0].first.size(),hyper_2->alpha,hyper_2->batch_size,hyper_2->adam,hyper_2->label_type,hyper_2->range_pow,hyper_2->K,hyper_2->L,hyper_2->sparcity,hyper_2->rehash,hyper_2->rebuild,train_metric,train_metric,hyper_2->shuffle,cross_validation,SlideMode::SAMPLING,SlideHashingFunction::DENSIFIED_WTA,print_deltas);
         slide_2->setWeights(trained_weights);
         slide_2->eagerInit();
         cout<<"Created eval network...OK\n";
@@ -417,8 +416,8 @@ void trainNeuralNetwork(string independent_net_id,bool load, bool just_train){
         snn_stats train_stats=Utils::statisticalAnalysis(train_data,train_predicted);
         cout<<"Evaluated for statistics...OK\n";
         if (verbose){
-            Utils::printStats(train_stats);
             Utils::compareAndPrintLabel(train_data,train_predicted);
+            Utils::printStats(train_stats);
         }
         cout<<"Writing results...\n";
         mongo->appendStatsOnNeuralNet(independent_net_id,"train_stats",train_stats);
@@ -518,18 +517,20 @@ void evalNeuralNetwork(string independent_net_id, string result_id, string eval_
     cout<<"Loaded CVE data...OK\n";
     const bool print_deltas=true;
     cout<<"Creating network...\n";
-    Slide* slide=new Slide(hyper->layers,hyper->layer_sizes,hyper->node_types,cve_data[0].second.size(),hyper->alpha,hyper->batch_size,hyper->adam,hyper->label_type,hyper->range_pow,hyper->K,hyper->L,hyper->sparcity,hyper->rehash,hyper->rebuild,test_metric,test_metric,hyper->shuffle,cross_validation,SlideMode::SAMPLING,SlideHashingFunction::DENSIFIED_WTA,print_deltas);
+    Slide* slide=new Slide(hyper->layers,hyper->layer_sizes,hyper->node_types,cve_data[0].second.size(),cve_data[0].first.size(),hyper->alpha,hyper->batch_size,hyper->adam,hyper->label_type,hyper->range_pow,hyper->K,hyper->L,hyper->sparcity,hyper->rehash,hyper->rebuild,test_metric,test_metric,hyper->shuffle,cross_validation,SlideMode::SAMPLING,SlideHashingFunction::DENSIFIED_WTA,print_deltas);
     slide->setWeights(mongo->loadWeightsFromNeuralNet(independent_net_id));
     slide->eagerInit();
     cout<<"Created network...OK\n";
     cout<<"Evaluating data...\n";
     pair<int,vector<vector<pair<int,float>>>> predicted = slide->evalData(cve_data);
+    snn_stats cve_stats=Utils::statisticalAnalysis(cve_data,predicted.second);
     cout<<"Evaluated data...OK\n";
     if (verbose){
         Utils::compareAndPrintLabel(cve_data,predicted.second);
+        Utils::printStats(cve_stats);
     }
     cout<<"Writing results...\n";
-    mongo->storeEvalNeuralNetResult(result_id,predicted.first,cve_ids,predicted.second);
+    mongo->storeEvalNeuralNetResult(result_id,predicted.first,cve_ids,predicted.second,cve_data,cve_stats);
     cout<<"Wrote results...OK\n";
     cout<<"Evaluated neural network "+independent_net_id+"...\n";
     delete slide;

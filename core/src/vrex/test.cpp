@@ -169,7 +169,7 @@ void testSlide_IntLabel(){
     int rebuild=128000;
     bool print_deltas=true;
     SlideLabelEncoding label_type=SlideLabelEncoding::INT_CLASS;
-    Slide* slide=new Slide(layers, layer_sizes, Slide::getStdLayerTypes(layers), train_data[0].second.size(), alpha, batch_size, adam, label_type,
+    Slide* slide=new Slide(layers, layer_sizes, Slide::getStdLayerTypes(layers), train_data[0].second.size(), train_data[0].first.size(), alpha, batch_size, adam, label_type,
     range_pow, K, L, sparcity, rehash, rebuild,SlideMetric::RAW_LOSS,SlideMetric::RAW_LOSS,shuffle_train_data, SlideCrossValidation::NONE, SlideMode::SAMPLING, SlideHashingFunction::DENSIFIED_WTA, print_deltas);
     vector<float>train_losses=slide->trainNoValidation(train_data,epochs);
     for (float loss:train_losses){
@@ -234,7 +234,7 @@ void testSlide_NeuronByNeuronLabel(){
     int rehash=6400;
     int rebuild=128000;
     bool print_deltas=true;
-    Slide* slide=new Slide(layers, layer_sizes, Slide::getStdLayerTypes(layers), train_data[0].second.size(), alpha, batch_size, adam, label_type,
+    Slide* slide=new Slide(layers, layer_sizes, Slide::getStdLayerTypes(layers), train_data[0].second.size(), train_data[0].first.size(), alpha, batch_size, adam, label_type,
     range_pow, K, L, sparcity, rehash, rebuild,SlideMetric::RAW_LOSS,SlideMetric::RAW_LOSS,shuffle_train_data, SlideCrossValidation::NONE, SlideMode::SAMPLING, SlideHashingFunction::DENSIFIED_WTA, print_deltas);
     vector<float>train_losses=slide->trainNoValidation(train_data,epochs);
     float total_loss=0;
@@ -414,7 +414,7 @@ void testSlide_Validation(){
     int rebuild=128000;
     bool print_deltas=true;
     SlideLabelEncoding label_type=SlideLabelEncoding::INT_CLASS;
-    Slide* slide=new Slide(layers, layer_sizes, Slide::getStdLayerTypes(layers), train_data[0].second.size(), alpha, batch_size, adam, label_type,
+    Slide* slide=new Slide(layers, layer_sizes, Slide::getStdLayerTypes(layers), train_data[0].second.size(), train_data[0].first.size(), alpha, batch_size, adam, label_type,
     range_pow, K, L, sparcity, rehash, rebuild,SlideMetric::ACCURACY,SlideMetric::ACCURACY,shuffle_train_data, cv, SlideMode::SAMPLING, SlideHashingFunction::DENSIFIED_WTA, print_deltas);
     vector<pair<float,float>> metrics=slide->train(train_data,epochs);
     for (pair<float,float> me:metrics){
@@ -676,7 +676,7 @@ void testSmartNeuralNetwork_cveData(){
     SlideLabelEncoding label_type=SlideLabelEncoding::INT_CLASS;
 
 
-    Slide* slide=new Slide(layers, layer_sizes, Slide::getStdLayerTypes(layers), train_data[0].second.size(), alpha, batch_size, adam, label_type,
+    Slide* slide=new Slide(layers, layer_sizes, Slide::getStdLayerTypes(layers), train_data[0].second.size(), train_data[0].first.size(), alpha, batch_size, adam, label_type,
     range_pow, K, L, sparcity, rehash, rebuild,SlideMetric::RAW_LOSS,SlideMetric::RAW_LOSS,shuffle_train_data, SlideCrossValidation::NONE, SlideMode::SAMPLING, SlideHashingFunction::DENSIFIED_WTA, print_deltas);
     vector<float>train_losses=slide->trainNoValidation(train_data,epochs);
     for (float loss:train_losses){
