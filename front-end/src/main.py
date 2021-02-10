@@ -348,7 +348,7 @@ def main(argv){
                             job_args={'eval_data':eval_cve,'result_id':result_id,'independent_net_id':str(independent_net['_id'])}
                         }
                         LOGGER.info('Writting on Core queue to eval network...')
-                        mongo.insertOnCoreQueue('Eval SNN',job_args)
+                        mongo.insertOnCoreQueue('Eval SNN',job_args,priority=1)
                         LOGGER.info('Wrote on Core queue to eval network...OK')
                     }
                 }
@@ -417,7 +417,7 @@ def main(argv){
 
                         LOGGER.info('Writting on Core queue to train network...')
                         job_args={'independent_net_id':independent_net_id}
-                        mongo.insertOnCoreQueue('Train SNN',job_args)
+                        mongo.insertOnCoreQueue('Train SNN',job_args,priority=2)
                         LOGGER.info('Wrote on Core queue to train network...OK')
                     }
                 }
@@ -508,7 +508,7 @@ def main(argv){
 
                             LOGGER.info('Writting on Core queue to run genetic simulation...')
                             job_args={'simulation_id':simulation_id}
-                            mongo.insertOnCoreQueue('Genetic',job_args)
+                            mongo.insertOnCoreQueue('Genetic',job_args,priority=3)
                             LOGGER.info('Wrote on Core queue to run genetic simulation...OK')
                         }
                     }

@@ -302,24 +302,24 @@ class MongoDB(object){
         return out
     }
 
-    def insertOnQueue(self,queue,task,args=None){
+    def insertOnQueue(self,queue,task,args=None,priority=0){
         payload={'task': task}
         if args{
             payload['args']=args
         }
-        self.queues[queue].put(payload)
+        self.queues[queue].put(payload,priority=priority)
     }
 
-    def insertOnCrawlerQueue(self,task,args=None){
-        self.insertOnQueue(MongoDB.QUEUE_COL_CRAWLER_NAME,task,args)
+    def insertOnCrawlerQueue(self,task,args=None,priority=0){
+        self.insertOnQueue(MongoDB.QUEUE_COL_CRAWLER_NAME,task,args,priority=priority)
     }
 
-    def insertOnProcessorQueue(self,task,args=None){
-        self.insertOnQueue(MongoDB.QUEUE_COL_PROCESSOR_NAME,task,args)
+    def insertOnProcessorQueue(self,task,args=None,priority=0){
+        self.insertOnQueue(MongoDB.QUEUE_COL_PROCESSOR_NAME,task,args,priority=priority)
     }
 
-    def insertOnCoreQueue(self,task,args=None){
-        self.insertOnQueue(MongoDB.QUEUE_COL_CORE_NAME,task,args)
+    def insertOnCoreQueue(self,task,args=None,priority=0){
+        self.insertOnQueue(MongoDB.QUEUE_COL_CORE_NAME,task,args,priority=priority)
     }
 
     def findOneOnDB(self,db,collection,query,wait_unlock=True){
