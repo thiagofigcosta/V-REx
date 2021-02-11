@@ -28,6 +28,12 @@ docker exec -it $(docker container ls | grep front-end | cut -f 1 -d' ') front
 ## To follow logs
 
 To follow logs type one of the commands below
+
+### Core
+```
+docker logs --follow $(docker container ls | grep core | cut -f 1 -d' ')
+```
+
 ### Data Crawler
 ```
 docker logs --follow $(docker container ls | grep data-crawler | cut -f 1 -d' ')
