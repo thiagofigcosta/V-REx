@@ -53,6 +53,7 @@ Inside .env file
 
 ## Running with Docker compose (recommended)
 ```
+docker build -f core/BaseImage.dockerfile -t ubuntu_2004_vrex_core_build core/ # only once because this is a cache image with just libraries
 docker-compose build
 docker-compose up
 ```
@@ -102,6 +103,7 @@ docker rmi -f $(docker images -f "dangling=true" -q) # cleanup <none> images
 
 #### Core
 ```
+./update_Pytho\{N\}.sh # update Pytho{\}
 docker build -f core/BaseImage.dockerfile -t ubuntu_2004_vrex_core_build core/ # build base image
 docker build -f core/Dockerfile -t core:v1.0.0 core/ # build image
 docker rmi -f $(docker images -f "dangling=true" -q) # cleanup <none> images

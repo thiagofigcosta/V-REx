@@ -1,6 +1,15 @@
 version: '3.3'
 
 services:
+    core:
+        build: 
+            context: core
+            dockerfile: Dockerfile
+        restart: always
+        depends_on:
+            - mongo
+        networks:
+            - mongo-network
     data-crawler:
         build: 
             context: data-crawler
