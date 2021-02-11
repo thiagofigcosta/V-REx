@@ -12,7 +12,7 @@ set_stack_size=False
 debug_args=False
 verbose_neural=False
 avoid_genetic_cache=False
-
+mongo_addr=''
 
 Utils.createFolderIfNotExists(TMP_FOLDER)
 LOGGER=Logger(TMP_FOLDER,name='controller')
@@ -141,6 +141,8 @@ def loopOnQueue(){
                     }
                     if not done{
                         raise Exception('Failed to eval neural network ({}) with data: {}'.format(payload['args']['independent_net_id'],payload['args']['eval_data']))
+                    }else{
+                        LOGGER.info('Result stored at {}/neural_db/eval_results/{}'.format(mongo_addr,payload['args']['result_id']))
                     }
                 }
                 if job{

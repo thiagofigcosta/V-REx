@@ -128,6 +128,13 @@ docker run front-end:v1.0.0
 ```
 
 #### Core
+
+##### With Controller
+```
+docker run core:v1.0.0
+```
+
+##### Standalone
 ```
 docker run core:v1.0.0
 ```

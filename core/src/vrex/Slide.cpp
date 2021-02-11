@@ -77,6 +77,8 @@ pair<float,float> Slide::trainEpoch(vector<pair<vector<int>, vector<float>>> &tr
     // int num_batches=(train_data.size() + batch_size-1)/batch_size; // ERROR, round UP causes segfault
     int num_batches=train_data.size()/batch_size;
     float train_loss=0;
+    bool train_and_classify=train_metric!=SlideMetric::RAW_LOSS; // can be a external function on future
+    vector<vector<pair<int,float>>> train_data_classified;
     for (size_t i = 0; i <(size_t)num_batches; i++) {
         int iter=cur_epoch*num_batches+i;
         vector<pair<vector<int>, vector<float>>> batch_data=Utils::extractSubVector(train_data, i*batch_size, batch_size);
@@ -96,10 +98,19 @@ pair<float,float> Slide::trainEpoch(vector<pair<vector<int>, vector<float>>> &tr
         int *sizes, *labelsize;
         int **records, **labels;
         allocAndCastDatasetToSlide(batch_data,values,sizes,records,labels,labelsize);
-
-        train_loss+=slide_network->ProcessInput(records, values, sizes, labels, labelsize, 
+        if (train_and_classify){
+            pair<float,vector<vector<pair<int,float>>>> loss_and_classes=slide_network->ProcessInputAndRetrieveClass(records, values, sizes, labels, labelsize, 
+                                                                                    iter, must_rehash, must_rebuild);
+            train_loss+=loss_and_classes.first;
+            train_data_classified.insert(train_data_classified.end(),loss_and_classes.second.begin(),loss_and_classes.second.end());
+            for (vector<pair<int,float>> d:loss_and_classes.second){
+                d.clear();
+            }
+            loss_and_classes.second.clear();
+        }else{
+            train_loss+=slide_network->ProcessInput(records, values, sizes, labels, labelsize, 
                                                 iter, must_rehash, must_rebuild);
-
+        }
         for (pair<vector<int>, vector<float>> v:batch_data){
             v.first.clear();
             v.second.clear();
@@ -115,16 +126,32 @@ pair<float,float> Slide::trainEpoch(vector<pair<vector<int>, vector<float>>> &tr
             train=train_loss;
             break;
         case SlideMetric::F1:
-            train=Utils::statisticalAnalysis(train_data,evalData(train_data).second).f1;
+            if (train_and_classify){
+                train=Utils::statisticalAnalysis(train_data,train_data_classified).f1;
+            }else{
+                train=Utils::statisticalAnalysis(train_data,evalData(train_data).second).f1;
+            }
             break;
         case SlideMetric::RECALL:
-            train=Utils::statisticalAnalysis(train_data,evalData(train_data).second).recall;
+            if (train_and_classify){
+                train=Utils::statisticalAnalysis(train_data,train_data_classified).recall;
+            }else{
+                train=Utils::statisticalAnalysis(train_data,evalData(train_data).second).recall;
+            }
             break;
         case SlideMetric::ACCURACY:
-            train=Utils::statisticalAnalysis(train_data,evalData(train_data).second).accuracy;
+            if (train_and_classify){
+                train=Utils::statisticalAnalysis(train_data,train_data_classified).accuracy;
+            }else{
+                train=Utils::statisticalAnalysis(train_data,evalData(train_data).second).accuracy;
+            }
             break;
         case SlideMetric::PRECISION:
-            train=Utils::statisticalAnalysis(train_data,evalData(train_data).second).precision;
+            if (train_and_classify){
+                train=Utils::statisticalAnalysis(train_data,train_data_classified).precision;
+            }else{
+                train=Utils::statisticalAnalysis(train_data,evalData(train_data).second).precision;
+            }
             break;
     }
 

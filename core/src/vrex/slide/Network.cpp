@@ -118,6 +118,207 @@ Layer *Network::getLayer(int LayerID) {
     }
 }
 
+pair<float,vector<vector<pair<int,float>>>> Network::ProcessInputAndRetrieveClass(int** inputIndices, float** inputValues, int* lengths, int ** labels, int *labelsize, int iter, bool rehash, bool rebuild){
+    lateInit();
+    vector<vector<pair<int,float>>> predicted_classes(_currentBatchSize, vector<pair<int,float>>(_outputDim, pair<int,float>(0,0.0)));
+    if(iter%6946==6945 ){
+        int at=1;
+        if (at<_numberOfLayers)
+            _hiddenlayers[at]->updateRandomNodes();
+    }
+    float tmplr = _learningRate;
+    if (use_adam) {
+        tmplr = _learningRate * sqrt((1 - pow(Slide::ADAM_OT_BETA2, iter + 1))) /
+                (1 - pow(Slide::ADAM_OT_BETA1, iter + 1));
+    }
+
+    int*** activeNodesPerBatch = new int**[_currentBatchSize];
+    float*** activeValuesPerBatch = new float**[_currentBatchSize];
+    int** sizesPerBatch = new int*[_currentBatchSize];
+    float* metric = new float[_currentBatchSize];
+#pragma omp parallel for
+    for (int i = 0; i < _currentBatchSize; i++) {
+        int **activenodesperlayer = new int *[_numberOfLayers + 1]();
+        float **activeValuesperlayer = new float *[_numberOfLayers + 1]();
+        int *sizes = new int[_numberOfLayers + 1]();
+
+        activeNodesPerBatch[i] = activenodesperlayer;
+        activeValuesPerBatch[i] = activeValuesperlayer;
+        sizesPerBatch[i] = sizes;
+
+        activenodesperlayer[0] = inputIndices[i];  // inputs parsed from training data file
+        activeValuesperlayer[0] = inputValues[i];
+        sizes[0] = lengths[i];
+        // forward propagation
+        for (int j = 0; j < _numberOfLayers; j++) {
+            _hiddenlayers[j]->queryActiveNodeandComputeActivations(activenodesperlayer, activeValuesperlayer, sizes, j, i, labels[i], labelsize[i],
+                    _Sparsity[j], iter*_currentBatchSize+i);
+        }
+
+        //compute softmax
+        int noOfClasses = sizes[_numberOfLayers];
+        float max_act = numeric_limits<int>::min();
+        int predicted_class_pos = -1;
+        for (int k = 0; k < noOfClasses; k++) {
+            float cur_act = _hiddenlayers[_numberOfLayers - 1]->getNodebyID(activenodesperlayer[_numberOfLayers][k])->getLastActivation(i);
+            if (max_act < cur_act) {
+                max_act = cur_act;
+                predicted_class_pos = activenodesperlayer[_numberOfLayers][k];
+            }
+            predicted_classes[i][k].second=cur_act;
+        }
+        if (noOfClasses==1){
+            predicted_classes[i][predicted_class_pos].second*=100;
+            if(predicted_classes[i][predicted_class_pos].second>Slide::SINGLE_CLASS_THRESHOLD){
+                predicted_classes[i][predicted_class_pos].first=1;
+            }
+        }else{
+            if (label_type!=SlideLabelEncoding::INT_CLASS){
+                // float norm=(_hiddenlayers[_numberOfLayers - 1]->getNomalizationConstant(i)+Slide::SOFTMAX_LINEAR_CONSTANT);
+                predicted_classes[i][predicted_class_pos].first=labels[i][predicted_class_pos];
+            }else{
+                predicted_classes[i][0].first=predicted_class_pos;
+            }
+        }
+
+        //Now backpropagate.
+        // layers
+        metric[i]=0;
+        for (int j = _numberOfLayers - 1; j >= 0; j--) {
+            Layer* layer = _hiddenlayers[j];
+            Layer* prev_layer; 
+            if (j!=0){
+                prev_layer = _hiddenlayers[j - 1];
+            }
+            // nodes
+            for (int k = 0; k < sizesPerBatch[i][j + 1]; k++) {
+                Node* node = layer->getNodebyID(activeNodesPerBatch[i][j + 1][k]);
+                if (j == _numberOfLayers - 1) {
+                    //TODO: Compute Extra stats: labels[i];
+                    // calculate loss
+                    float error=node->ComputeExtaStatsForSoftMax(layer->getNomalizationConstant(i), i, labels[i], labelsize[i]);
+                    if(Slide::MEAN_ERROR_INSTEAD_OF_GRADS_SUM){
+                        metric[i]+=abs(error);
+                    }
+                }
+                float grads_i;
+                if (j != 0) {
+                    grads_i=node->backPropagate(prev_layer->getAllNodes(), activeNodesPerBatch[i][j], sizesPerBatch[i][j], tmplr, i);
+                } else {
+                    grads_i=node->backPropagateFirstLayer(inputIndices[i], inputValues[i], lengths[i], tmplr, i);
+                }
+                if(!Slide::MEAN_ERROR_INSTEAD_OF_GRADS_SUM){
+                    metric[i]+=grads_i;
+                }
+            }
+        }
+    }
+    for (int i = 0; i < _currentBatchSize; i++) {
+        //Free memory to avoid leaks
+        delete[] sizesPerBatch[i];
+        for (int j = 1; j < _numberOfLayers + 1; j++) {	
+            GarbageCollector::get()->rmInt1d(activeNodesPerBatch[i][j]);
+            delete[] activeNodesPerBatch[i][j];	
+            GarbageCollector::get()->rmFloat1d(activeValuesPerBatch[i][j]);
+            delete[] activeValuesPerBatch[i][j];	
+        }
+        delete[] activeNodesPerBatch[i];
+        delete[] activeValuesPerBatch[i];
+    }
+
+    delete[] activeNodesPerBatch;
+    delete[] activeValuesPerBatch;
+    delete[] sizesPerBatch;
+
+    bool tmpRehash;
+    bool tmpRebuild;
+
+    for (int l=0; l<_numberOfLayers ;l++) {
+        if(rehash & (_Sparsity[l]<1)){
+            tmpRehash=true;
+        }else{
+            tmpRehash=false;
+        }
+        if(rebuild & (_Sparsity[l]<1)){
+            tmpRebuild=true;
+        }else{
+            tmpRebuild=false;
+        }
+        if (tmpRehash) {
+            _hiddenlayers[l]->_hashTables->clear();
+        }
+        if (tmpRebuild){
+            _hiddenlayers[l]->updateTable();
+        }
+        int ratio = 1;
+#pragma omp parallel for
+        for (size_t m = 0; m < _hiddenlayers[l]->_noOfNodes; m++)
+        {
+            Node *tmp = _hiddenlayers[l]->getNodebyID(m);
+            int dim = tmp->_dim;
+            float* local_weights = new float[dim];
+            std::copy(tmp->_weights, tmp->_weights + _hiddenlayers[l]->size_2d, local_weights);
+
+            if(use_adam){
+                for (int d=0; d < dim;d++){
+                    float _t = tmp->_t[d];
+                    float Mom = tmp->_adamAvgMom[d];
+                    float Vel = tmp->_adamAvgVel[d];
+                    Mom = Slide::ADAM_OT_BETA1 * Mom + (1 - Slide::ADAM_OT_BETA1) * _t;
+                    Vel = Slide::ADAM_OT_BETA2 * Vel + (1 - Slide::ADAM_OT_BETA2) * _t * _t;
+                    local_weights[d] += ratio * tmplr * Mom / (sqrt(Vel) + Slide::ADAM_OT_EPSILON);
+                    tmp->_adamAvgMom[d] = Mom;
+                    tmp->_adamAvgVel[d] = Vel;
+                    tmp->_t[d] = 0;
+                }
+
+                tmp->_adamAvgMombias = Slide::ADAM_OT_BETA1 * tmp->_adamAvgMombias + (1 - Slide::ADAM_OT_BETA1) * tmp->_tbias;
+                tmp->_adamAvgVelbias = Slide::ADAM_OT_BETA2 * tmp->_adamAvgVelbias + (1 - Slide::ADAM_OT_BETA2) * tmp->_tbias * tmp->_tbias;
+                tmp->_bias += ratio*tmplr * tmp->_adamAvgMombias / (sqrt(tmp->_adamAvgVelbias) + Slide::ADAM_OT_EPSILON);
+                tmp->_tbias = 0;
+                std::copy(local_weights, local_weights + _hiddenlayers[l]->size_2d, tmp->_weights);
+            }
+            else
+            {
+                std::copy(tmp->_mirrorWeights, tmp->_mirrorWeights+ _hiddenlayers[l]->size_2d , tmp->_weights);
+                tmp->_bias = tmp->_mirrorbias;
+            }
+            if (tmpRehash) {
+                int *hashes;
+                if(hash_func==SlideHashingFunction::WTA) {
+                    hashes = _hiddenlayers[l]->_wtaHasher->getHash(local_weights);
+                }else if (hash_func==SlideHashingFunction::DENSIFIED_WTA){
+                    hashes = _hiddenlayers[l]->_dwtaHasher->getHashEasy(local_weights, dim, Slide::TOPK_HASH_TOPK);
+                }else if (hash_func==SlideHashingFunction::TOPK_MIN_HASH){
+                    hashes = _hiddenlayers[l]->_MinHasher->getHashEasy(_hiddenlayers[l]->_binids, local_weights, dim, Slide::TOPK_HASH_TOPK);
+                }else if (hash_func==SlideHashingFunction::SIMHASH){
+                    hashes = _hiddenlayers[l]->_srp->getHash(local_weights, dim);
+                }
+
+                int *hashIndices = _hiddenlayers[l]->_hashTables->hashesToIndex(hashes);
+                int * bucketIndices = _hiddenlayers[l]->_hashTables->add(hashIndices, m+1);
+                #pragma GCC diagnostic push 
+                #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+                delete[] hashes;
+                #pragma GCC diagnostic pop 
+                delete[] hashIndices;
+                delete[] bucketIndices;
+            }
+
+
+            delete[] local_weights;
+        }
+    }
+
+    float total_metrics=0;
+    for (size_t i=0;i<(size_t)_currentBatchSize;i++){
+        total_metrics+=metric[i];
+    }
+    delete[] metric;
+    total_metrics/=_currentBatchSize;
+
+    return pair<float,vector<vector<pair<int,float>>>>(total_metrics,predicted_classes);;
+}
 
 pair<int,vector<vector<pair<int,float>>>> Network::predictClass(int **inputIndices, float **inputValues, int *length, int **labels, int *labelsize) {
     lateInit();
