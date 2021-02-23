@@ -192,8 +192,6 @@ void runGeneticSimulation(string simulation_id){
             label_encoding=SlideLabelEncoding::NEURON_BY_N_LOG_LOSS;
             break;
     }
-    simu_data.first.clear();
-    simu_data.second.clear();
     SPACE_SEARCH search_space = mongo->fetchEnvironmentData(environment_name);
     vector<int> cve_years;
     for(string y:str_cve_years){
@@ -222,6 +220,8 @@ void runGeneticSimulation(string simulation_id){
     for(FLOAT_SPACE_SEARCH float_s:search_space.second){
         cout<<"\tmin: "<<float_s.first<<" max: "<<float_s.second<<endl;
     }    
+    simu_data.first.clear();
+    simu_data.second.clear();
     cout<<"Parsed genetic settings...OK\n";
     cout<<"Loading CVE data...\n";
     vector<pair<vector<int>, vector<float>>> train_data = mongo->loadCvesFromYears(cve_years, train_data_limit).second;
@@ -378,6 +378,8 @@ void trainNeuralNetwork(string independent_net_id,bool load, bool just_train){
         cout<<"\t\tnode_types["<<i<<"]: "<<static_cast<underlying_type<NodeType>::type>(hyper->node_types[i])<<endl;
     for(int i=0;i<hyper->layers;i++)
         cout<<"\t\tsparcity["<<i<<"]: "<<hyper->sparcity[i]<<endl;
+    train_mdata.first.clear();
+    train_mdata.second.clear();
     cout<<"Parsed training settings...OK\n";
     cout<<"Loading CVE data...\n";
     vector<pair<vector<int>, vector<float>>> train_data = mongo->loadCvesFromYears(cve_years_train, train_limit).second;
@@ -491,6 +493,8 @@ void evalNeuralNetwork(string independent_net_id, string result_id, string eval_
             break;
     }
     Hyperparameters* hyper=mongo->fetchHyperparametersData(hyper_name);
+    eval_mdata.first.clear();
+    eval_mdata.second.clear();
     cout<<"Parsed evaluate settings...OK\n";
     cout<<"Loading CVE data...\n";
     if (eval_data.rfind("CVE", 0) == 0) {
