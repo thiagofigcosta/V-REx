@@ -50,6 +50,7 @@ class EnchancedGenetic : public GeneticAlgorithm{
         //methods 
         Genome* age(Genome *individual, int cur_population_size);
         void mutate(Genome *individual);
+        void forceMutate(Genome *individual);
         bool isRelative(Genome *father, Genome *mother);
         float randomize();
         int getLifeLeft(Genome *individual);
