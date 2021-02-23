@@ -276,6 +276,26 @@ void EnchancedGenetic::mutate(Genome *individual){
     individual->setDna(xmen_dna);
 }
 
+void EnchancedGenetic::forceMutate(Genome *individual){
+    pair<vector<int>,vector<float>> xmen_dna=individual->getDna();
+    for(size_t i=0;i<xmen_dna.first.size();i++){
+        if (i != index_age && i!= index_max_age && i != index_max_children) {
+            xmen_dna.first[i]*=randomize();
+        }
+    }
+    for(size_t i=0;i<xmen_dna.second.size();i++){
+        xmen_dna.second[i]*=randomize();
+    }
+    individual->setDna(xmen_dna);
+
+    int age=xmen_dna.first[index_age];
+    individual->checkLimits();
+
+    xmen_dna=individual->getDna();
+    xmen_dna.first[index_age]=age;
+    individual->setDna(xmen_dna);
+}
+
 bool EnchancedGenetic::isRelative(Genome *father, Genome *mother){
     return father->getMtDna()==mother->getMtDna();
 }
@@ -300,7 +320,7 @@ bool EnchancedGenetic::recycleBadIndividuals(vector<Genome*> &individuals){
                 }
                 dna.first[index_age]=-1;
                 individuals[t]->setDna(dna);
-                mutate(individuals[t]); // explore
+                forceMutate(individuals[t]); // explore
                 individuals[t]->evaluate();
                 recycled=true;
             }
