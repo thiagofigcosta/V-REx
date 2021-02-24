@@ -134,11 +134,11 @@ void PopulationManager::naturalSelection(int gens,bool verbose){
         }
         t2 = chrono::high_resolution_clock::now();
         long delta = chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
-        if (print_deltas) {
-            cout<<"Generation "<<g<<" of "<<gens<<", size: "<<population.size()<<" takes: "<<Utils::msToHumanReadable(delta)<<endl;
-        }
         if(after_gen_cb){
             after_gen_cb((int)population.size(),g,best_out,delta,population,hall_of_fame);
+        }
+        if (print_deltas) {
+            cout<<"Generation "<<g<<" of "<<gens<<", size: "<<population.size()<<" takes: "<<Utils::msToHumanReadable(delta)<<endl;
         }
     }
 }
