@@ -19,6 +19,7 @@ bool trap_signals=false;
 bool connect_mongo=true;
 bool set_stack_size=false;
 bool cache_genetic=true;
+bool store_genetic_populations_only_on_last_gen=false;
 bool single_thread=false;
 bool verbose=false;
 string custom_mongo_ip=""; 
@@ -264,12 +265,20 @@ void runGeneticSimulation(string simulation_id){
     };
     auto after_gen_callback = [&](int pop_size,int g,float best_out,long timestamp_ms,vector<Genome*> population,HallOfFame *hall_of_fame) -> void {
         if (hall_of_fame){
+            cout<<"\tStoring Hall of Fame Best Individuals..."<<endl;
             mongo->updateBestOnGeneticSimulation(simulation_id,hall_of_fame->getBest(),Utils::getStrNow());
+            cout<<"\tStored Hall of Fame Best Individuals...OK"<<endl;
         }
+        cout<<"\tStoring generation metadata..."<<endl;
         mongo->appendResultOnGeneticSimulation(simulation_id,pop_size,g,best_out,timestamp_ms);
-        mongo->clearPopulationNeuralGenomeVector(population_id,Utils::getStrNow());
-        for (Genome* g:population){
-            mongo->addToPopulationNeuralGenomeVector(population_id,dynamic_cast<NeuralGenome*>(g),Utils::getStrNow());
+        cout<<"\tStored generation metadata...OK"<<endl;
+        if ((!store_genetic_populations_only_on_last_gen)||g==max_gens){
+            cout<<"\tStoring population..."<<endl;
+            mongo->clearPopulationNeuralGenomeVector(population_id,Utils::getStrNow());
+            for (Genome* g:population){
+                mongo->addToPopulationNeuralGenomeVector(population_id,dynamic_cast<NeuralGenome*>(g),Utils::getStrNow());
+            }
+            cout<<"\tStored population...OK"<<endl;
         }
     };
     mongo->clearResultOnGeneticSimulation(simulation_id);
