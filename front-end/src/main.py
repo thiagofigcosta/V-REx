@@ -360,7 +360,7 @@ def main(argv){
                 simulation=mongo.findOneOnDB(mongo.getDB('genetic_db'),'simulations',query)
 
                 if simulation!=None{
-                    query={'_id':simulation['population_id']}
+                    query={'_id':bson.ObjectId(simulation['population_id'])}
                     population=mongo.findOneOnDB(mongo.getDB('neural_db'),'populations',query)
                     if population!=None{
                         LOGGER.info('Updating individual_net on neural_db...')

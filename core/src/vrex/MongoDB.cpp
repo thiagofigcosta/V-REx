@@ -275,8 +275,8 @@ SPACE_SEARCH MongoDB::fetchEnvironmentData(string name){
             k_values = INT_SPACE_SEARCH(K_vw["min"].get_int32(),K_vw["max"].get_int32());
             l_values = INT_SPACE_SEARCH(L_vw["min"].get_int32(),L_vw["max"].get_int32());
             activation_funcs = INT_SPACE_SEARCH(activation_functions_vw["min"].get_int32(),activation_functions_vw["max"].get_int32());
-            sparcity = FLOAT_SPACE_SEARCH((float)sparcity_vw["min"].get_double(),(float)sparcity_vw["max"].get_double());
-            alpha = FLOAT_SPACE_SEARCH((float)alpha_vw["min"].get_double(),(float)alpha_vw["max"].get_double());
+            sparcity = FLOAT_SPACE_SEARCH(getFloatFromEl(sparcity_vw["min"]),getFloatFromEl(sparcity_vw["max"]));
+            alpha = FLOAT_SPACE_SEARCH(getFloatFromEl(alpha_vw["min"]),getFloatFromEl(alpha_vw["max"]));
         }else{
             throw runtime_error("Error invalid type: "+bsoncxx::to_string(space_search_el.type())+"\n");
         }
@@ -429,7 +429,7 @@ Hyperparameters* MongoDB::fetchHyperparametersData(string name){
     int layers=maybe_result->view()["layers"].get_int32();
     Hyperparameters* hyper=new Hyperparameters(layers);
     hyper->batch_size=maybe_result->view()["batch_size"].get_int32();
-    hyper->alpha=(float)maybe_result->view()["alpha"].get_double();
+    hyper->alpha=getFloatFromEl(maybe_result->view()["alpha"]);
     hyper->shuffle=maybe_result->view()["shuffle"].get_bool();
     hyper->adam=maybe_result->view()["adam"].get_bool();
     hyper->rehash=maybe_result->view()["rehash"].get_int32();
