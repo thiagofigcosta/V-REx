@@ -332,7 +332,7 @@ bsoncxx::document::value MongoDB::castNeuralGenomeToBson(NeuralGenome* ng,bool s
             <<"int_dna"<<int_dna
             <<"float_dna"<<float_dna
             <<"output"<<ng->getOutput()
-            <<"weights"<<Utils::serializeWeigthsToStr(ng->getWeights())
+            <<"weights"<<Utils::stringToBase64(Utils::serializeWeigthsToStr(ng->getWeights()))
             << finalize;
             ng->clearWeightsIfCached();
             return full;
@@ -553,7 +553,7 @@ void MongoDB::appendStatsOnNeuralNet(string id,string field_name,snn_stats stats
 
 void MongoDB::appendWeightsOnNeuralNet(string id,const map<string, vector<float>> weights){
     bsoncxx::document::value query=document{} << "_id" << bsoncxx::oid{id} << finalize;
-    bsoncxx::document::value update=document{} << "$set" << open_document << "weights" <<  Utils::serializeWeigthsToStr(weights) << close_document << finalize;
+    bsoncxx::document::value update=document{} << "$set" << open_document << "weights" <<  Utils::stringToBase64(Utils::serializeWeigthsToStr(weights)) << close_document << finalize;
     getCollection(getDB("neural_db"),"independent_net").update_one(query.view(),update.view());
 }
 
@@ -573,7 +573,7 @@ map<string, vector<float>> MongoDB::loadWeightsFromNeuralNet(string id){
     }
     map<string, vector<float>> weights;
     if (weights_str!=""){
-        weights=Utils::deserializeWeigthsFromStr(weights_str);
+        weights=Utils::deserializeWeigthsFromStr(Utils::base64ToString(weights_str));
     }
     return weights;
 }
