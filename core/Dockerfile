@@ -15,7 +15,7 @@ RUN pip3 install --user -r /vrex/ctrl/requirements.txt
 
 COPY raw-core-entrypoint.sh /standalone-core-entrypoint.sh
 RUN chmod +x /standalone-core-entrypoint.sh
-RUN ln -s /standalone-core-entrypoint.sh/usr/bin/args
+RUN ln -s /standalone-core-entrypoint.sh /usr/bin/args
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 ENV PATH=/root/.local/bin:$PATH
