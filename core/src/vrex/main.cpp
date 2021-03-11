@@ -383,8 +383,8 @@ void trainNeuralNetwork(string independent_net_id,bool load, bool just_train){
     cout<<"\tlayers: "<<hyper->layers<<endl;
     for(int i=0;i<hyper->layers;i++){
         cout<<"\t\tlayer_sizes["<<i<<"]: "<<hyper->layer_sizes[i]<<endl;
-        if ((size_t)layer_sizes[i]>maxNodes){
-                maxNodes=(size_t)layer_sizes[i];
+        if ((size_t)hyper->layer_sizes[i]>maxNodes){
+                maxNodes=(size_t)hyper->layer_sizes[i];
         }
     }
     for(int i=0;i<hyper->layers;i++)
@@ -548,8 +548,8 @@ void evalNeuralNetwork(string independent_net_id, string result_id, string eval_
     cout<<"\tlayers: "<<hyper->layers<<endl;
     for(int i=0;i<hyper->layers;i++){
         cout<<"\t\tlayer_sizes["<<i<<"]: "<<hyper->layer_sizes[i]<<endl;
-        if ((size_t)layer_sizes[i]>maxNodes){
-                maxNodes=(size_t)layer_sizes[i];
+        if ((size_t)hyper->layer_sizes[i]>maxNodes){
+                maxNodes=(size_t)hyper->layer_sizes[i];
         }
     }
     for(int i=0;i<hyper->layers;i++)
