@@ -532,11 +532,9 @@ void evalNeuralNetwork(string independent_net_id, string result_id, string eval_
     cve_data=encodeData(cve_data,hyper->label_type);
     cout<<"Loaded CVE data...OK\n";
     size_t maxNodes=(size_t)cve_data[0].first.size();
-    cout<<"train_metric: "<<static_cast<underlying_type<SlideMetric>::type>(train_metric)<<endl;
+    cout<<"test_metric: "<<static_cast<underlying_type<SlideMetric>::type>(test_metric)<<endl;
     cout<<"cross_validation: "<<static_cast<underlying_type<SlideCrossValidation>::type>(cross_validation)<<endl;
-    cout<<"epochs: "<<epochs<<endl;
-    cout<<"train data: "<<train_mdata.first[1]<<" limit: "<<train_limit<<endl;
-    cout<<"test data: "<<train_mdata.first[2]<<" limit: "<<test_limit<<endl;
+    cout<<"eval data: "<<eval_data;
     cout<<"hyper_name: "<<hyper_name<<endl;
     cout<<"\tbatch_size: "<<hyper->batch_size<<endl;
     cout<<"\talpha: "<<hyper->alpha<<endl;
