@@ -559,7 +559,7 @@ void Utils::compareAndPrintLabel(vector<pair<vector<int>, vector<float>>> correc
 string Utils::stringToBase64(const string &in){
     string out;
     int val = 0, valb = -6;
-    for (uchar c : in) {
+    for (u_char c : in) {
         val = (val << 8) + c;
         valb += 8;
         while (valb >= 0) {
@@ -578,7 +578,7 @@ string Utils::base64ToString(const string &in){
     for (int i=0; i<64; i++) T["ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"[i]] = i;
 
     int val=0, valb=-8;
-    for (uchar c : in) {
+    for (u_char c : in) {
         if (T[c] == -1) break;
         val = (val << 6) + T[c];
         valb += 6;

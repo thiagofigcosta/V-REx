@@ -403,13 +403,12 @@ def main(argv){
                     train_data=inputArrayNumber(greater_or_eq=1999,lower_or_eq=2020)
                     print('Enter a limit of CVEs for each year (0 = unlimitted): ')
                     train_data+=':{}'.format(inputNumber())
-                    print('Run test data also (0 - no | 1 - yes): ')
                     test_metric=0
                     test_data=''
                     gen_name='{}_ss'.format(hyper_name)
                     space_search=mongo.findOneOnDBFromIndex(mongo.getDB('genetic_db'),'environments','name',gen_name,wait_unlock=False)
                     if space_search==None{
-                        space_search={'name':gen_name,'submitted_at':Utils.getTodayDate('%d/%m/%Y %H:%M:%S'),'space_search':{'amount_of_layers':{'min':hyper['layers'],'max':hyper['layers']},'epochs':{'min':epochs,'max':epochs},'batch_size':{'min':hyper['batch_size'],'max':hyper['batch_size']},'layer_sizes':{'min':hyper['layers'][0],'max':hyper['layers'][0]},'range_pow':{'min':hyper['range_pow'][0],'max':hyper['range_pow'][0]},'K':{'min':hyper['K'][0],'max':hyper['K'][0]},'L':{'min':hyper['L'][0],'max':hyper['L'][0]},'activation_functions':{'min':hyper['node_types'][0],'max':hyper['node_types'][0]},'sparcity':{'min':hyper['sparcity'][0],'max':hyper['sparcity'][0]},'alpha':{'min':hyper['alpha'],'max':hyper['alpha']}}}
+                        space_search={'name':gen_name,'submitted_at':Utils.getTodayDate('%d/%m/%Y %H:%M:%S'),'space_search':{'amount_of_layers':{'min':hyper['layers'],'max':hyper['layers']},'epochs':{'min':epochs,'max':epochs},'batch_size':{'min':hyper['batch_size'],'max':hyper['batch_size']},'layer_sizes':{'min':hyper['layers'],'max':hyper['layers']},'range_pow':{'min':hyper['range_pow'][0],'max':hyper['range_pow'][0]},'K':{'min':hyper['K'][0],'max':hyper['K'][0]},'L':{'min':hyper['L'][0],'max':hyper['L'][0]},'activation_functions':{'min':hyper['node_types'][0],'max':hyper['node_types'][0]},'sparcity':{'min':hyper['sparcity'][0],'max':hyper['sparcity'][0]},'alpha':{'min':hyper['alpha'],'max':hyper['alpha']}}}
                         LOGGER.info('Writting environment on genetic_db...')
                         mongo.insertOneOnDB(mongo.getDB('genetic_db'),space_search,'environments',index='name',ignore_lock=True)
                         LOGGER.info('Wrote environment on genetic_db...OK')
@@ -433,16 +432,16 @@ def main(argv){
                         population_id=None
                         best={'output':None,'at_gen':None}
                         results=[]
-                        simulation_data={'name':simulation_name,'env_name':gen_name,'submitted_at':submitted_at,'started_by':started_by,'started_at':started_at,'finished_at':finished_at,'hall_of_fame_id':hall_of_fame_id,'population_id':population_id,'pop_start_size':1,'max_gens':1,'algorithm':1,'max_age':0,'max_children':0,'mutation_rate':0,'recycle_rate':0,'sex_rate':0,'max_notables':1,'cross_validation':cross_validation,'label_type':hyper['label_type'],'metric':metric,'train_data':train_data,'best':best,'results':results}
+                        simulation_data={'name':simulation_name,'env_name':gen_name,'submitted_at':submitted_at,'started_by':started_by,'started_at':started_at,'finished_at':finished_at,'hall_of_fame_id':hall_of_fame_id,'population_id':population_id,'pop_start_size':1,'max_gens':1,'algorithm':1,'max_age':0,'max_children':0,'mutation_rate':0,'recycle_rate':0,'sex_rate':0,'max_notables':1,'cross_validation':cross_validation,'label_type':hyper['label_type'],'metric':train_metric,'train_data':train_data,'best':best,'results':results}
                         LOGGER.info('Writting simulation config on genetic_db...')
                         simulation_id=mongo.quickInsertOneIgnoringLockAndRetrieveId(mongo.getDB('genetic_db'),simulation_data,'simulations')
                         if (simulation_id==None){
                             LOGGER.error('Failed to insert simulation!')
                         }else{
                             LOGGER.info('Wrote simulation config on genetic_db...OK')
-                            halloffame_data={'simulation_id':simulation_id,'env_name':env_name,'updated_at':None,'neural_genomes':[]}
+                            halloffame_data={'simulation_id':simulation_id,'env_name':gen_name,'updated_at':None,'neural_genomes':[]}
                             halloffame_id=mongo.quickInsertOneIgnoringLockAndRetrieveId(mongo.getDB('neural_db'),halloffame_data,'hall_of_fame')
-                            generation_data={'simulation_id':simulation_id,'env_name':env_name,'updated_at':None,'neural_genomes':[]}
+                            generation_data={'simulation_id':simulation_id,'env_name':gen_name,'updated_at':None,'neural_genomes':[]}
                             population_id=mongo.quickInsertOneIgnoringLockAndRetrieveId(mongo.getDB('neural_db'),generation_data,'populations')
                             if halloffame_id == None or population_id == None{
                                 LOGGER.error('Failed to insert hall of fame or/and generation!')
