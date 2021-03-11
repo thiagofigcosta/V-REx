@@ -33,6 +33,8 @@ Slide::Slide(int numLayer, int *sizesOfLayers, NodeType* layerTypes, int InputDi
         cross_validation=crossValidation;
         size_max_for_layer=maxLayerS;
 
+        cout<<toString();
+
         slide_network=new Network(layer_sizes, layer_types, amount_layers, batch_size, learning_rate, input_dim, OutputDim, K, L, range_pow, sparsity,mode,hash_function,use_adam,label_type,size_max_for_layer);
 }
 
@@ -42,6 +44,46 @@ Slide::Slide(const Slide& orig) {
 Slide::~Slide() {
     delete slide_network;
     GarbageCollector::erase();
+}
+
+string Slide::toString(){
+    string str="";
+    str+="amount_layers: "+to_string(amount_layers)+"\n";
+    str+="input_dim: "+to_string(input_dim)+"\n";
+    str+="output_dim: "+to_string(output_dim)+"\n";
+    str+="learning_rate: "+to_string(learning_rate)+"\n";
+    str+="batch_size: "+to_string(batch_size)+"\n";
+    str+="use_adam: "+to_string(use_adam)+"\n";
+    str+="label_type: "+to_string(static_cast<underlying_type<SlideLabelEncoding>::type>(label_type))+"\n";
+    str+="train_metric: "+to_string(static_cast<underlying_type<SlideMetric>::type>(train_metric))+"\n";
+    str+="val_metric: "+to_string(static_cast<underlying_type<SlideMetric>::type>(val_metric))+"\n";
+    str+="shuffle_train_data: "+to_string(shuffle_train_data)+"\n";
+    str+="cross_validation: "+to_string(static_cast<underlying_type<SlideCrossValidation>::type>(cross_validation))+"\n";
+    str+="mode: "+to_string(static_cast<underlying_type<SlideMode>::type>(mode))+"\n";
+    str+="hash_function: "+to_string(static_cast<underlying_type<SlideHashingFunction>::type>(hash_function))+"\n";
+    str+="print_deltas: "+to_string(print_deltas)+"\n";
+    str+="size_max_for_layer: "+to_string(size_max_for_layer)+"\n";
+    str+="rehash: "+to_string(rehash)+"\n";
+    str+="rebuild: "+to_string(rebuild)+"\n";
+    for (int i=0;i<amount_layers;i++){
+        str+="\tlayer_sizes["+to_string(i)+"]: "+to_string(layer_sizes[i])+"\n";
+    }
+    for (int i=0;i<amount_layers;i++){
+        str+="\tlayer_types["+to_string(i)+"]: "+to_string(static_cast<underlying_type<NodeType>::type>(layer_types[i]))+"\n";
+    }
+    for (int i=0;i<amount_layers;i++){
+        str+="\trange_pow["+to_string(i)+"]: "+to_string(range_pow[i])+"\n";
+    }
+    for (int i=0;i<amount_layers;i++){
+        str+="\tK["+to_string(i)+"]: "+to_string(K[i])+"\n";
+    }
+    for (int i=0;i<amount_layers;i++){
+        str+="\tL["+to_string(i)+"]: "+to_string(L[i])+"\n";
+    }
+    for (int i=0;i<amount_layers;i++){
+        str+="\tsparsity["+to_string(i)+"]: "+to_string(sparsity[i])+"\n";
+    }
+    return str;
 }
 
 void Slide::setWeights(map<string, vector<float>> loadedData){

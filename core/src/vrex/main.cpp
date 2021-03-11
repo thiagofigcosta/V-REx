@@ -361,6 +361,12 @@ void trainNeuralNetwork(string independent_net_id,bool load, bool just_train){
     }
     str_cve_years_train.clear();
     Hyperparameters* hyper=mongo->fetchHyperparametersData(hyper_name);
+    cout<<"Parsed training settings...OK\n";
+    cout<<"Loading CVE data...\n";
+    vector<pair<vector<int>, vector<float>>> train_data = mongo->loadCvesFromYears(cve_years_train, train_limit).second;
+    train_data=encodeData(train_data,hyper->label_type);
+    cout<<"Loaded CVE data...OK\n";
+    size_t maxNodes=(size_t)train_data[0].first.size();
     cout<<"train_metric: "<<static_cast<underlying_type<SlideMetric>::type>(train_metric)<<endl;
     cout<<"cross_validation: "<<static_cast<underlying_type<SlideCrossValidation>::type>(cross_validation)<<endl;
     cout<<"epochs: "<<epochs<<endl;
@@ -375,8 +381,12 @@ void trainNeuralNetwork(string independent_net_id,bool load, bool just_train){
     cout<<"\trebuild: "<<hyper->rebuild<<endl;
     cout<<"\tlabel_type: "<<static_cast<underlying_type<SlideLabelEncoding>::type>(hyper->label_type)<<endl;
     cout<<"\tlayers: "<<hyper->layers<<endl;
-    for(int i=0;i<hyper->layers;i++)
+    for(int i=0;i<hyper->layers;i++){
         cout<<"\t\tlayer_sizes["<<i<<"]: "<<hyper->layer_sizes[i]<<endl;
+        if ((size_t)layer_sizes[i]>maxNodes){
+                maxNodes=(size_t)layer_sizes[i];
+        }
+    }
     for(int i=0;i<hyper->layers;i++)
         cout<<"\t\trange_pow["<<i<<"]: "<<hyper->range_pow[i]<<endl;
     for(int i=0;i<hyper->layers;i++)
@@ -389,11 +399,6 @@ void trainNeuralNetwork(string independent_net_id,bool load, bool just_train){
         cout<<"\t\tsparcity["<<i<<"]: "<<hyper->sparcity[i]<<endl;
     train_mdata.first.clear();
     train_mdata.second.clear();
-    cout<<"Parsed training settings...OK\n";
-    cout<<"Loading CVE data...\n";
-    vector<pair<vector<int>, vector<float>>> train_data = mongo->loadCvesFromYears(cve_years_train, train_limit).second;
-    train_data=encodeData(train_data,hyper->label_type);
-    cout<<"Loaded CVE data...OK\n";
     mongo->claimNeuralNetTrain(independent_net_id,Utils::getStrNow(),Utils::getHostname());
     const bool print_deltas=true;
     map<string, vector<float>> trained_weights;
@@ -402,7 +407,7 @@ void trainNeuralNetwork(string independent_net_id,bool load, bool just_train){
         trained_weights=mongo->loadWeightsFromNeuralNet(independent_net_id);
     }else{
         cout<<"Creating network...\n";
-        slide=new Slide(hyper->layers,hyper->layer_sizes,hyper->node_types,train_data[0].second.size(),train_data[0].first.size(),hyper->alpha,hyper->batch_size,hyper->adam,hyper->label_type,hyper->range_pow,hyper->K,hyper->L,hyper->sparcity,hyper->rehash,hyper->rebuild,train_metric,train_metric,hyper->shuffle,cross_validation,SlideMode::SAMPLING,SlideHashingFunction::DENSIFIED_WTA,print_deltas);
+        slide=new Slide(hyper->layers,hyper->layer_sizes,hyper->node_types,train_data[0].second.size(),train_data[0].first.size(),hyper->alpha,hyper->batch_size,hyper->adam,hyper->label_type,hyper->range_pow,hyper->K,hyper->L,hyper->sparcity,hyper->rehash,hyper->rebuild,train_metric,train_metric,hyper->shuffle,cross_validation,SlideMode::SAMPLING,SlideHashingFunction::DENSIFIED_WTA,print_deltas,maxNodes);
         slide->eagerInit();
         cout<<"Created network...OK\n";
         cout<<"Training network...\n";
@@ -418,7 +423,7 @@ void trainNeuralNetwork(string independent_net_id,bool load, bool just_train){
     if (!just_train){
         Hyperparameters* hyper_2=hyper->clone();
         cout<<"Creating eval network...\n";
-        Slide* slide_2=new Slide(hyper_2->layers,hyper_2->layer_sizes,hyper_2->node_types,train_data[0].second.size(),train_data[0].first.size(),hyper_2->alpha,hyper_2->batch_size,hyper_2->adam,hyper_2->label_type,hyper_2->range_pow,hyper_2->K,hyper_2->L,hyper_2->sparcity,hyper_2->rehash,hyper_2->rebuild,train_metric,train_metric,hyper_2->shuffle,cross_validation,SlideMode::SAMPLING,SlideHashingFunction::DENSIFIED_WTA,print_deltas);
+        Slide* slide_2=new Slide(hyper_2->layers,hyper_2->layer_sizes,hyper_2->node_types,train_data[0].second.size(),train_data[0].first.size(),hyper_2->alpha,hyper_2->batch_size,hyper_2->adam,hyper_2->label_type,hyper_2->range_pow,hyper_2->K,hyper_2->L,hyper_2->sparcity,hyper_2->rehash,hyper_2->rebuild,train_metric,train_metric,hyper_2->shuffle,cross_validation,SlideMode::SAMPLING,SlideHashingFunction::DENSIFIED_WTA,print_deltas,maxNodes);
         slide_2->setWeights(trained_weights);
         slide_2->eagerInit();
         cout<<"Created eval network...OK\n";
@@ -502,8 +507,6 @@ void evalNeuralNetwork(string independent_net_id, string result_id, string eval_
             break;
     }
     Hyperparameters* hyper=mongo->fetchHyperparametersData(hyper_name);
-    eval_mdata.first.clear();
-    eval_mdata.second.clear();
     cout<<"Parsed evaluate settings...OK\n";
     cout<<"Loading CVE data...\n";
     if (eval_data.rfind("CVE", 0) == 0) {
@@ -528,9 +531,42 @@ void evalNeuralNetwork(string independent_net_id, string result_id, string eval_
     }
     cve_data=encodeData(cve_data,hyper->label_type);
     cout<<"Loaded CVE data...OK\n";
+    size_t maxNodes=(size_t)cve_data[0].first.size();
+    cout<<"train_metric: "<<static_cast<underlying_type<SlideMetric>::type>(train_metric)<<endl;
+    cout<<"cross_validation: "<<static_cast<underlying_type<SlideCrossValidation>::type>(cross_validation)<<endl;
+    cout<<"epochs: "<<epochs<<endl;
+    cout<<"train data: "<<train_mdata.first[1]<<" limit: "<<train_limit<<endl;
+    cout<<"test data: "<<train_mdata.first[2]<<" limit: "<<test_limit<<endl;
+    cout<<"hyper_name: "<<hyper_name<<endl;
+    cout<<"\tbatch_size: "<<hyper->batch_size<<endl;
+    cout<<"\talpha: "<<hyper->alpha<<endl;
+    cout<<"\tshuffle: "<<hyper->shuffle<<endl;
+    cout<<"\tadam: "<<hyper->adam<<endl;
+    cout<<"\trehash: "<<hyper->rehash<<endl;
+    cout<<"\trebuild: "<<hyper->rebuild<<endl;
+    cout<<"\tlabel_type: "<<static_cast<underlying_type<SlideLabelEncoding>::type>(hyper->label_type)<<endl;
+    cout<<"\tlayers: "<<hyper->layers<<endl;
+    for(int i=0;i<hyper->layers;i++){
+        cout<<"\t\tlayer_sizes["<<i<<"]: "<<hyper->layer_sizes[i]<<endl;
+        if ((size_t)layer_sizes[i]>maxNodes){
+                maxNodes=(size_t)layer_sizes[i];
+        }
+    }
+    for(int i=0;i<hyper->layers;i++)
+        cout<<"\t\trange_pow["<<i<<"]: "<<hyper->range_pow[i]<<endl;
+    for(int i=0;i<hyper->layers;i++)
+        cout<<"\t\tK["<<i<<"]: "<<hyper->K[i]<<endl;
+    for(int i=0;i<hyper->layers;i++)
+        cout<<"\t\tL["<<i<<"]: "<<hyper->L[i]<<endl;
+    for(int i=0;i<hyper->layers;i++)
+        cout<<"\t\tnode_types["<<i<<"]: "<<static_cast<underlying_type<NodeType>::type>(hyper->node_types[i])<<endl;
+    for(int i=0;i<hyper->layers;i++)
+        cout<<"\t\tsparcity["<<i<<"]: "<<hyper->sparcity[i]<<endl;
+    eval_mdata.first.clear();
+    eval_mdata.second.clear();
     const bool print_deltas=true;
     cout<<"Creating network...\n";
-    Slide* slide=new Slide(hyper->layers,hyper->layer_sizes,hyper->node_types,cve_data[0].second.size(),cve_data[0].first.size(),hyper->alpha,hyper->batch_size,hyper->adam,hyper->label_type,hyper->range_pow,hyper->K,hyper->L,hyper->sparcity,hyper->rehash,hyper->rebuild,test_metric,test_metric,hyper->shuffle,cross_validation,SlideMode::SAMPLING,SlideHashingFunction::DENSIFIED_WTA,print_deltas);
+    Slide* slide=new Slide(hyper->layers,hyper->layer_sizes,hyper->node_types,cve_data[0].second.size(),cve_data[0].first.size(),hyper->alpha,hyper->batch_size,hyper->adam,hyper->label_type,hyper->range_pow,hyper->K,hyper->L,hyper->sparcity,hyper->rehash,hyper->rebuild,test_metric,test_metric,hyper->shuffle,cross_validation,SlideMode::SAMPLING,SlideHashingFunction::DENSIFIED_WTA,print_deltas,maxNodes);
     slide->setWeights(mongo->loadWeightsFromNeuralNet(independent_net_id));
     slide->eagerInit();
     cout<<"Created network...OK\n";

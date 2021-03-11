@@ -105,6 +105,7 @@ class Slide{
         void deallocSlideDataset(float **values, int *sizes, int **records, int **labels, int *labelsize);
         void eagerInit();
         void flushNetwork();
+        string toString();
 
         // variables
         static int MAX_THREADS; // 0 = max allowed 
