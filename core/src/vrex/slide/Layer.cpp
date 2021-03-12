@@ -506,7 +506,7 @@ int Layer::queryActiveNodeandComputeActivations(int** activenodesperlayer, float
             if (len>1){
                 realActivation = exp(activeValuesperlayer[layerIndex + 1][i] - maxValue);
             }else{
-                realActivation = activeValuesperlayer[layerIndex + 1][i]/=_currentBatchSize;;
+                realActivation = activeValuesperlayer[layerIndex + 1][i]/_batchsize;
             }
             activeValuesperlayer[layerIndex + 1][i] = realActivation;
             #if Slide_HUGEPAGES == 1

@@ -178,7 +178,7 @@ float Node::ComputeExtaStatsForSoftMax(float normalizationConstant, int inputID,
 	_train[inputID]._lastGradients = 1;
 	switch(label_type){
 		case SlideLabelEncoding::INT_CLASS:
-			// _train[inputID]._lastActivations /= normalizationConstant + Slide::SOFTMAX_LINEAR_CONSTANT;
+			_train[inputID]._lastActivations /= normalizationConstant + Slide::SOFTMAX_LINEAR_CONSTANT;
 			//TODO:check  gradient
 			if (find (label, label+labelsize, _IDinLayer)!= label+labelsize) {
 				_train[inputID]._lastDeltaforBPs = (1.0/labelsize - _train[inputID]._lastActivations) / _currentBatchsize;
@@ -188,13 +188,13 @@ float Node::ComputeExtaStatsForSoftMax(float normalizationConstant, int inputID,
 			}
 			break;
 		case SlideLabelEncoding::NEURON_BY_N_LOG_LOSS:
-			// _train[inputID]._lastActivations /= normalizationConstant + Slide::SOFTMAX_LINEAR_CONSTANT;
-			// _train[inputID]._lastDeltaforBPs = -(label[_IDinLayer]*log(_train[inputID]._lastActivations)-(1-label[_IDinLayer])*log(1-_train[inputID]._lastActivations));
-			_train[inputID]._lastDeltaforBPs = -(label[_IDinLayer]*log(_train[inputID]._lastActivations)+(1-label[_IDinLayer])*log(1-_train[inputID]._lastActivations)); // should be like this, but the signals are messed
+			_train[inputID]._lastActivations /= normalizationConstant + Slide::SOFTMAX_LINEAR_CONSTANT;
+			_train[inputID]._lastDeltaforBPs = -(label[_IDinLayer]*log(_train[inputID]._lastActivations)-(1-label[_IDinLayer])*log(1-_train[inputID]._lastActivations));
+			// _train[inputID]._lastDeltaforBPs = -(label[_IDinLayer]*log(_train[inputID]._lastActivations)+(1-label[_IDinLayer])*log(1-_train[inputID]._lastActivations)); // should be like this, but the signals are messed
 			break;
 		case SlideLabelEncoding::NEURON_BY_NEURON:
 			_train[inputID]._lastDeltaforBPs = ( label[_IDinLayer] - _train[inputID]._lastActivations ) / (_currentBatchsize*labelsize);
-			// _train[inputID]._lastActivations /= normalizationConstant + Slide::SOFTMAX_LINEAR_CONSTANT;
+			_train[inputID]._lastActivations /= normalizationConstant + Slide::SOFTMAX_LINEAR_CONSTANT;
 			break;
 	}
 	// string debug="Id: "+to_string(inputID)+" Label idx: "+to_string(_IDinLayer)+" - Neuron: "+to_string(_train[inputID]._lastActivations)+" Expected: "+to_string(label[_IDinLayer])+" Error: "+to_string(_train[inputID]._lastDeltaforBPs)+"\n";
