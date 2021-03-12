@@ -168,7 +168,7 @@ pair<float,vector<vector<pair<int,float>>>> Network::ProcessInputAndRetrieveClas
             predicted_classes[i][k].second=cur_act;
         }
         if (noOfClasses==1){
-            predicted_classes[i][predicted_class_pos].second/=_currentBatchSize;
+            // predicted_classes[i][predicted_class_pos].second/=_currentBatchSize;
             if(predicted_classes[i][predicted_class_pos].second>Slide::SINGLE_CLASS_THRESHOLD){
                 predicted_classes[i][predicted_class_pos].first=1;
             }
@@ -353,7 +353,7 @@ pair<int,vector<vector<pair<int,float>>>> Network::predictClass(int **inputIndic
             predicted_classes[i][k].second=cur_act;
         }
         if (noOfClasses==1){
-            predicted_classes[i][predicted_class_pos].second/=_currentBatchSize;
+            // predicted_classes[i][predicted_class_pos].second/=_currentBatchSize;
             if(predicted_classes[i][predicted_class_pos].second>Slide::SINGLE_CLASS_THRESHOLD){
                 predicted_classes[i][predicted_class_pos].first=1;
             }
