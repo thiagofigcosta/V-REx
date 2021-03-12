@@ -556,6 +556,95 @@ void Utils::compareAndPrintLabel(vector<pair<vector<int>, vector<float>>> correc
     Utils::compareAndPrintLabel(c,p);
 }
 
+string Utils::compressBase64(const string &in_64){
+    string out_65;
+    u_char last_c='&';
+    int count=1;
+    for (u_char c : in_64) {
+        if (last_c=='&'){
+            last_c=c;
+            count=1;
+        }else{
+            if (last_c!=c){
+                if (count>3){
+                    out_65.push_back(last_c);
+                    out_65.push_back('*');
+                    out_65+=std::to_string(count);
+                    out_65.push_back('*');
+                }else{
+                    string decompressed(count, last_c);
+                    out_65+=decompressed;
+                }
+                count=0;
+            }
+            last_c=c;
+            count++;
+        }
+    }
+    if (count>3){
+        out_65.push_back(last_c);
+        out_65.push_back('*');
+        out_65+=std::to_string(count);
+        out_65.push_back('*');
+    }else{
+        string decompressed(count, last_c);
+        out_65+=decompressed;
+    }
+    return out_65;
+}
+
+string Utils::decompressBase64(const string &in_65){
+    string out_64;
+    int amount=-666;
+    u_char last_c=0;
+    for (u_char c : in_65) {
+        if (c=='*'){
+            if (amount==-666){
+                amount=-1;
+            }else{
+                string decompressed(amount-1, last_c);
+                out_64+=decompressed;
+                amount=-666;
+            }
+        }
+        if (amount==-666){
+            if (c!='*'){
+                out_64.push_back(c);
+                last_c=c;
+            }
+        }else{
+            if (c!='*'){
+                if (amount==-1){
+                    amount=c-'0';
+                }else{
+                    amount*=10; 
+                    amount+=c-'0';
+                }
+            }
+        }
+    }
+    return out_64;
+}
+
+string Utils::base64ToString(const string &in_65){
+    string out;
+    string in=decompressBase64(in_65);
+    vector<int> T(256,-1);
+    for (int i=0; i<64; i++) T["ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"[i]] = i;
+
+    int val=0, valb=-8;
+    for (u_char c : in) {
+        if (T[c] == -1) break;
+        val = (val << 6) + T[c];
+        valb += 6;
+        if (valb >= 0) {
+            out.push_back(char((val>>valb)&0xFF));
+            valb -= 8;
+        }
+    }
+    return out;
+}
+
 string Utils::stringToBase64(const string &in){
     string out;
     int val = 0, valb = -6;
@@ -572,20 +661,6 @@ string Utils::stringToBase64(const string &in){
     return out;
 }
 
-string Utils::base64ToString(const string &in){
-    string out;
-    vector<int> T(256,-1);
-    for (int i=0; i<64; i++) T["ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"[i]] = i;
-
-    int val=0, valb=-8;
-    for (u_char c : in) {
-        if (T[c] == -1) break;
-        val = (val << 6) + T[c];
-        valb += 6;
-        if (valb >= 0) {
-            out.push_back(char((val>>valb)&0xFF));
-            valb -= 8;
-        }
-    }
-    return out;
+string Utils::stringToBase65(const string &in){
+    return compressBase64(stringToBase64(in));
 }

@@ -107,8 +107,11 @@ class Utils{
         static map<string, vector<float>> deserializeWeigthsFromStr(string serialized_str);
         static void compareAndPrintLabel(vector<vector<int>> correct, vector<vector<int>> pred);
         static void compareAndPrintLabel(vector<pair<vector<int>, vector<float>>> correct, vector<vector<pair<int,float>>> pred);
+        static string compressBase64(const string &in_64);
+        static string decompressBase64(const string &in_65);
+        static string base64ToString(const string &in_65);
         static string stringToBase64(const string &in);
-        static string base64ToString(const string &in);
+        static string stringToBase65(const string &in);
         
         // variables
         static mt19937_64 RNG;
