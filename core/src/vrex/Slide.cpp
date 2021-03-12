@@ -32,15 +32,13 @@ Slide::Slide(int numLayer, int *sizesOfLayers, NodeType* layerTypes, int InputDi
         shuffle_train_data=shuffleTrainData;
         cross_validation=crossValidation;
         size_max_for_layer=maxLayerS;
-
         for(int i=0;i<amount_layers;i++){
             if (K[i]>layer_sizes[i]){  // ??? K cannot be higher than layer size?
                 K[i]=layer_sizes[i];
             }
         }
-
-        cout<<toString();
-
+        if(print_deltas)
+            cout<<toString();
         slide_network=new Network(layer_sizes, layer_types, amount_layers, batch_size, learning_rate, input_dim, OutputDim, K, L, range_pow, sparsity,mode,hash_function,use_adam,label_type,size_max_for_layer);
 }
 
