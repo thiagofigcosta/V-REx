@@ -503,7 +503,7 @@ int Layer::queryActiveNodeandComputeActivations(int** activenodesperlayer, float
     if(_type == NodeType::Softmax) {
         for (int i = 0; i < len; i++) {
             float realActivation;
-            if (len>1){
+            if (len>1 || iter<0){
                 realActivation = exp(activeValuesperlayer[layerIndex + 1][i] - maxValue);
             }else{
                 realActivation = activeValuesperlayer[layerIndex + 1][i]/_batchsize;
