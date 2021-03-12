@@ -189,8 +189,16 @@ float Node::ComputeExtaStatsForSoftMax(float normalizationConstant, int inputID,
 			break;
 		case SlideLabelEncoding::NEURON_BY_N_LOG_LOSS:
 			_train[inputID]._lastActivations /= normalizationConstant + Slide::SOFTMAX_LINEAR_CONSTANT;
-			_train[inputID]._lastDeltaforBPs = -(label[_IDinLayer]*log(_train[inputID]._lastActivations)-(1-label[_IDinLayer])*log(1-_train[inputID]._lastActivations));
-			// _train[inputID]._lastDeltaforBPs = -(label[_IDinLayer]*log(_train[inputID]._lastActivations)+(1-label[_IDinLayer])*log(1-_train[inputID]._lastActivations)); // should be like this, but the signals are messed
+			float a=_train[inputID]._lastActivations;
+			float b=1-_train[inputID]._lastActivations;
+			if (a==0){
+				a=Slide::SOFTMAX_LINEAR_CONSTANT;
+			}
+			if (b==0){
+				b=Slide::SOFTMAX_LINEAR_CONSTANT;
+			}
+			_train[inputID]._lastDeltaforBPs = -(label[_IDinLayer]*log(a)-(1-label[_IDinLayer])*log(b));
+			// _train[inputID]._lastDeltaforBPs = -(label[_IDinLayer]*log(a)+(1-label[_IDinLayer])*log(b)); // should be like this, but the signals are messed
 			break;
 		case SlideLabelEncoding::NEURON_BY_NEURON:
 			_train[inputID]._lastDeltaforBPs = ( label[_IDinLayer] - _train[inputID]._lastActivations ) / (_currentBatchsize*labelsize);
