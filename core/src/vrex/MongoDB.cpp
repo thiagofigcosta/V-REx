@@ -596,15 +596,6 @@ void MongoDB::storeEvalNeuralNetResult(string id,int correct,vector<string> cve_
         pair<int,float> p_label=pred_labels[i][0];
         int d_label=labels[i].first[0];
         float chance=p_label.second*100; // transform to percent
-        // while(chance>=1000){ // just to be safe regarding scale
-        //     chance/=10;
-        // }
-        // while(chance>=200){ // just to be safe regarding scale
-        //     chance/=2;
-        // }
-        if (chance>100){ // limit
-            chance=100;
-        }
         string res="{ "+cve_ids[i]+": { predicted_exploit: "+to_string(p_label.first)+", label: "+to_string(d_label)+", chance_of_having: "+to_string(chance)+"% } }";
         res_array_builder.append(res);
     }
