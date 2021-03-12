@@ -189,7 +189,7 @@ float Node::ComputeExtaStatsForSoftMax(float normalizationConstant, int inputID,
 			}
 			break;
 		case SlideLabelEncoding::NEURON_BY_N_LOG_LOSS:
-			_//train[inputID]._lastActivations /= normalizationConstant + Slide::SOFTMAX_LINEAR_CONSTANT;
+			//_train[inputID]._lastActivations /= normalizationConstant + Slide::SOFTMAX_LINEAR_CONSTANT;
 			_train[inputID]._lastDeltaforBPs = -(label[_IDinLayer]*log(_train[inputID]._lastActivations)-(1-label[_IDinLayer])*log(1-_train[inputID]._lastActivations));
 			// _train[inputID]._lastDeltaforBPs = -(label[_IDinLayer]*log(_train[inputID]._lastActivations)+(1-label[_IDinLayer])*log(1-_train[inputID]._lastActivations)); // should be like this, but the signals are messed
 			break;
