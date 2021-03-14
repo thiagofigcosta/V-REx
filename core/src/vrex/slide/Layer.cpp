@@ -503,10 +503,10 @@ int Layer::queryActiveNodeandComputeActivations(int** activenodesperlayer, float
     if(_type == NodeType::Softmax) {
         for (int i = 0; i < len; i++) {
             float realActivation;
-            if (_noOfNodes>1 || iter>=0){
+            if (_noOfNodes>1){
                 realActivation = exp(activeValuesperlayer[layerIndex + 1][i] - maxValue);
             }else{
-                realActivation = activeValuesperlayer[layerIndex + 1][i]/_batchsize;
+                realActivation = activeValuesperlayer[layerIndex + 1][i];
             }
             activeValuesperlayer[layerIndex + 1][i] = realActivation;
             #if Slide_HUGEPAGES == 1

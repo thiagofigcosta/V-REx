@@ -243,8 +243,14 @@ vector<pair<float,float>> Slide::train(vector<pair<vector<int>, vector<float>>> 
             case SlideCrossValidation::ROLLING_FORECASTING_ORIGIN:{
                 int fixed_train_pos=train_data.size()*Slide::ROLLING_FORECASTING_ORIGIN_MIN;
                 int window_size=(train_data.size()-fixed_train_pos)/epochs;
+		if (window_size<5){
+                    window_size=5;
+                }
                 int start_val=fixed_train_pos+j*window_size;
-                t_data=Utils::extractSubVector(train_data, 0, start_val);
+                if ((size_t)start_val>=train_data.size()){
+                    start_val=(int) train_data.size() - window_size;
+                }
+		t_data=Utils::extractSubVector(train_data, 0, start_val);
                 validation_data=Utils::extractSubVector(train_data, start_val, window_size);
                 }break;
             case SlideCrossValidation::KFOLDS:{
@@ -315,7 +321,7 @@ float Slide::evalLoss(vector<pair<vector<int>, vector<float>>> &eval_data){
     loss/=num_batches;
     if (print_deltas) {
         t2 = chrono::high_resolution_clock::now();
-        cout<<"Loss evaluation takes: "<<Utils::msToHumanReadable(chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count())<<endl;
+        cout<<"Loss ("<<loss<<") evaluation takes: "<<Utils::msToHumanReadable(chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count())<<endl;
     }
     return loss;
 }

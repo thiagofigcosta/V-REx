@@ -110,7 +110,7 @@ class Slide{
         // variables
         static int MAX_THREADS; // 0 = max allowed 
 
-        static constexpr float SINGLE_CLASS_THRESHOLD=.5;
+        static constexpr float SINGLE_CLASS_THRESHOLD=.3;
         #pragma omp threadprivate(SINGLE_CLASS_THRESHOLD)
         static const bool MEAN_ERROR_INSTEAD_OF_GRADS_SUM=true;
         #pragma omp threadprivate(MEAN_ERROR_INSTEAD_OF_GRADS_SUM)

@@ -124,7 +124,6 @@ float Node::getActivation(int* indices, float* values, int length, int inputID)
     #pragma GCC diagnostic ignored "-Wunused-value"
 	assert(("Input ID more than Batch Size", inputID <= _currentBatchsize));
 	#pragma GCC diagnostic pop 
-
 	//FUTURE TODO: shrink batchsize and check if input is alread active then ignore and ensure backpopagation is ignored too.
 	if (Node::HUGEPAGES){
 		if (_train[inputID]._ActiveinputIds != 1) {
@@ -156,9 +155,8 @@ float Node::getActivation(int* indices, float* values, int length, int inputID)
 		}
 		break;
 	case NodeType::Softmax:
-		break;
 	case NodeType::Sigmoid:
-		_train[inputID]._lastActivations = 1/(1+exp(-_train[inputID]._lastActivations));
+		_train[inputID]._lastActivations = 1/(1+exp(-(_train[inputID]._lastActivations)));
 		break;
 	default:
 		cout << "Invalid Node type from Constructor" <<endl;
@@ -188,25 +186,26 @@ float Node::ComputeExtaStatsForSoftMax(float normalizationConstant, int inputID,
 			}
 			break;
 		case SlideLabelEncoding::NEURON_BY_N_LOG_LOSS: {
-			_train[inputID]._lastActivations /= normalizationConstant + Slide::SOFTMAX_LINEAR_CONSTANT;
+			//_train[inputID]._lastActivations /= normalizationConstant + Slide::SOFTMAX_LINEAR_CONSTANT; // only for multiples output neurrons
 			float a=_train[inputID]._lastActivations;
 			float b=1-_train[inputID]._lastActivations;
-			if (a<=0){
+			if (a==0){
 				a=Slide::SOFTMAX_LINEAR_CONSTANT;
 			}
-			if (b<=0){
+			if (b==0){
 				b=Slide::SOFTMAX_LINEAR_CONSTANT;
 			}
 			_train[inputID]._lastDeltaforBPs = -(label[_IDinLayer]*log(a)-(1-label[_IDinLayer])*log(b));
-			// _train[inputID]._lastDeltaforBPs = -(label[_IDinLayer]*log(a)+(1-label[_IDinLayer])*log(b)); // should be like this, but the signals are messed
+                        // _train[inputID]._lastDeltaforBPs = -(label[_IDinLayer]*log(a)+(1-label[_IDinLayer])*log(b));
+
 			} break;
 		case SlideLabelEncoding::NEURON_BY_NEURON:
+			 _train[inputID]._lastActivations /= normalizationConstant + Slide::SOFTMAX_LINEAR_CONSTANT;
 			_train[inputID]._lastDeltaforBPs = ( label[_IDinLayer] - _train[inputID]._lastActivations ) / (_currentBatchsize*labelsize);
-			_train[inputID]._lastActivations /= normalizationConstant + Slide::SOFTMAX_LINEAR_CONSTANT;
 			break;
 	}
-	// string debug="Id: "+to_string(inputID)+" Label idx: "+to_string(_IDinLayer)+" - Neuron: "+to_string(_train[inputID]._lastActivations)+" Expected: "+to_string(label[_IDinLayer])+" Error: "+to_string(_train[inputID]._lastDeltaforBPs)+"\n";
-	// cout<<debug;
+	string debug="Id: "+to_string(inputID)+" Label idx: "+to_string(_IDinLayer)+" - Neuron: "+to_string(_train[inputID]._lastActivations)+" Expected: "+to_string(label[_IDinLayer])+" Error: "+to_string(_train[inputID]._lastDeltaforBPs)+"\n";
+	//cout<<debug;
 	return _train[inputID]._lastDeltaforBPs;
 }
 
