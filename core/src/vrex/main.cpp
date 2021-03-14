@@ -227,6 +227,7 @@ void runGeneticSimulation(string simulation_id){
     cout<<"Loading CVE data...\n";
     vector<pair<vector<int>, vector<float>>> train_data = mongo->loadCvesFromYears(cve_years, train_data_limit).second;
     train_data=encodeData(train_data,label_encoding);
+    train_data=Utils::balanceSingleLabelDataset(train_data);
     cout<<"Loaded CVE data...OK\n";
     const bool shuffle_train_data=false;
 

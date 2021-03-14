@@ -692,7 +692,3 @@ vector<pair<vector<int>, vector<float>>> Utils::balanceSingleLabelDataset(const 
     }
 }
 
-vector<vector<pair<int,float>>> Utils::normalizeOutput(vector<vector<pair<int,float>>> out){
-    // TODO dev
-    return out;
-}
