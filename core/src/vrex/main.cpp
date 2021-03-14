@@ -365,6 +365,7 @@ void trainNeuralNetwork(string independent_net_id,bool load, bool just_train){
     cout<<"Loading CVE data...\n";
     vector<pair<vector<int>, vector<float>>> train_data = mongo->loadCvesFromYears(cve_years_train, train_limit).second;
     train_data=encodeData(train_data,hyper->label_type);
+    train_data=Utils::balanceSingleLabelDataset(train_data);
     cout<<"Loaded CVE data...OK\n";
     size_t maxNodes=(size_t)train_data[0].first.size();
     cout<<"train_metric: "<<static_cast<underlying_type<SlideMetric>::type>(train_metric)<<endl;

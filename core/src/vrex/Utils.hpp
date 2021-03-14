@@ -112,7 +112,9 @@ class Utils{
         static string base64ToString(const string &in_65);
         static string stringToBase64(const string &in);
         static string stringToBase65(const string &in);
-        
+        static vector<pair<vector<int>, vector<float>>> balanceSingleLabelDataset(const vector<pair<vector<int>, vector<float>>> &vec);
+        static vector<vector<pair<int,float>>> normalizeOutput(vector<vector<pair<int,float>>> out);
+
         // variables
         static mt19937_64 RNG;
 

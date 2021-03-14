@@ -664,3 +664,35 @@ string Utils::stringToBase64(const string &in){
 string Utils::stringToBase65(const string &in){
     return compressBase64(stringToBase64(in));
 }
+
+vector<pair<vector<int>, vector<float>>> Utils::balanceSingleLabelDataset(const vector<pair<vector<int>, vector<float>>> &vec){
+    vector<pair<vector<int>, vector<float>>> pos;
+    vector<pair<vector<int>, vector<float>>> neg;
+    for (pair<vector<int>, vector<float>> entry : vec){
+        if(entry.first[0]==0){
+            neg.push_back(entry);
+        }else{
+            pos.push_back(entry);
+        }
+    }
+    if (pos.size()>neg.size()){
+        pos=shuffleDataset(pos);
+        pos.erase(pos.begin()+neg.size(),pos.end());
+        pos.insert(pos.end(),neg.begin(),neg.end());
+        pos=shuffleDataset(pos);
+        return pos;
+    } else if (pos.size()<neg.size()){
+        neg=shuffleDataset(neg);
+        neg.erase(neg.begin()+pos.size(),neg.end());
+        neg.insert(neg.end(),pos.begin(),pos.end());
+        neg=shuffleDataset(neg);
+        return neg;
+    }else{
+        return vec;
+    }
+}
+
+vector<vector<pair<int,float>>> Utils::normalizeOutput(vector<vector<pair<int,float>>> out){
+    // TODO dev
+    return out;
+}
