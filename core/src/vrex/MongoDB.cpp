@@ -635,3 +635,54 @@ int MongoDB::getIntFromEl(bsoncxx::document::element el){
     }
     return out;
 }
+
+vector<string> MongoDB::bsonToFeaturesName(bsoncxx::stdx::optional<bsoncxx::document::value> opt_bson){
+    if(!opt_bson) {
+        throw runtime_error("Empty opt result");
+    }
+    return bsonToFeaturesName(opt_bson->view());
+}
+
+vector<string> MongoDB::bsonToFeaturesName(const bsoncxx::v_noabi::document::view bson){
+    vector<string> features;
+    bsoncxx::document::element features_el = bson["features"];
+    if (features_el.type() == bsoncxx::type::k_document){
+        bsoncxx::document::view features_vw=features_el.get_document().view();
+        for (auto el:features_vw){
+            string key=el.key().data();
+            features.push_back(key);
+        }
+    }else{
+        throw runtime_error("Error unkown features type while getting feature names \n");
+    }
+    return features;
+}
+
+
+vector<pair<vector<int>, vector<float>>> MongoDB::filterFeatures(vector<pair<vector<int>, vector<float>>> in, vector<string> to_remove){
+    vector<pair<vector<int>, vector<float>>> out;
+    cout<<"Features before filtering: "<<in[0].second.size()<<endl;
+    bsoncxx::stdx::optional<bsoncxx::document::value> maybe_result=getCollection(getDB("processed_data"),"dataset").find_one(document{} << finalize);
+    vector<string> features=bsonToFeaturesName(maybe_result);
+    vector<int> features_to_ignore;
+    for (int i=0;i<(int)features.size();i++){
+        string feature=features[i];
+        for (string pattern:to_remove){
+            if (feature.find(pattern)!=string::npos) {
+                features_to_ignore.push_back(i);
+                break;
+            }
+        }
+    }
+    for(pair<vector<int>, vector<float>> entry:in){
+        vector<float> filtered;
+        for(int i=0;i<(int)entry.second.size();i++){
+            if (find(features_to_ignore.begin(), features_to_ignore.end(), i)==features_to_ignore.end()){
+                filtered.push_back(entry.second[i]);
+            }
+        }
+        out.push_back(pair<vector<int>, vector<float>>(entry.first,filtered));
+    }
+    cout<<"Features after filtering: "<<out[0].second.size()<<endl;
+    return out;
+}

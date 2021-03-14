@@ -64,6 +64,9 @@ class MongoDB{
         vector<pair<vector<int>, vector<float>>> loadCveFromId(string cve);
         map<string, vector<float>> loadWeightsFromNeuralNet(string id);
         void storeEvalNeuralNetResult(string id,int correct,vector<string> cve_ids,vector<vector<pair<int,float>>> pred_labels,vector<pair<vector<int>, vector<float>>> labels,snn_stats stats);
+	vector<pair<vector<int>, vector<float>>> filterFeatures(vector<pair<vector<int>, vector<float>>> in, vector<string> to_remove);
+	vector<string> bsonToFeaturesName(const bsoncxx::v_noabi::document::view bson);
+	vector<string> bsonToFeaturesName(bsoncxx::stdx::optional<bsoncxx::document::value> opt_bson);
 
     private:
         // methods

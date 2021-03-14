@@ -367,6 +367,7 @@ void trainNeuralNetwork(string independent_net_id,bool load, bool just_train){
     vector<pair<vector<int>, vector<float>>> train_data = mongo->loadCvesFromYears(cve_years_train, train_limit).second;
     train_data=encodeData(train_data,hyper->label_type);
     train_data=Utils::balanceSingleLabelDataset(train_data);
+    // train_data=mongo->filterFeatures(train_data,vector<string> {"reference_type_","vendor_","description_"});
     cout<<"Loaded CVE data...OK\n";
     size_t maxNodes=(size_t)train_data[0].first.size();
     cout<<"train_metric: "<<static_cast<underlying_type<SlideMetric>::type>(train_metric)<<endl;
@@ -533,6 +534,7 @@ void evalNeuralNetwork(string independent_net_id, string result_id, string eval_
     }
     cve_data=encodeData(cve_data,hyper->label_type);
     cout<<"Loaded CVE data...OK\n";
+    // cve_data=mongo->filterFeatures(cve_data,vector<string> {"reference_type_","vendor_","description_"});
     size_t maxNodes=(size_t)cve_data[0].first.size();
     cout<<"test_metric: "<<static_cast<underlying_type<SlideMetric>::type>(test_metric)<<endl;
     cout<<"cross_validation: "<<static_cast<underlying_type<SlideCrossValidation>::type>(cross_validation)<<endl;
