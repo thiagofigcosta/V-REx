@@ -109,7 +109,7 @@ void PopulationManager::naturalSelection(int gens,bool verbose){
         if (hall_of_fame){
             if(verbose)
                 cout<<"\tSetting hall of fame...\n";
-            hall_of_fame->update(population,g); // store best on hall of fame
+            hall_of_fame->update(population,g+1); // store best on hall of fame
             if(verbose)
                 cout<<"\tSetted hall of fame...OK\n";
         }
