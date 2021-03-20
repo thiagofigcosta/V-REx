@@ -9,6 +9,17 @@ Neural network with parts of the code from:
 >- https://github.com/mongodb/mongo-c-driver
 >- https://github.com/mnmlstc/core
 
+## CEFET-MG Final Project:
+
+### Raw dataset used on Final Project:
+
+>- https://mega.nz/file/H4wzwKpb#ONvpbhR_GDy3vxKEabHZQHqvA-5EM4WWBbwlbDzBTt4
+
+### Experiments data: neural_db and genetic_db:
+
+>- https://mega.nz/file/ztx1SAID#jgSAi0qm9MglrMUr3u_zPeexhVDowgDayTv19_wrSts
+>- https://mega.nz/file/b8hDES4A#o4tsgzDqEdlKmYXFHXw7EAOqMAjfavylJnZUbBgdvJw
+
 ## To run commands
 
 Access the front-end container and use one of the following commands:
