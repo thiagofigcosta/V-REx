@@ -1,6 +1,8 @@
 # V-REx
 Vulnerabilities' Risk of Exploitation
 
+Prototype of a genetically tuned neural network to predict probability of exploiting a vulnerability.
+
 Neural network with parts of the code from: 
 >- https://github.com/keroro824/HashingDeepLearning 
 >- https://github.com/jl2922/hps
