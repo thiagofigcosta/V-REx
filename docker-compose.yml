@@ -10,6 +10,12 @@ services:
             - mongo
         networks:
             - mongo-network
+        deploy:
+            resources:
+                limits:
+                    memory: 60G
+                reservations:
+                    memory: 10G
     data-crawler:
         build: 
             context: data-crawler
