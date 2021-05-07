@@ -325,6 +325,7 @@ void testEnchancedGeneticsOnMath(){
     limits.push_back(x);
     SPACE_SEARCH space=SPACE_SEARCH(vector<INT_SPACE_SEARCH>(),limits);
     int population_start_size=300;
+    int population_start_size_std=720;
     int max_gens=100;
     int max_age=10;
     int max_children=4;
@@ -357,7 +358,7 @@ void testEnchancedGeneticsOnMath(){
             // https://www.sfu.ca/~ssurjano/egg.html // minimum -> x1=512 | x2=404.2319 -> y(x1,x2)=-959.6407
             pair<vector<int>,vector<float>> dna=self->getDna();
             return -(dna.second[1]+47)*sin(sqrt(abs(dna.second[1]+(dna.second[0]/2)+47)))-dna.second[0]*sin(sqrt(abs(dna.second[0]-(dna.second[1]+47))));}
-            ,population_start_size, search_maximum,false,print_deltas);
+            ,population_start_size_std, search_maximum,false,print_deltas);
         std_population.setHallOfFame(std_elite);
         // cout<<"Standard : ";
         std_population.naturalSelection(max_gens);
