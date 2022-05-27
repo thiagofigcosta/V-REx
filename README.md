@@ -1,4 +1,4 @@
-# V-REx
+# V-REx HDP
 Vulnerabilities' Risk of Exploitation
 
 Prototype of a genetically tuned neural network to predict probability of exploiting a vulnerability.
